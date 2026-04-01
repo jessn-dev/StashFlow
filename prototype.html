@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTrack Prototype Demo</title>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* Custom scrollbar to match the clean UI */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.1);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        const { useState } = React;
+
+        const COLORS = {
+          light: {
+            bg: "#F4F6F5", sidebar: "#FFFFFF", card: "#FFFFFF", cardBorder: "#E8EDE9",
+            text: "#0D1F12", textSub: "#6B7F72", accent: "#1A7A3C", accentLight: "#E8F5ED",
+            accentMid: "#2EA85A", danger: "#D94040", dangerLight: "#FDEAEA", warning: "#D97706",
+            warningLight: "#FEF3C7", input: "#F0F4F1", divider: "#E2EAE4", navHover: "#F0F7F2",
+            shadow: "rgba(0,0,0,0.06)", chartBar: "#2EA85A", chartBarLight: "#A8D9BB", topbar: "#FFFFFF",
+          },
+          dark: {
+            bg: "#0A0F0C", sidebar: "#111A14", card: "#141F17", cardBorder: "#1E2E22",
+            text: "#E8F0E9", textSub: "#7A9B82", accent: "#2EA85A", accentLight: "#0F2A18",
+            accentMid: "#3DBF6A", danger: "#EF5350", dangerLight: "#2A1212", warning: "#F59E0B",
+            warningLight: "#1F1500", input: "#1A2B1F", divider: "#1E2E22", navHover: "#1A2B1F",
+            shadow: "rgba(0,0,0,0.3)", chartBar: "#2EA85A", chartBarLight: "#1A4D2E", topbar: "#111A14",
+          },
+        };
+
+        const NAV = [
+          { id: "dashboard", icon: "⊞", label: "Dashboard" },
+          { id: "spending", icon: "💳", label: "Spending" },
+          { id: "income", icon: "📥", label: "Income" },
+          { id: "loans", icon: "🏦", label: "Loans" },
+          { id: "dti", icon: "📊", label: "DTI Ratio" },
+          { id: "currencies", icon: "💱", label: "Currencies" },
+        ];
+
+        const NAV2 = [
+          { id: "settings", icon: "⚙", label: "Settings" },
+          { id: "logout", icon: "→", label: "Log out", danger: true },
+        ];
+
+        const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug"];
+        const CHART_DATA = [38,52,45,68,55,72,60,48];
+
+        const LOANS = [
+          { name: "Car Loan", principal: 18000, paid: 6200, currency: "USD", rate: 5.5, months: 48, start: "Jan 2024", end: "Jan 2028", installment: 413, status: "active" },
+          { name: "Home Mortgage", principal: 220000, paid: 18000, currency: "USD", rate: 3.8, months: 360, start: "Mar 2023", end: "Mar 2053", installment: 1024, status: "active" },
+          { name: "Personal Loan", principal: 5000, paid: 5000, currency: "USD", rate: 8.9, months: 24, start: "Jan 2022", end: "Jan 2024", installment: 229, status: "completed" },
+        ];
+
+        const EXPENSES = [
+          { category: "Housing", amount: 1800, icon: "🏠", color: "#2EA85A", pct: 36 },
+          { category: "Food & Dining", amount: 620, icon: "🍽", color: "#3B82F6", pct: 12 },
+          { category: "Transport", amount: 310, icon: "🚗", color: "#8B5CF6", pct: 6 },
+          { category: "Utilities", amount: 185, icon: "⚡", color: "#F59E0B", pct: 4 },
+          { category: "Entertainment", amount: 95, icon: "🎬", color: "#EF5350", pct: 2 },
+          { category: "Healthcare", amount: 140, icon: "🏥", color: "#06B6D4", pct: 3 },
+        ];
+
+        const BILLS = [
+          { name: "Netflix", icon: "🎬", date: "Jun 28", amount: 15.99, status: "Scheduled" },
+          { name: "Gym Membership", icon: "💪", date: "Jul 15", amount: 39.00, status: "Scheduled" },
+          { name: "Car Insurance", icon: "🚗", date: "Jul 10", amount: 89.99, status: "Scheduled" },
+          { name: "Internet", icon: "📡", date: "Jul 1", amount: 59.99, status: "Scheduled" },
+        ];
+
+        const TXNS = [
+          { id: "TXN001", name: "Whole Foods", cat: "Food", amount: -82.40, date: "Mar 30", status: "Completed", icon: "🛒" },
+          { id: "TXN002", name: "Salary Deposit", cat: "Income", amount: 4250.00, date: "Mar 28", status: "Completed", icon: "💰" },
+          { id: "TXN003", name: "Netflix", cat: "Entertainment", amount: -15.99, date: "Mar 28", status: "Completed", icon: "🎬" },
+          { id: "TXN004", name: "Car Loan", cat: "Loan", amount: -413.00, date: "Mar 25", status: "Completed", icon: "🏦" },
+          { id: "TXN005", name: "Gas Station", cat: "Transport", amount: -55.20, date: "Mar 24", status: "Pending", icon: "⛽" },
+        ];
+
+        const CURRENCIES = [
+          { from: "USD", to: "EUR", rate: 0.9234 },
+          { from: "USD", to: "GBP", rate: 0.7912 },
+          { from: "USD", to: "NGN", rate: 1581.5 },
+          { from: "USD", to: "JPY", rate: 149.72 },
+          { from: "USD", to: "CAD", rate: 1.362 },
+        ];
+
+        function Sidebar({ active, setActive, dark, c }) {
+          return (
+            <div style={{
+              width: 220, minHeight: "100vh", background: c.sidebar,
+              borderRight: `1px solid ${c.divider}`, display: "flex",
+              flexDirection: "column", padding: "24px 0", flexShrink: 0,
+              boxShadow: `2px 0 12px ${c.shadow}`
+            }}>
+              <div style={{ padding: "0 20px 28px", display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, background: c.accent, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>💰</div>
+                <span style={{ fontFamily: "'Georgia', serif", fontWeight: 700, fontSize: 18, color: c.text, letterSpacing: "-0.5px" }}>FinTrack</span>
+              </div>
+
+              <div style={{ padding: "0 12px", marginBottom: 8 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: c.textSub, letterSpacing: "0.12em", textTransform: "uppercase", padding: "0 8px", marginBottom: 4 }}>Main Menu</p>
+              </div>
+
+              {NAV.map(n => (
+                <button key={n.id} onClick={() => setActive(n.id)} style={{
+                  display: "flex", alignItems: "center", gap: 12, padding: "10px 20px",
+                  margin: "1px 12px", borderRadius: 10, border: "none", cursor: "pointer",
+                  background: active === n.id ? c.accent : "transparent",
+                  color: active === n.id ? "#fff" : c.textSub,
+                  fontWeight: active === n.id ? 600 : 400, fontSize: 14,
+                  transition: "all 0.15s", textAlign: "left"
+                }}
+                  onMouseEnter={e => { if (active !== n.id) e.currentTarget.style.background = c.navHover }}
+                  onMouseLeave={e => { if (active !== n.id) e.currentTarget.style.background = "transparent" }}
+                >
+                  <span style={{ fontSize: 16 }}>{n.icon}</span>
+                  {n.label}
+                </button>
+              ))}
+
+              <div style={{ flex: 1 }}></div>
+
+              <div style={{ padding: "0 12px", marginBottom: 8 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: c.textSub, letterSpacing: "0.12em", textTransform: "uppercase", padding: "0 8px", marginBottom: 4 }}>Account</p>
+              </div>
+
+              {NAV2.map(n => (
+                <button key={n.id} style={{
+                  display: "flex", alignItems: "center", gap: 12, padding: "10px 20px",
+                  margin: "1px 12px", borderRadius: 10, border: "none", cursor: "pointer",
+                  background: "transparent",
+                  color: n.danger ? c.danger : c.textSub,
+                  fontWeight: 400, fontSize: 14, transition: "all 0.15s", textAlign: "left"
+                }}>
+                  <span style={{ fontSize: 16 }}>{n.icon}</span>
+                  {n.label}
+                </button>
+              ))}
+
+              <div style={{ margin: "16px 12px 0", background: c.accent, borderRadius: 14, padding: "16px", color: "#fff" }}>
+                <div style={{ fontSize: 20, marginBottom: 6 }}>✨</div>
+                <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Go Pro</p>
+                <p style={{ fontSize: 11, opacity: 0.8, marginBottom: 10, lineHeight: 1.4 }}>Unlock insights, alerts & multi-account sync</p>
+                <button style={{ background: "#fff", color: c.accent, border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", width: "100%" }}>Upgrade</button>
+              </div>
+            </div>
+          );
+        }
+
+        function TopBar({ dark, setDark, c }) {
+          return (
+            <div style={{
+              height: 64, background: c.topbar, borderBottom: `1px solid ${c.divider}`,
+              display: "flex", alignItems: "center", padding: "0 24px", gap: 16,
+              position: "sticky", top: 0, zIndex: 10
+            }}>
+              <div style={{ flex: 1, background: c.input, borderRadius: 10, padding: "9px 16px", display: "flex", alignItems: "center", gap: 8, maxWidth: 380 }}>
+                <span style={{ color: c.textSub, fontSize: 14 }}>🔍</span>
+                <span style={{ color: c.textSub, fontSize: 14 }}>Search transactions, loans...</span>
+              </div>
+              <div style={{ flex: 1 }}></div>
+
+              <button onClick={() => setDark(!dark)} style={{
+                display: "flex", alignItems: "center", gap: 8, background: c.input,
+                border: "none", borderRadius: 20, padding: "7px 14px", cursor: "pointer",
+                color: c.text, fontSize: 13, fontWeight: 600, transition: "all 0.2s"
+              }}>
+                <span>{dark ? "☀️" : "🌙"}</span>
+                <span>{dark ? "Light" : "Dark"}</span>
+              </button>
+
+              <button style={{ background: c.input, border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", fontSize: 18 }}>🔔</button>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 12, background: c.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, border: `2px solid ${c.accent}` }}>👤</div>
+                <div>
+                  <p style={{ fontWeight: 700, fontSize: 13, color: c.text, margin: 0 }}>Alex Morgan</p>
+                  <p style={{ fontSize: 11, color: c.textSub, margin: 0 }}>alex@email.com</p>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        function Card({ children, c, style = {} }) {
+          return (
+            <div style={{
+              background: c.card, borderRadius: 16, border: `1px solid ${c.cardBorder}`,
+              boxShadow: `0 2px 12px ${c.shadow}`, ...style
+            }}>
+              {children}
+            </div>
+          );
+        }
+
+        function StatCard({ icon, label, value, sub, color, c }) {
+          return (
+            <Card c={c} style={{ padding: "20px", flex: 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <p style={{ fontSize: 12, color: c.textSub, margin: "0 0 6px", fontWeight: 500 }}>{label}</p>
+                  <p style={{ fontSize: 22, fontWeight: 800, color: c.text, margin: "0 0 4px", fontFamily: "'Georgia',serif" }}>{value}</p>
+                  <p style={{ fontSize: 11, color: c.textSub, margin: 0 }}>{sub}</p>
+                </div>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{icon}</div>
+              </div>
+            </Card>
+          );
+        }
+
+        function MiniChart({ data, c, height = 60 }) {
+          const max = Math.max(...data);
+          return (
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 5, height }}>
+              {data.map((v, i) => (
+                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                  <div style={{
+                    width: "100%", borderRadius: 4,
+                    background: i === 3 ? c.chartBar : c.chartBarLight,
+                    height: `${(v / max) * (height - 16)}px`,
+                    transition: "height 0.3s"
+                  }}></div>
+                  <span style={{ fontSize: 9, color: c.textSub }}>{MONTHS[i]}</span>
+                </div>
+              ))}
+            </div>
+          );
+        }
+
+        function Dashboard({ c }) {
+          return (
+            <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 20 }}>
+              <div>
+                <h1 style={{ fontSize: 26, fontWeight: 800, color: c.text, margin: 0, fontFamily: "'Georgia',serif" }}>Financial Overview</h1>
+                <p style={{ color: c.textSub, fontSize: 13, margin: "4px 0 0" }}>Home › Dashboard</p>
+              </div>
+
+              <div style={{ display: "flex", gap: 16 }}>
+                <StatCard icon="💰" label="Total Balance" value="$16,325" sub="Overall Wealth" color="#2EA85A" c={c} />
+                <StatCard icon="📤" label="Total Expenses" value="$3,150" sub="This Month" color="#EF5350" c={c} />
+                <StatCard icon="📥" label="Total Income" value="$5,567" sub="This Month" color="#3B82F6" c={c} />
+                <StatCard icon="📊" label="DTI Ratio" value="38.2%" sub="Healthy range" color="#F59E0B" c={c} />
+              </div>
+
+              <div style={{ display: "flex", gap: 16 }}>
+                <Card c={c} style={{ flex: 2, padding: 20 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                    <div>
+                      <p style={{ fontSize: 12, color: c.textSub, margin: 0 }}>Cash Flow</p>
+                      <p style={{ fontSize: 22, fontWeight: 800, color: c.text, margin: "4px 0 0", fontFamily: "'Georgia',serif" }}>$5,567.00</p>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {["Monthly", "Yearly"].map(t => (
+                        <button key={t} style={{
+                          padding: "5px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                          background: t === "Monthly" ? c.accent : c.input, color: t === "Monthly" ? "#fff" : c.textSub
+                        }}>{t}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <MiniChart data={CHART_DATA} c={c} height={80} />
+                </Card>
+
+                <Card c={c} style={{ flex: 1.3, padding: 20 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                    <p style={{ fontWeight: 700, fontSize: 14, color: c.text, margin: 0 }}>Upcoming Bills</p>
+                    <button style={{ width: 26, height: 26, borderRadius: 8, background: c.accent, border: "none", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14 }}>+</button>
+                  </div>
+                  {BILLS.slice(0, 3).map((b, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < 2 ? `1px solid ${c.divider}` : "none" }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 10, background: c.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{b.icon}</div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontWeight: 600, fontSize: 13, color: c.text, margin: 0 }}>{b.name}</p>
+                        <p style={{ fontSize: 11, color: c.textSub, margin: 0 }}>{b.date}</p>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <p style={{ fontWeight: 700, fontSize: 13, color: c.text, margin: 0 }}>${b.amount}</p>
+                        <p style={{ fontSize: 10, color: c.accentMid, margin: 0 }}>{b.status}</p>
+                      </div>
+                    </div>
+                  ))}
+                </Card>
+              </div>
+
+              <div style={{ display: "flex", gap: 16 }}>
+                <Card c={c} style={{ flex: 1, padding: 20 }}>
+                  <p style={{ fontWeight: 700, fontSize: 14, color: c.text, margin: "0 0 14px" }}>Spending Breakdown</p>
+                  {EXPENSES.map((e, i) => (
+                    <div key={i} style={{ marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span style={{ fontSize: 13, color: c.text }}>{e.icon} {e.category}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: c.text }}>${e.amount}</span>
+                      </div>
+                      <div style={{ height: 5, borderRadius: 4, background: c.divider }}>
+                        <div style={{ height: "100%", borderRadius: 4, background: e.color, width: `${e.pct * 1.8}%`, transition: "width 0.4s" }}></div>
+                      </div>
+                    </div>
+                  ))}
+                </Card>
+
+                <Card c={c} style={{ flex: 2, padding: 20 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                    <p style={{ fontWeight: 700, fontSize: 14, color: c.text, margin: 0 }}>Recent Transactions</p>
+                    <button style={{ fontSize: 12, color: c.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>View All →</button>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {TXNS.map((t, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 10px", borderRadius: 10, background: i % 2 === 0 ? c.input : "transparent" }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 10, background: c.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{t.icon}</div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontWeight: 600, fontSize: 13, color: c.text, margin: 0 }}>{t.name}</p>
+                          <p style={{ fontSize: 11, color: c.textSub, margin: 0 }}>{t.cat} · {t.date}</p>
+                        </div>
+                        <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 20, background: t.status === "Completed" ? c.accentLight : c.warningLight, color: t.status === "Completed" ? c.accentMid : c.warning, fontWeight: 600 }}>{t.status}</span>
+                        <span style={{ fontWeight: 800, fontSize: 14, color: t.amount > 0 ? c.accentMid : c.danger, minWidth: 72, textAlign: "right" }}>
+                          {t.amount > 0 ? "+" : ""}${Math.abs(t.amount).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            </div>
+          );
+        }
+
+        function Loans({ c }) {
+          const [showAdd, setShowAdd] = useState(false);
+          return (
+            <div style={{ padding: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+                <div>
+                  <h1 style={{ fontSize: 26, fontWeight: 800, color: c.text, margin: 0, fontFamily: "'Georgia',serif" }}>Loans & Installments</h1>
+                  <p style={{ color: c.textSub, fontSize: 13, margin: "4px 0 0" }}>Track all your loans and payment schedules</p>
+                </div>
+                <button onClick={() => setShowAdd(!showAdd)} style={{
+                  background: c.accent, color: "#fff", border: "none", borderRadius: 12, padding: "10px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8
+                }}>+ Add Loan</button>
+              </div>
+
+              {showAdd && (
+                <Card c={c} style={{ padding: 24, marginBottom: 20, border: `2px solid ${c.accent}` }}>
+                  <p style={{ fontWeight: 700, fontSize: 16, color: c.text, margin: "0 0 16px" }}>📋 New Loan Details</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+                    {[
+                      { label: "Loan Name", placeholder: "e.g. Car Loan" },
+                      { label: "Principal Amount", placeholder: "e.g. 20,000" },
+                      { label: "Currency", placeholder: "USD" },
+                      { label: "Interest Rate (%)", placeholder: "e.g. 5.5" },
+                      { label: "Duration (months)", placeholder: "e.g. 48" },
+                      { label: "Start Date", placeholder: "MM/YYYY" },
+                    ].map((f, i) => (
+                      <div key={i}>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: c.textSub, margin: "0 0 6px" }}>{f.label}</p>
+                        <input placeholder={f.placeholder} style={{
+                          width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${c.cardBorder}`,
+                          background: c.input, color: c.text, fontSize: 14, outline: "none",
+                          boxSizing: "border-box"
+                        }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+                    <button style={{ background: c.accent, color: "#fff", border: "none", borderRadius: 10, padding: "10px 24px", fontWeight: 700, cursor: "pointer" }}>Save Loan</button>
+                    <button onClick={() => setShowAdd(false)} style={{ background: c.input, color: c.textSub, border: "none", borderRadius: 10, padding: "10px 20px", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </Card>
+              )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {LOANS.map((loan, i) => {
+                  const progress = (loan.paid / loan.principal) * 100;
+                  return (
+                    <Card key={i} c={c} style={{ padding: 22 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ width: 44, height: 44, borderRadius: 14, background: loan.status === "completed" ? c.accentLight : c.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>🏦</div>
+                          <div>
+                            <p style={{ fontWeight: 700, fontSize: 16, color: c.text, margin: 0 }}>{loan.name}</p>
+                            <p style={{ fontSize: 12, color: c.textSub, margin: "2px 0 0" }}>{loan.start} → {loan.end} · {loan.rate}% APR</p>
+                          </div>
+                        </div>
+                        <span style={{
+                          padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+                          background: loan.status === "completed" ? c.accentLight : c.warningLight,
+                          color: loan.status === "completed" ? c.accentMid : c.warning,
+                          textTransform: "capitalize"
+                        }}>{loan.status}</span>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
+                        {[
+                          { label: "Principal", value: `$${loan.principal.toLocaleString()}` },
+                          { label: "Paid", value: `$${loan.paid.toLocaleString()}` },
+                          { label: "Remaining", value: `$${(loan.principal - loan.paid).toLocaleString()}` },
+                          { label: "Monthly Payment", value: `$${loan.installment}/mo` },
+                        ].map((s, j) => (
+                          <div key={j}>
+                            <p style={{ fontSize: 11, color: c.textSub, margin: "0 0 4px", fontWeight: 500 }}>{s.label}</p>
+                            <p style={{ fontSize: 16, fontWeight: 800, color: c.text, margin: 0, fontFamily: "'Georgia',serif" }}>{s.value}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                          <span style={{ fontSize: 12, color: c.textSub }}>Repayment Progress</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: c.accentMid }}>{progress.toFixed(1)}%</span>
+                        </div>
+                        <div style={{ height: 8, borderRadius: 6, background: c.divider }}>
+                          <div style={{ height: "100%", borderRadius: 6, background: loan.status === "completed" ? c.accentMid : c.accent, width: `${progress}%`, transition: "width 0.5s" }}></div>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        }
+
+        function DTIScreen({ c }) {
+          const income = 5567;
+          const debt = 1437;
+          const dti = (debt / income) * 100;
+          const status = dti < 36 ? "Healthy" : dti < 50 ? "Moderate" : "High Risk";
+          const statusColor = dti < 36 ? c.accentMid : dti < 50 ? c.warning : c.danger;
+
+          return (
+            <div style={{ padding: 24 }}>
+              <h1 style={{ fontSize: 26, fontWeight: 800, color: c.text, margin: "0 0 4px", fontFamily: "'Georgia',serif" }}>DTI Ratio</h1>
+              <p style={{ color: c.textSub, fontSize: 13, margin: "0 0 24px" }}>Debt-to-Income ratio analysis</p>
+
+              <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
+                <Card c={c} style={{ flex: 1, padding: 28, textAlign: "center" }}>
+                  <p style={{ fontSize: 13, color: c.textSub, margin: "0 0 8px" }}>Your DTI Ratio</p>
+                  <div style={{ position: "relative", width: 160, height: 160, margin: "0 auto 16px" }}>
+                    <svg viewBox="0 0 160 160" style={{ transform: "rotate(-90deg)" }}>
+                      <circle cx="80" cy="80" r="65" fill="none" stroke={c.divider} strokeWidth="14" />
+                      <circle cx="80" cy="80" r="65" fill="none" stroke={statusColor} strokeWidth="14"
+                        strokeDasharray={`${2 * Math.PI * 65 * dti / 100} ${2 * Math.PI * 65 * (1 - dti / 100)}`}
+                        strokeLinecap="round" />
+                    </svg>
+                    <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
+                      <p style={{ fontSize: 28, fontWeight: 900, color: statusColor, margin: 0, fontFamily: "'Georgia',serif" }}>{dti.toFixed(1)}%</p>
+                      <p style={{ fontSize: 12, color: c.textSub, margin: 0, fontWeight: 600 }}>{status}</p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+                    {[["< 36%", "Healthy", c.accentMid], ["36-49%", "Moderate", c.warning], ["50%+", "High Risk", c.danger]].map(([range, label, color]) => (
+                      <div key={label} style={{ textAlign: "center", padding: "8px 12px", borderRadius: 10, background: color + "18" }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color, margin: 0 }}>{range}</p>
+                        <p style={{ fontSize: 10, color: c.textSub, margin: "2px 0 0" }}>{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                <Card c={c} style={{ flex: 1.5, padding: 24 }}>
+                  <p style={{ fontWeight: 700, fontSize: 15, color: c.text, margin: "0 0 16px" }}>Monthly Breakdown</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div style={{ padding: "14px 16px", borderRadius: 12, background: c.accentLight, display: "flex", justifyContent: "space-between" }}>
+                      <div>
+                        <p style={{ fontSize: 12, color: c.accentMid, margin: 0, fontWeight: 600 }}>📥 Gross Monthly Income</p>
+                        <p style={{ fontSize: 22, fontWeight: 800, color: c.text, margin: "4px 0 0", fontFamily: "'Georgia',serif" }}>${income.toLocaleString()}</p>
+                      </div>
+                      <span style={{ fontSize: 28 }}>💰</span>
+                    </div>
+                    <div style={{ padding: "14px 16px", borderRadius: 12, background: c.dangerLight, display: "flex", justifyContent: "space-between" }}>
+                      <div>
+                        <p style={{ fontSize: 12, color: c.danger, margin: 0, fontWeight: 600 }}>📤 Total Monthly Debt</p>
+                        <p style={{ fontSize: 22, fontWeight: 800, color: c.text, margin: "4px 0 0", fontFamily: "'Georgia',serif" }}>${debt.toLocaleString()}</p>
+                      </div>
+                      <span style={{ fontSize: 28 }}>🏦</span>
+                    </div>
+
+                    <div style={{ marginTop: 4 }}>
+                      <p style={{ fontSize: 12, color: c.textSub, margin: "0 0 8px", fontWeight: 600 }}>Debt Contributions</p>
+                      {[
+                        { name: "Car Loan", amount: 413, pct: 29 },
+                        { name: "Mortgage", amount: 1024, pct: 71 },
+                      ].map((d, i) => (
+                        <div key={i} style={{ marginBottom: 8 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                            <span style={{ fontSize: 13, color: c.text }}>{d.name}</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: c.danger }}>${d.amount}/mo</span>
+                          </div>
+                          <div style={{ height: 5, borderRadius: 4, background: c.divider }}>
+                            <div style={{ height: "100%", borderRadius: 4, background: c.danger, width: `${d.pct}%` }}></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              <Card c={c} style={{ padding: 18, background: c.accentLight, border: `1px solid ${c.accent}40` }}>
+                <p style={{ fontWeight: 700, fontSize: 14, color: c.accentMid, margin: "0 0 4px" }}>💡 Financial Insight</p>
+                <p style={{ fontSize: 13, color: c.text, margin: 0, lineHeight: 1.5 }}>
+                  Your DTI of <strong>{dti.toFixed(1)}%</strong> is in the healthy range. To improve further, aim to pay an extra $200/month toward your Car Loan to reduce it by <strong>6 months</strong> and save ~$340 in interest.
+                </p>
+              </Card>
+            </div>
+          );
+        }
+
+        function SpendingScreen({ c }) {
+          const [showAdd, setShowAdd] = useState(false);
+          return (
+            <div style={{ padding: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+                <div>
+                  <h1 style={{ fontSize: 26, fontWeight: 800, color: c.text, margin: 0, fontFamily: "'Georgia',serif" }}>Spending Tracker</h1>
+                  <p style={{ color: c.textSub, fontSize: 13, margin: "4px 0 0" }}>Log and categorize your expenses</p>
+                </div>
+                <button onClick={() => setShowAdd(!showAdd)} style={{ background: c.accent, color: "#fff", border: "none", borderRadius: 12, padding: "10px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>+ Add Expense</button>
+              </div>
+
+              {showAdd && (
+                <Card c={c} style={{ padding: 22, marginBottom: 20, border: `2px solid ${c.accent}` }}>
+                  <p style={{ fontWeight: 700, fontSize: 15, color: c.text, margin: "0 0 14px" }}>💳 Log Expense</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14 }}>
+                    {["Description", "Amount", "Currency", "Category", "Date", "Note"].map((f, i) => (
+                      <div key={i}>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: c.textSub, margin: "0 0 6px" }}>{f}</p>
+                        <input placeholder={`Enter ${f.toLowerCase()}`} style={{
+                          width: "100%", padding: "9px 12px", borderRadius: 10, border: `1px solid ${c.cardBorder}`,
+                          background: c.input, color: c.text, fontSize: 13, outline: "none", boxSizing: "border-box"
+                        }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                    <button style={{ background: c.accent, color: "#fff", border: "none", borderRadius: 10, padding: "10px 24px", fontWeight: 700, cursor: "pointer" }}>Save</button>
+                    <button onClick={() => setShowAdd(false)} style={{ background: c.input, color: c.textSub, border: "none", borderRadius: 10, padding: "10px 20px", cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </Card>
+              )}
+
+              <div style={{ display: "flex", gap: 16 }}>
+                <Card c={c} style={{ flex: 1, padding: 20 }}>
+                  <p style={{ fontWeight: 700, fontSize: 14, color: c.text, margin: "0 0 14px" }}>By Category</p>
+                  {EXPENSES.map((e, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < EXPENSES.length - 1 ? `1px solid ${c.divider}` : "none" }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: e.color + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>{e.icon}</div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontWeight: 600, fontSize: 13, color: c.text, margin: 0 }}>{e.category}</p>
+                        <div style={{ height: 4, borderRadius: 4, background: c.divider, marginTop: 4 }}>
+                          <div style={{ height: "100%", borderRadius: 4, background: e.color, width: `${e.pct * 2.5}%` }}></div>
+                        </div>
+                      </div>
+                      <span style={{ fontWeight: 800, fontSize: 14, color: c.danger }}>${e.amount}</span>
+                    </div>
+                  ))}
+                </Card>
+
+                <Card c={c} style={{ flex: 2, padding: 20 }}>
+                  <p style={{ fontWeight: 700, fontSize: 14, color: c.text, margin: "0 0 14px" }}>Recent Expenses</p>
+                  {TXNS.filter(t => t.amount < 0).map((t, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px", borderRadius: 10, background: i % 2 === 0 ? c.input : "transparent" }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 10, background: c.dangerLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{t.icon}</div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontWeight: 600, fontSize: 13, color: c.text, margin: 0 }}>{t.name}</p>
+                        <p style={{ fontSize: 11, color: c.textSub, margin: 0 }}>{t.cat} · {t.date}</p>
+                      </div>
+                      <span style={{ fontWeight: 800, color: c.danger, fontSize: 14 }}>-${Math.abs(t.amount).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </Card>
+              </div>
+            </div>
+          );
+        }
+
+        function CurrenciesScreen({ c }) {
+          const [amount, setAmount] = useState("1");
+          const [base, setBase] = useState("USD");
+          return (
+            <div style={{ padding: 24 }}>
+              <h1 style={{ fontSize: 26, fontWeight: 800, color: c.text, margin: "0 0 4px", fontFamily: "'Georgia',serif" }}>Currencies</h1>
+              <p style={{ color: c.textSub, fontSize: 13, margin: "0 0 24px" }}>Live exchange rates · Powered by Frankfurter API</p>
+
+              <div style={{ display: "flex", gap: 16 }}>
+                <Card c={c} style={{ flex: 1, padding: 22 }}>
+                  <p style={{ fontWeight: 700, fontSize: 14, color: c.text, margin: "0 0 14px" }}>Convert Amount</p>
+                  <div style={{ marginBottom: 12 }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: c.textSub, margin: "0 0 6px" }}>Amount</p>
+                    <input value={amount} onChange={e => setAmount(e.target.value)} style={{
+                      width: "100%", padding: "12px 14px", borderRadius: 12, border: `2px solid ${c.accent}`,
+                      background: c.input, color: c.text, fontSize: 18, fontWeight: 700, outline: "none", boxSizing: "border-box"
+                    }} />
+                  </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: c.textSub, margin: "0 0 6px" }}>Base Currency</p>
+                    <select value={base} onChange={e => setBase(e.target.value)} style={{
+                      width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${c.cardBorder}`,
+                      background: c.input, color: c.text, fontSize: 14, outline: "none"
+                    }}>
+                      {["USD", "EUR", "GBP", "NGN", "JPY", "CAD"].map(cur => <option key={cur}>{cur}</option>)}
+                    </select>
+                  </div>
+                  <button style={{ width: "100%", padding: "12px", background: c.accent, color: "#fff", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
+                    🔄 Get Live Rates
+                  </button>
+                  <p style={{ fontSize: 11, color: c.textSub, margin: "10px 0 0", textAlign: "center" }}>Rates update every 24h</p>
+                </Card>
+
+                <Card c={c} style={{ flex: 2, padding: 22 }}>
+                  <p style={{ fontWeight: 700, fontSize: 14, color: c.text, margin: "0 0 14px" }}>Live Rates · 1 {base}</p>
+                  {CURRENCIES.map((cur, i) => (
+                    <div key={i} style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "14px 16px", borderRadius: 12, marginBottom: 8,
+                      background: i % 2 === 0 ? c.input : "transparent"
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 12, background: c.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, color: c.accentMid }}>{cur.to}</div>
+                        <div>
+                          <p style={{ fontWeight: 700, fontSize: 14, color: c.text, margin: 0 }}>{cur.to}</p>
+                          <p style={{ fontSize: 11, color: c.textSub, margin: 0 }}>1 {cur.from} →</p>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <p style={{ fontWeight: 800, fontSize: 18, color: c.text, margin: 0, fontFamily: "'Georgia',serif" }}>{(cur.rate * Number(amount || 1)).toFixed(4)}</p>
+                        <p style={{ fontSize: 11, color: c.textSub, margin: 0 }}>Rate: {cur.rate}</p>
+                      </div>
+                    </div>
+                  ))}
+                </Card>
+              </div>
+            </div>
+          );
+        }
+
+        function App() {
+          const [dark, setDark] = useState(false);
+          const [screen, setScreen] = useState("dashboard");
+          const c = COLORS[dark ? "dark" : "light"];
+
+          const SCREENS = { dashboard: <Dashboard c={c} />, loans: <Loans c={c} />, dti: <DTIScreen c={c} />, spending: <SpendingScreen c={c} />, currencies: <CurrenciesScreen c={c} /> };
+
+          return (
+            <div style={{ display: "flex", minHeight: "100vh", background: c.bg, fontFamily: "'Helvetica Neue', sans-serif", transition: "background 0.2s" }}>
+              <Sidebar active={screen} setActive={setScreen} dark={dark} c={c} />
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <TopBar dark={dark} setDark={setDark} c={c} />
+                <div style={{ flex: 1, overflowY: "auto" }}>
+                  {SCREENS[screen] || <Dashboard c={c} />}
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

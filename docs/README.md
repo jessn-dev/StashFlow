@@ -284,3 +284,41 @@ This project is currently in private development. Branch and PR guidelines:
 4. All PRs must pass lint and type checks
 
 ---
+
+## 🚀 Quick Start: Automated Setup
+
+To guarantee a frictionless onboarding experience, FinTrack includes an automated bootstrap script (`setup.sh`). This script handles the entire monorepo initialization process.
+
+### What the Script Does:
+1. Validates your **Node.js** installation.
+2. Checks for **pnpm** and installs the standalone binary if it is missing.
+3. Initializes the **Turborepo** workspace.
+4. Scaffolds the **Next.js 15** web app and **Expo SDK 52** mobile app.
+5. Generates the shared `@fintrack` internal packages (`core`, `ui`, `api`).
+6. Installs and links all workspace dependencies.
+
+### Installation Steps
+
+**1. Verify Node.js**
+Ensure you have Node.js v22.x LTS installed:
+```bash
+node -v
+```
+**2. Execute the Setup Script**
+Run the automated bootstrap from the root directory:
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+**3. Refresh Your Environment**
+Note: If the script had to install pnpm for you, you must refresh your terminal before proceeding.
+```bash
+source ~/.zshrc  # macOS/Linux Zsh users
+# OR
+source ~/.bash_profile  # Bash users
+```
+**4. Start the Development Servers**
+Spin up both the web and mobile applications simultaneously:
+```bash
+pnpm dev
+```

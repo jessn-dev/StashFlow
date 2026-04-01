@@ -284,7 +284,3 @@ This project is currently in private development. Branch and PR guidelines:
 4. All PRs must pass lint and type checks
 
 ---
-
-## 📄 License
-
-MIT © FinTrack

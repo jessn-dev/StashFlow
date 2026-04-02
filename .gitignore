@@ -69,3 +69,6 @@ supabase/.branch/
 coverage/
 playwright-report/
 test-results/
+
+plan.md
+agentic.md

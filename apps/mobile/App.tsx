@@ -1,20 +1,28 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { LoginScreen } from './screens/LoginScreen'
+import { DashboardScreen } from './screens/DashboardScreen'
+
+// This component actually consumes the context
+function RootNavigator() {
+  const { session, isLoading } = useAuth()
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F5F5' }}>
+        <ActivityIndicator size="large" color="#0D3D3D" />
+      </View>
+    )
+  }
+
+  // If we have a session, show Dashboard. Otherwise, show Login.
+  return session && session.user ? <DashboardScreen /> : <LoginScreen />
+}
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
+    <AuthProvider>
+      <RootNavigator />
+    </AuthProvider>
+  )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

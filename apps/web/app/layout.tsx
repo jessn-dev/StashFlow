@@ -6,9 +6,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      {/* Clean body tag, no suppressHydrationWarning */}
-      <body className="antialiased bg-background text-foreground">
+    // Force the custom DaisyUI theme here
+    <html lang="en" data-theme="fintrack">
+      <body className="antialiased bg-brand-bg text-brand-text">
         {children}
       </body>
     </html>

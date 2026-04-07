@@ -15,11 +15,9 @@
   "packageManager": "pnpm@10.33.0",
   "private": "true",
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "^22",
     "turbo": "^2.9.3",
-    "typescript": "^6.0.2"
+    "typescript": "^5.9.2"
   },
-  "dependencies": {
-    "package.json": "^2.0.1"
-  }
+  "dependencies": {}
 }

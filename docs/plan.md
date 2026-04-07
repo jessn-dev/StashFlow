@@ -1,15 +1,16 @@
 # FinTrack — Master Development Plan
 
-> Last updated: 2026-04-01
-> Status: Phase 0 — Planning & Requirements
+> Last updated: 2026-04-06
+> Active Branch: `feature/m4-dashboard`
+> Status: Milestone 4 — Dashboard, Core Packages & Testing
 
 ---
 
-## 🔒 Working Rules (Non-Negotiable)
+## Working Rules (Non-Negotiable)
 
 These rules govern every step of this project. They do not change unless explicitly requested.
 
-1. **Plan before executing** — A `plan.md` is always updated before any code is written or modified.
+1. **Plan before executing** — `plan.md` is always updated before any code is written or modified.
 2. **Approval before milestones** — Every new milestone must be approved before execution begins. No exceptions.
 3. **Requirements first** — A requirements document is iterated on until the problem is fully understood before any implementation starts.
 4. **Source analysis before changes** — Existing code structure, dependencies, and runtime details are always analyzed before modifying anything.
@@ -20,7 +21,7 @@ These rules govern every step of this project. They do not change unless explici
 
 ---
 
-## 📋 Requirements Document
+## Requirements Document
 
 ### Problem Statement
 Users need a single cross-platform application (Web + iOS + Android) to:
@@ -74,256 +75,158 @@ Users need a single cross-platform application (Web + iOS + Android) to:
 
 ---
 
-## 🗺️ Milestone Map
+## Milestone Map
 
 ```
-M0  ── Requirements & Planning          ✅ Complete
-M1  ── Monorepo Scaffold                ✅ Complete
-M2  ── Supabase Schema + RLS            ✅ Complete
-M3  ── Auth Flow (Web + Mobile)         ⏳ Pending
-M4  ── Core Package (types, utils)      ⏳ Pending
-M5  ── API Package (Supabase queries)   ⏳ Pending
-M6  ── Dashboard (Web)                  ⏳ Pending
-M7  ── Spending Module (Web)            ⏳ Pending
-M8  ── Income Module (Web)              ⏳ Pending
-M9  ── Loans Module + Scheduler (Web)   ⏳ Pending
-M10 ── DTI Module (Web)                 ⏳ Pending
-M11 ── Currencies Module (Web)          ⏳ Pending
-M12 ── Mobile App (all screens)         ⏳ Pending
-M13 ── Edge Functions (3 functions)     ⏳ Pending
-M14 ── Testing Suite                    ⏳ Pending
-M15 ── CI/CD + Deployment               ⏳ Pending
+M0  — Requirements & Planning              ✅ Complete
+M1  — Monorepo Scaffold                    ✅ Complete
+M2  — Supabase Schema + RLS               ✅ Complete
+M3  — Auth Flow (Web + Mobile)             ✅ Complete
+M4a — Core Logic, API Layer & Seed Data    🟡 In Progress
+M4b — Live Dashboards (Web & Mobile)       ⏳ Pending
+M5  — Spending Module (Web)                ⏳ Pending
+M6  — Income Module (Web)                  ⏳ Pending
+M7  — Loans Module + Scheduler (Web)       ⏳ Pending
+M8  — DTI Module (Web)                     ⏳ Pending
+M9  — Currencies Module (Web)              ⏳ Pending
+M10 — Mobile App (all screens)             ⏳ Pending
+M11 — Edge Functions (3 functions)         ⏳ Pending
+M12 — Testing Suite (full coverage)        ⏳ Pending
+M13 — CI/CD + Deployment                   ⏳ Pending
 ```
 
 ---
 
-## ✅ Milestone 0 — Requirements & Planning
-**Status: Complete**
+## Milestone 0 — Requirements & Planning
+**Status: ✅ Complete**
 
-### Deliverables Completed
 - [x] App concept defined
-- [x] Tech stack chosen (Next.js 14, Expo, Supabase, Turborepo)
+- [x] Tech stack chosen (Next.js 15, Expo 54, Supabase, Turborepo)
 - [x] System architecture documented
 - [x] API design documented (all endpoints, types, Edge Functions)
 - [x] UI/UX prototype built (interactive, dark/light mode)
 - [x] Database schema designed
-- [x] Branch strategy defined (`poc/initial-planning`, `develop`, `main`)
+- [x] Branch strategy defined
 - [x] README.md generated
-- [x] plan.md created (this file)
+- [x] plan.md created
 
 ---
 
-## ✅ ⏳ Milestone 1 — Monorepo Scaffold
-**Status: Complete ✋**
+## Milestone 1 — Monorepo Scaffold
+**Status: ✅ Complete**
 
 ### Objective
-Initialize the full project structure so all future milestones have a working foundation to build on.
+Initialize the full project structure so all future milestones have a working foundation.
 
 ### Requirements Addressed
 - NFR-01 (cross-platform shared codebase)
 - NFR-06 (TypeScript strict mode)
 - NFR-07 (shared logic in packages/core)
 
-### Pre-Execution Analysis Needed
-- [ ] Confirm Node.js version target (18+)
-- [ ] Confirm package manager (pnpm recommended for monorepos)
-- [ ] Confirm Turborepo version compatibility with Next.js 14 + Expo SDK 51+
-
-### Test Criteria (must pass before M2)
-- [ ] `pnpm install` completes with no errors
-- [ ] `pnpm --filter web dev` starts Next.js dev server
-- [ ] `pnpm --filter mobile start` launches Expo dev server
-- [ ] `packages/core` can be imported by both `web` and `mobile` without errors
-- [ ] TypeScript compiles with zero errors across all packages
-- [ ] Turborepo build pipeline runs successfully
-
-### Execution Plan — Files & Folders to Create
-
-```
-fintrack/
-├── package.json                  # Root — pnpm workspaces
-├── pnpm-workspace.yaml           # Workspace definitions
-├── turbo.json                    # Turborepo pipeline config
-├── tsconfig.base.json            # Shared TS config
-├── .gitignore
-├── .env.example
-│
-├── apps/
-│   ├── web/
-│   │   ├── package.json
-│   │   ├── tsconfig.json
-│   │   ├── next.config.ts
-│   │   ├── tailwind.config.ts
-│   │   ├── app/
-│   │   │   └── layout.tsx        # Root layout (placeholder)
-│   │   └── .env.example
-│   │
-│   └── mobile/
-│       ├── package.json
-│       ├── tsconfig.json
-│       ├── app.json              # Expo config
-│       ├── app/
-│       │   └── index.tsx         # Entry screen (placeholder)
-│       └── .env.example
-│
-└── packages/
-    ├── core/
-    │   ├── package.json
-    │   ├── tsconfig.json
-    │   └── src/
-    │       ├── index.ts          # Barrel export
-    │       ├── types/
-    │       │   └── index.ts      # Placeholder types
-    │       └── utils/
-    │           └── index.ts      # Placeholder utils
-    │
-    ├── ui/
-    │   ├── package.json
-    │   └── src/
-    │       └── index.ts
-    │
-    └── api/
-        ├── package.json
-        └── src/
-            └── client.ts         # Supabase client init
-```
-
-### Estimated Effort
-~1 session
+### Delivered
+- Turborepo workspace with pnpm
+- `apps/web` (Next.js 15), `apps/mobile` (Expo 54)
+- `packages/core`, `packages/ui`, `packages/api` (shells)
+- Automated `setup.sh` bootstrap script
+- TypeScript strict mode across all packages
 
 ---
 
-## ✅ ⏳ Milestone 2 — Supabase Schema + RLS
-**Status: Complete**
+## Milestone 2 — Supabase Schema + RLS
+**Status: ✅ Complete**
 
 ### Objective
-Create the full database schema with Row Level Security policies so data is isolated per user from day one.
+Full database schema with Row Level Security so data is isolated per user from day one.
 
-### Execution Plan (High Level)
-- Write SQL migration files for all 5 tables
-- Define RLS policy for each table (`user_id = auth.uid()`)
-- Seed file with sample data for development
-- Supabase types auto-generated via CLI
-
-### Test Criteria
-- [ ] All 5 tables created successfully in Supabase
-- [ ] RLS blocks cross-user data access (verified via Supabase dashboard)
-- [ ] TypeScript types generated from schema with no errors
-- [ ] Seed data inserts without constraint violations
+### Delivered
+- 6 tables: profiles, incomes, expenses, loans, loan_payments, exchange_rates
+- RLS policies enforcing `user_id = auth.uid()` on all user tables
+- Auto-generated TypeScript types in `packages/core/src/types/database.types.ts`
+- Custom enums: expense_category, loan_status, payment_status, income_frequency
+- Local Supabase dev environment via Docker
 
 ---
 
-## ⏳ Milestones 3–15
+## Milestone 3 — Auth Flow (Web + Mobile)
+**Status: 🟡 In Progress**
+
+### Objective
+Secure login/signup and session management across both platforms.
+
+### Requirements Addressed
+- FR-01 (sign up, log in, reset password)
+- NFR-05 (secure token storage)
+
+### Delivered — Web
+- `@supabase/ssr` with Next.js 15 async `cookies()` compliance
+- Modular Server Actions for Login and Signup flows
+- **Reset Password flow** (forgot-password, reset-password pages + actions)
+- **Auth Callback route** for email verification and password resets
+- Landing page with Chart.js and scroll animations
+- Secure routing via Supabase Middleware
+- POST `/auth/signout` route for secure session termination
+- Two-Tone design system (Tailwind v3 + DaisyUI)
+
+### Delivered — Mobile
+- `@supabase/supabase-js` with custom `expo-secure-store` adapter
+- Global `AuthContext` for session management
+- Conditional routing orchestrator in `App.tsx`
+- **UI Parity**: LoginScreen mirrors the Web "Two-Tone" design and dynamic states.
+
+### Pending
+- [ ] **Unit Tests (Web)**: Unit tests for Forgot Password and Reset Password flows.
+- [ ] **Unit Tests (Mobile)**: Auth flow tests in Mobile app (none currently exist).
+- [ ] **Seed Data Persistence**: Resolve "Invalid Credentials" error when logging in with `test@fintrack.com` on local Supabase.
+
+---
+
+## Milestone 4a — Core Logic, API Layer & Seed Data
+**Status: 🟡 In Progress**
+
+### Objective
+Build foundational shared packages, verify them with tests, and provide a realistic local development environment.
+
+### Delivered
+- **Shared Types**: Unified `Transaction`, `DashboardSummary`, and Database types in `@fintrack/core`.
+- **Shared Utilities**: `formatCurrency`, `convertAmount`, `calculateDTIRatio`, `generateInstallmentSchedule`.
+- **API Layer**: Shared Supabase query functions in `@fintrack/api`.
+
+### Pending
+- [ ] **Unit Tests**: Full coverage for `@fintrack/core` and `@fintrack/api`.
+- [ ] **Seed Data Validation**: Ensure `seed.sql` reliably creates a working test user.
+
+---
+
+## Milestone 4b — Live Dashboards (Web & Mobile)
+**Status: 🟡 In Progress**
+
+### Objective
+Connect both platforms to the live data layer and implement the "Two-Tone" design language.
+
+### Delivered
+- **Web Dashboard Integration**: Live summary cards and recent transactions list fetching from `@fintrack/api`.
+- **Mobile Dashboard Integration**: Fully functional dashboard screen mirroring the Web UI with summary cards and live transaction data.
+- **Monorepo Integration**: Fixed TypeScript path resolution and workspace dependency linking across all packages.
+- **Dev Standards**: Explicit dev ports (Web: 3000, Mobile: 8081).
+
+### Pending
+- [ ] **Unit Tests (Web)**: Test live dashboard data rendering and formatting.
+- [ ] **Unit Tests (Mobile)**: Test mobile dashboard data display and refresh logic.
+
+---
+
+## Milestones 5–13
 **Detailed execution plans will be written and submitted for approval before each milestone begins.**
 
-Each will follow the same structure:
-- Objective
-- Requirements addressed
-- Pre-execution source analysis
-- Test criteria
-- Exact files and folders to create/modify
+Each will follow the same structure: Objective, Requirements addressed, Pre-execution source analysis, Test criteria, Exact files and folders to create/modify.
 
 ---
 
-## Milestone 3: Authentication Flow 
-**Status:** 🟡 In Progress (Web Complete, Mobile Pending)
-**Goal:** Secure login/signup and session management.
-
-**Requirements Addressed:**
-- **R3.1:** Supabase Auth Integration (Email/Password).
-- **R3.2:** Web token persistence via secure `httpOnly` cookies (`@supabase/ssr`).
-- **R3.3:** Premium Two-Tone UI using Tailwind v3, DaisyUI, and Chart.js.
-- **R3.4:** (Pending) Mobile token persistence via SecureStore.
-
-**Implementation Steps:**
-1. ✅ Set up `@supabase/ssr` in the web app.
-2. ✅ Build Next.js Middleware for route protection.
-3. ✅ Build Server Actions for Login/Signup.
-4. ✅ Build Landing Page and Auth UI.
-5. ⏳ Initialize Supabase client in Expo.
-6. ⏳ Build React Native Auth Context & Login Screens.
-
-# FinTrack Development Plan
-
-## 🎯 Current Status
-**Active Branch:** `feat/m4-dashboard`
-**Phase:** Transitioning from Authentication (Milestone 3) to Core Dashboard Features & Testing (Milestone 4).
-
-## ✅ Completed Milestones
-
-### M1 & M2: Foundation & Infrastructure
-- [x] Initialize Turborepo monorepo structure (`apps/web`, `apps/mobile`).
-- [x] Configure Tailwind CSS v3 and DaisyUI for the Next.js web workspace.
-- [x] Initialize local Supabase environment via Docker.
-- [x] Resolve environment variable sharing across workspaces.
-
-### M3: Authentication Integration
-- [x] **Web:** Setup `@supabase/ssr` with Next.js 15 async `cookies()` compliance.
-- [x] **Web:** Create modular Server Actions for Login and Signup flows.
-- [x] **Web:** Build high-fidelity Landing Page with Chart.js and scroll animations.
-- [x] **Web:** Secure routing using Supabase Middleware.
-- [x] **Mobile:** Setup `@supabase/supabase-js` with custom `expo-secure-store` adapter.
-- [x] **Mobile:** Implement global `AuthContext` for session management.
-- [x] **Mobile:** Build conditional routing orchestrator in `App.tsx` (Login vs. Dashboard).
-
-### M4 (Part 1): Web Testing Infrastructure
-- [x] Install Vitest and React Testing Library in the `web` workspace.
-- [x] Configure Vitest with hardcoded PNPM aliases to fix React hook duplication.
-- [x] Write initial passing unit tests for the Landing Page (with `IntersectionObserver` class mocks).
-
----
-
-## 🚀 Next Steps (Milestone 4 Continued)
-
-**1. Finish Web Unit Testing**
-- Mock the Supabase client.
-- Write tests for the `login` and `signup` Server Actions.
-- Write component tests for the dynamic states on the Login page.
-
-**2. Database Schema & RLS**
-- Define the PostgreSQL schema in Supabase for `accounts` and `transactions`.
-- Set up Row Level Security (RLS) policies so users can only fetch their own data.
-
-**3. Web Dashboard Data**
-- Connect the static Next.js Dashboard to the Supabase database.
-- Fetch and calculate Net Worth and Total Assets/Liabilities.
-- Render the Recent Transactions list.
-
-**4. Mobile Dashboard Polish**
-- Upgrade the bare-bones React Native Dashboard to match the web's "Two-Tone" design language.
-- Implement data fetching on mobile to match the web data.
-
-## 📝 Change Log
+## Change Log
 
 | Date | Change | Approved By |
 |---|---|---|
 | 2026-04-01 | Initial plan created, M0 complete | — |
-| 2026-04-01 | Rules 7 & 8 added (latest stable versions + agentic.md session file) | — |
-
-### 2. `CHANGELOG.md`
-This records the specific technical hurdles we just cleared so you have a historical record of why certain configurations (like the Vite PNPM aliases or the Next.js 15 cookie awaits) exist.
-
-```markdown
-# Changelog
-
-All notable changes to the FinTrack project will be documented in this file.
-
-## [Unreleased] - Milestone 3 & 4 (Auth & Testing)
-
-### Added
-- **Web:** Vitest testing environment integrated with React Testing Library.
-- **Web:** Class-based `IntersectionObserver` mock for testing scroll-animated components.
-- **Web:** Secure sign-out POST route to terminate sessions and clear cookies.
-- **Mobile:** Expo project initialized inside the Turborepo workspace.
-- **Mobile:** Global `AuthContext` to manage session state and protected routing.
-- **Mobile:** Unstyled `LoginScreen` and `DashboardScreen` components.
-
-### Changed
-- **Web:** Upgraded Supabase SSR utility files to comply with Next.js 15 asynchronous `cookies()` API.
-- **Web:** Separated Login and Signup flows into distinct Server Actions.
-- **Web:** Refactored web dashboard layout to a Tailwind "Two-Tone" design with static financial summary cards.
-- **Web:** Updated `vitest.config.ts` with strict physical path aliases for `react` and `react-dom` to resolve PNPM symlink duplication hook errors.
-
-### Security
-- **Mobile:** Configured `@supabase/supabase-js` to bypass insecure `AsyncStorage` and strictly use `expo-secure-store` to write JWTs directly to the iOS Keychain and Android EncryptedSharedPreferences.
-- **Web:** Forced localhost IPv4 (`127.0.0.1`) in environment variables to prevent Node.js IPv6 routing timeouts during session validation.
+| 2026-04-01 | Rules 7 & 8 added (latest stable versions + agentic.md) | — |
+| 2026-04-06 | Consolidated plan.md, defined M4 scope | — |
+| 2026-04-06 | Split M4 into M4a and M4b, added seed data requirement | — |

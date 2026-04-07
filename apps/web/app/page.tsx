@@ -81,7 +81,7 @@ export default function LandingPage() {
             titleColor: '#FFFFFF',
             bodyColor: '#EFEFEF',
             callbacks: {
-              label: (ctx) => ` ${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString()}`,
+              label: (ctx) => ` ${ctx.dataset.label}: $${(ctx.parsed.y ?? 0).toLocaleString()}`,
             },
           },
         },
@@ -155,7 +155,7 @@ export default function LandingPage() {
         </h1>
 
         <p className="text-lg md:text-xl text-brand-text/80 max-w-[42ch] leading-relaxed mt-8 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
-          The financial intelligence layer that transforms raw data into decisive insight. Built for teams that can't afford ambiguity.
+          The financial intelligence layer that transforms raw data into decisive insight. Built for teams that can&apos;t afford ambiguity.
         </p>
 
         <div className="flex items-center gap-8 mt-12 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300">

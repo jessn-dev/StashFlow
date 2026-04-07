@@ -1,365 +1,166 @@
 # FinTrack — Agentic Session Context
-> Session: 001 — Initial Planning & Architecture
-> Date: 2026-04-01
-> Status: Session Complete — Awaiting M1 Approval
+
+> Current Session: 007 — 16-Issue Optimization & Bug-Fix Pass
+> Date: 2026-04-07
+> Status: All 16 identified bugs/optimizations resolved. Ready for M4 unit tests.
 
 ---
 
-## 🧭 High-Level Instructions
+## High-Level Instructions
 
-You are a senior full-stack developer building **FinTrack**, a cross-platform personal finance app (Web + iOS + Android). The tech stack uses a Turborepo monorepo with Next.js (web), Expo React Native (mobile), and Supabase as the backend.
+You are a senior full-stack developer building **FinTrack**, a cross-platform personal finance app (Web + iOS + Android). The tech stack uses a Turborepo monorepo with Next.js 15, Expo React Native 54, and Supabase as the backend.
 
 **Always follow these rules before doing anything:**
-1. Update `plan.md` before writing any code
-2. Get explicit user approval before starting a new milestone
-3. Iterate on requirements until fully understood
-4. Analyze existing source code before making changes
-5. Write tests before writing implementation code
-6. Produce a file/folder execution plan for every milestone
-7. Always use the latest stable library/runtime versions compatible with the project
-8. Create or update `agentic.md` at the end of every session
-
-**The user makes all final decisions.** Never proceed past a milestone gate without a green light.
-
----
-
-## 📦 Confirmed Dependency Versions
-
-> These are the latest stable versions as of 2026-04-01. Verify before M1 execution.
-
-| Package | Version | Notes |
-|---|---|---|
-| Node.js | 22.x LTS | Runtime for web + tooling |
-| pnpm | 9.x | Monorepo package manager |
-| TypeScript | 5.x | Strict mode enabled |
-| Turborepo | 2.x | Monorepo build system |
-| Next.js | 15.x | App Router, web app |
-| React | 19.x | Web + shared |
-| Expo SDK | 52.x | Mobile app (iOS + Android) |
-| React Native | 0.76.x | Via Expo SDK 52 |
-| Expo Router | 4.x | File-based mobile navigation |
-| Supabase JS | 2.x | DB + Auth + Realtime client |
-| Supabase CLI | latest | Schema migrations + type gen |
-| TailwindCSS | 4.x | Web styling |
-| shadcn/ui | latest | Web component library |
-| Vitest | 2.x | Unit testing (web + packages) |
-| Jest / jest-expo | latest | Mobile testing |
-| Frankfurter API | — | External, no SDK — raw fetch |
-| PostHog | 1.x (JS) | Analytics |
-
-> ⚠️ All versions must be re-verified at the start of M1 using `npm info <package> version` before any install command is run.
-
----
-
-## 🏗️ Architecture Diagram
-
-```
-┌─────────────────────────────────────────────────────┐
-│                    CLIENT LAYER                      │
-│                                                     │
-│   ┌──────────────┐         ┌──────────────────┐    │
-│   │  Next.js 15  │         │  Expo SDK 52     │    │
-│   │  (Web App)   │         │  (iOS + Android) │    │
-│   └──────┬───────┘         └────────┬─────────┘    │
-│          │                          │               │
-│          └──────────┬───────────────┘               │
-│                     │  Shared via Turborepo          │
-│              @fintrack/core  (hooks, utils, types)  │
-│              @fintrack/ui    (components)           │
-│              @fintrack/api   (Supabase queries)     │
-└─────────────────────┬───────────────────────────────┘
-                      │ HTTPS / WebSocket (Supabase Realtime)
-┌─────────────────────▼───────────────────────────────┐
-│                  BACKEND LAYER (Supabase)            │
-│                                                     │
-│   ┌──────────┐  ┌──────────┐  ┌─────────────────┐  │
-│   │   Auth   │  │Postgres  │  │ Realtime + RLS  │  │
-│   └──────────┘  └──────────┘  └─────────────────┘  │
-│                                                     │
-│   Edge Functions (Deno runtime):                    │
-│   • generate-loan-schedule                          │
-│   • calculate-dti                                   │
-│   • sync-exchange-rates (cron daily)                │
-└─────────────────────┬───────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────┐
-│               EXTERNAL SERVICES                      │
-│  frankfurter.app  │  PostHog  │  Expo EAS  │ Vercel │
-└─────────────────────────────────────────────────────┘
-```
-
----
-
-## 🗄️ Database Schema (Designed, Not Yet Built)
-
-```sql
--- 5 tables, all with RLS: user_id = auth.uid()
-
-users           → id, email, full_name, preferred_currency, created_at
-incomes         → id, user_id, amount, currency, source, frequency, date, notes
-expenses        → id, user_id, amount, currency, category, description, date, is_recurring, notes
-loans           → id, user_id, name, principal, currency, interest_rate,
-                  duration_months, start_date, end_date, installment_amount, status
-loan_payments   → id, loan_id, user_id, amount_paid, due_date, paid_date,
-                  status (paid | pending | overdue)
-exchange_rates  → id, base, target, rate, fetched_at  (cached, refreshed daily)
-```
-
----
-
-## 🌿 Branch Strategy
-
-| Branch | Purpose |
-|---|---|
-| `main` | Production only — never commit directly |
-| `develop` | Active integration branch |
-| `poc/initial-planning` | Planning artefacts — UI prototype, API design, architecture. NOT merged to main |
-| `feature/*` | Feature branches off develop |
-| `fix/*` | Bug fixes off develop |
-| `release/*` | Release candidates before merging to main |
-
----
-
-## 📋 Milestone Status
-
-| Milestone | Status |
-|---|---|
-| M0 — Requirements & Planning | ✅ Complete |
-| M1 — Monorepo Scaffold | ⏳ Awaiting Approval |
-| M2 — Supabase Schema + RLS | ⏳ Pending |
-| M3 — Auth Flow | ⏳ Pending |
-| M4 — Core Package | ⏳ Pending |
-| M5 — API Package | ⏳ Pending |
-| M6 — Dashboard (Web) | ⏳ Pending |
-| M7 — Spending Module | ⏳ Pending |
-| M8 — Income Module | ⏳ Pending |
-| M9 — Loans Module + Scheduler | ⏳ Pending |
-| M10 — DTI Module | ⏳ Pending |
-| M11 — Currencies Module | ⏳ Pending |
-| M12 — Mobile App | ⏳ Pending |
-| M13 — Edge Functions | ⏳ Pending |
-| M14 — Testing Suite | ⏳ Pending |
-| M15 — CI/CD + Deployment | ⏳ Pending |
-
----
-
-## 📁 Files Generated This Session
-
-| File | Location | Purpose |
-|---|---|---|
-| `README.md` | repo root | GitHub project readme |
-| `plan.md` | repo root | Master development plan |
-| `agentic.md` | repo root | This file — session context |
-| `fintrack-prototype.jsx` | `poc/initial-planning` | Interactive UI/UX prototype |
-
----
-
-## 🎨 Design Decisions Locked In
-
-- **Color theme:** Green accent (`#1A7A3C` / `#2EA85A`) on white (light) and `#0A0F0C` (dark)
-- **Font:** Helvetica Neue (UI) + Georgia (display numbers/headings)
-- **Dark/light toggle:** Top bar, persisted in user preferences
-- **Layout:** Fixed left sidebar (220px) + top bar (64px) + scrollable content area
-- **Mobile:** Bottom tab navigation (5 tabs: Dashboard, Spending, Income, Loans, More)
-- **Reference design:** FinSight dashboard (provided by user)
-
----
-
-## ⚠️ Errors Encountered
-
-None this session — no code was executed. All work was planning and design.
-
----
-
-## 🔑 Key Decisions Made
-
-| Decision | Rationale |
-|---|---|
-| Turborepo monorepo | Share core logic between web and mobile without duplication |
-| Supabase over custom backend | Auth + DB + RLS + Realtime in one free-tier service |
-| pnpm over npm/yarn | Best monorepo workspace support, faster installs |
-| Frankfurter API for currencies | Completely free, no API key, open-source |
-| Edge Functions for loan schedule | Complex amortization calc doesn't belong on the client |
-| Cache exchange rates in DB | Avoid hammering Frankfurter on every page load |
-| Expo Router (file-based) | Consistent routing pattern with Next.js App Router |
-
----
-
-## ⏸️ Where We Stopped
-
-**Session ended after:**
-- Completing full requirements documentation
-- Finalizing tech stack and architecture
-- Designing complete API surface (all endpoints + types)
-- Building interactive UI/UX prototype (5 screens, dark/light mode)
-- Writing `plan.md` with all 8 working rules
-- Writing `README.md`
-- Writing this `agentic.md`
-
-**Next action required:**
-> User must approve **Milestone 1 — Monorepo Scaffold** before any code is written.
-> Awaiting: 🟢 Approved / 🔴 Not yet
-
----
-
-## 🚀 How to Kick Off Next Session
-
-Paste this into your next AI session:
-
-```
-We are building FinTrack — a cross-platform personal finance app (Web + iOS + Android).
-Read agentic.md for full context. We are currently at Milestone 1 (Monorepo Scaffold),
-pending approval. All working rules are in plan.md — follow them strictly.
-Do not execute anything until I give approval.
-```
-
----
-
-## 📝 Session Log
-
-| Session | Date | Covered | Files Produced |
-|---|---|---|---|
-| 001 | 2026-04-01 | Full planning, architecture, API design, UI prototype, plan.md, README.md | plan.md, README.md, agentic.md, fintrack-prototype.jsx |
-
-
-# FinTrack — Agentic Session Context
-> Current Session: 002 — Supabase & Dev Env
-> Date: 2026-04-01
-> Status: Milestone 1 & 2 Complete — Awaiting Milestone 3 Approval
-
----nt
-
-## 🧭 High-Level Instructions
-You are a senior full-stack developer building **FinTrack**, a cross-platform personal finance app (Web + iOS + Android). The tech stack uses a Turborepo monorepo with Next.js 15, Expo React Native 52, and Supabase.
-
-**Always follow these rules:**
 1. Update `plan.md` before writing any code.
 2. Get explicit user approval before starting a new milestone.
 3. Iterate on requirements until fully understood.
 4. Analyze existing source code before making changes.
 5. Write tests before writing implementation code.
 6. Produce a file/folder execution plan for every milestone.
-7. Always use the latest stable library/runtime versions.
+7. Always use the latest stable library/runtime versions compatible with the project.
 8. Create or update `agentic.md` at the end of every session.
 
 ---
 
-## 🏗️ Architecture Diagram
-```text
-┌─────────────────────────────────────────────────────┐
-│                    CLIENT LAYER                     │
-│                                                     │
-│   ┌──────────────┐         ┌──────────────────┐     │
-│   │  Next.js 15  │         │  Expo SDK 52     │     │
-│   │  (Web App)   │         │  (iOS + Android) │     │
-│   └──────┬───────┘         └────────┬─────────┘     │
-│          │                          │               │
-│          └──────────┬───────────────┘               │
-│                     │  Shared via Turborepo         │
-│              @fintrack/core  (hooks, utils, types)  │
-│              @fintrack/ui    (components)           │
-│              @fintrack/api   (Supabase queries)     │
-└─────────────────────┬───────────────────────────────┘
-                      │ HTTPS / WebSocket (Realtime)
-┌─────────────────────▼───────────────────────────────┐
-│                  BACKEND LAYER (Supabase)           │
-│                                                     │
-│   ┌──────────┐  ┌──────────┐  ┌─────────────────┐   │
-│   │   Auth   │  │Postgres  │  │ Row Level Sec.  │   │
-│   └──────────┘  └──────────┘  └─────────────────┘   │
-│                                                     │
-│   Edge Functions (Deno):                            │
-│   • generate-loan-schedule                          │
-│   • calculate-dti                                   │
-│   • sync-exchange-rates (cron daily)                │
-└─────────────────────┬───────────────────────────────┘
+## Confirmed Dependency Versions
+
+| Package | Version | Location | Notes |
+|---|---|---|---|
+| Next.js | 15.5.14 | apps/web | App Router |
+| React | 19.1.0 | Shared | Web + Mobile |
+| Expo SDK | ~54.0.33 | apps/mobile | iOS + Android |
+| @fintrack/core | workspace:* | apps/web + apps/mobile | Internal Shared Logic |
+| @fintrack/api | workspace:* | apps/web + apps/mobile | Internal API Layer |
+| Tailwind CSS | ^3.4.19 | apps/web | v3 Required for DaisyUI |
+
+---
+
+## Critical Technical Constraints
+
+### 1. Next.js 15 Async APIs
+- **Rule:** `cookies()` AND `headers()` must be awaited.
+- **Action:** Import `headers` statically from `next/headers`. Use `const origin = (await headers()).get('origin') ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'`. Never use a dynamic `import()` for Next.js headers — it's unnecessary and adds runtime overhead.
+
+### 2. Mobile Network (Local Dev)
+- **Rule:** Android Emulator cannot reach `127.0.0.1`.
+- **Action:** Use local network IP (e.g., `192.168.1.185`) in `apps/mobile/.env` for universal compatibility.
+
+### 3. Monorepo TypeScript Paths
+- **Rule:** Workspace dependencies require explicit path mapping in `tsconfig.json` for some IDEs/compilers to resolve source files.
+- **Action:** Map `@fintrack/*` in `apps/*/tsconfig.json` to `../../packages/*/src/index.ts`.
+
+### 4. Supabase Auth Manual Seeding
+- **Rule:** Manual `INSERT` into `auth.users` requires specific non-nullable fields.
+- **Action:** Always include `instance_id`, `aud` ('authenticated'), and `confirmation_token` (at least an empty string) to avoid SQL scan errors in the Auth service.
+
+---
+
+## Milestone Status
+
+| Milestone | Status |
+|---|---|
+| M0 — Requirements & Planning | ✅ Complete |
+| M1 — Monorepo Scaffold | ✅ Complete |
+| M2 — Supabase Schema + RLS | ✅ Complete |
+| M3 — Auth Flow (Web + Mobile) | 🟡 In Progress (Missing Tests) |
+| M4a — Core Logic, API Layer & Seed Data | 🟡 In Progress (Missing Tests) |
+| M4b — Live Dashboards (Web & Mobile) | 🟡 In Progress (Missing Tests) |
+| M5 — Spending Module (Web) | ⏳ Pending |
+
+---
+
+## Errors Encountered & Fixed (Session 007)
+
+| Error / Issue | Fix | File |
+|---|---|---|
+| Seed SQL values misaligned — root cause of "Invalid Credentials" | Rewrote INSERT with explicit column comments, correct JSONB values, right type for `is_super_admin` and `role` | `supabase/seed.sql` |
+| `loan end_date` off by 1 month in seed | Corrected to `2031-01-01` (60 months from `2026-01-01`) | `supabase/seed.sql` |
+| Error messages not URL-encoded in auth redirects | Wrapped all `error.message` in `encodeURIComponent()` | `(auth)/login/actions.ts` |
+| Login error revealed account existence (enumeration risk) | Generic message: "Invalid email or password." | `(auth)/login/actions.ts` |
+| Forgot-password success revealed account existence | Generic message: "If this email is registered…" | `(auth)/login/actions.ts` |
+| Dynamic `import('next/headers')` in server action | Replaced with static import + null fallback for `origin` | `(auth)/login/actions.ts` |
+| Stale boilerplate comment on import | Removed | `(auth)/login/actions.ts` |
+| DTI returned `status: 'high'` for new users (0 income, 0 debt) | Zero-debt + zero-income now returns `status: 'low'` | `packages/core/utils/dti.ts` |
+| `getRecentTransactions` silently swallowed DB errors | Added `if (incomeError) throw` and `if (expenseError) throw` | `packages/api/queries/dashboard.ts` |
+| Two serial DB calls in `getRecentTransactions` | Parallelised with `Promise.all`; added backlog comment for future RPC view | `packages/api/queries/dashboard.ts` |
+| "Total Assets" = sum of all income ever (semantic mismatch) | Added clear MVP-note and TODO for proper asset table in future milestone | `packages/api/queries/dashboard.ts` |
+| Floating-point drift in amortisation schedule over long terms | Added `Number((balance).toFixed(2))` rounding after each iteration | `packages/core/utils/loans.ts` |
+| `options?: any` in API client defeats TypeScript | Typed as `SupabaseClientOptions<'public'>` | `packages/api/src/client.ts` |
+| `createBrowserClient` misleading name for a non-browser function | Renamed to `createSupabaseClient` | `packages/api/src/client.ts` |
+| Mobile sign-out — fire-and-forget, no error feedback | Made async, added `Alert` on failure | `apps/mobile/screens/DashboardScreen.tsx` |
+| Orphaned `apps/mobile/apps/index.tsx` (dead code) | Deleted | — |
+
+## Errors Encountered & Fixed (Session 006)
+
+| Error | Fix |
+|---|---|
+| Next.js 15 `headers()` sync access error | Changed to `await headers()` in login actions |
+| "Forgot Password" missing pages/logic | Implemented `forgot-password`, `reset-password`, and `auth/callback` |
+| Mobile "Network Request Failed" (Android) | Switched to local network IP in `.env` |
+| "Invalid Credentials" on seeded user | Updated `auth.users` with `aud` and `instance_id` (Issue persists for user) |
+| "Database error querying schema" (Auth) | Set `confirmation_token`, `recovery_token`, etc. to `''` |
+| TS cannot find module `@fintrack/core` | Added `paths` mapping to `tsconfig.json` across monorepo |
+| `isolatedModules` error in core | Changed to `export type { Database }` |
+
+---
+
+## Developer CLI (setup.sh)
+
+`setup.sh` is the single entrypoint for all project tasks. Run `./setup.sh help` at any time.
+
+| Command | What it does |
+|---|---|
+| `./setup.sh init` | First-time scaffold (run once) |
+| `./setup.sh install` | Install / refresh all workspace dependencies |
+| `./setup.sh add <pkg> [-w web\|mobile\|core\|api\|ui]` | Add a package to the monorepo or a specific workspace |
+| `./setup.sh dev` | Start web + mobile dev servers via Turbo |
+| `./setup.sh dev web` | Start only the web app (localhost:3000) |
+| `./setup.sh dev mobile` | Start only the mobile app (port 8081) |
+| `./setup.sh db:start` | Start local Supabase via Docker |
+| `./setup.sh db:stop` | Stop local Supabase |
+| `./setup.sh db:reset` | Drop + reapply migrations + re-seed (prompts for confirmation) |
+| `./setup.sh db:status` | Show Supabase service URLs and ports |
+| `./setup.sh db:types` | Regenerate `database.types.ts` from local schema |
+| `./setup.sh test` | Run web unit tests (Vitest) |
+| `./setup.sh test coverage` | Run tests with coverage report |
+| `./setup.sh clean` | Remove `.next`, `dist`, `.turbo`, `*.tsbuildinfo`, coverage |
+
+**Typical session start:**
+```bash
+./setup.sh db:start   # start Supabase
+./setup.sh dev        # start web + mobile
 ```
 
-# FinTrack — Agentic Session Context
-> Current Session: 004 — Web UI Overhaul & Landing Page
-> Date: 2026-04-06
-> Status: Milestone 3 (Web) Complete — Mobile Auth Pending
+**After schema changes:**
+```bash
+./setup.sh db:reset   # reapply migrations + seed
+./setup.sh db:types   # regenerate TypeScript types
+```
 
 ---
 
-## 🧭 High-Level Instructions
-You are a senior full-stack developer building **FinTrack**. Tech stack: Turborepo, Next.js 15, Expo 52, Supabase, Tailwind v3, DaisyUI.
+## Where We Stopped
 
-**Core Rules:**
-1. Update `plan.md` before writing code.
-2. Get explicit approval before milestones.
-3. Write tests/execution plans first.
-4. Update `agentic.md` at end of session.
+**Session 008 ended after:**
+- Dead code sweep: removed `create-next-app` scaffold ghost (`apps/web/src/`), 5 unused default SVGs from `public/`, `apps/web/README.md`, `ClientOnly.tsx`, empty dirs (`components/`, `mobile/apps/`, `scripts/`, `supabase/snippets/`), and stale root `package-lock.json`.
+- Rewrote `setup.sh` from an init-only script into a full developer CLI (see Developer CLI section above).
 
----
+**Session 007 ended after:**
+- Full 16-issue code review and bug-fix pass across all layers of the stack.
+- Fixed the seed SQL column misalignment that was causing "Invalid Credentials" on `test@fintrack.com`.
+- Hardened all auth server actions (URL encoding, generic error messages, static headers import).
+- Fixed DTI zero-state false positive for new users.
+- Fixed loan amortization floating-point drift.
+- Parallelised dashboard queries and added proper error propagation.
+- Renamed `createBrowserClient` → `createSupabaseClient` for clarity.
+- Typed `options` properly in the API client factory.
+- Fixed mobile sign-out to be async with user-facing error feedback.
+- Deleted orphaned `apps/mobile/apps/index.tsx`.
 
-## 🏗️ Architecture & UI Updates
-- **CSS Framework:** Downgraded web workspace from Tailwind v4 to **Tailwind v3** to ensure full compatibility with DaisyUI. Configured standard `postcss` and `autoprefixer`.
-- **Data Visualization:** Integrated **Chart.js** (`chart.js/auto`) into the landing page to visualize Net Worth vs. Liabilities.
-- **Theme:** Finalized the "Two-Tone" palette implementation across the Landing Page and Login Flow:
-  - Primary: Deep Teal (`#0D3D3D`)
-  - Accent: Teal (`#1A7A7A`)
-  - Background: Light Gray (`#EFEFEF`)
-  - Text: Dark Gray (`#444444`)
+**Next actions required:**
+1. **Reset local Supabase** with `pnpm supabase db reset` to pick up the corrected seed data and confirm `test@fintrack.com` login works.
+2. **M4 Unit Tests** — write tests for: `@fintrack/core` utils (DTI, loans, currency), `@fintrack/api` queries (mock Supabase), web auth server actions (login, signup, forgotPassword), and the dashboard page.
+3. **Dashboard UI label** — update "Total Assets" card to "Total Income" on both web and mobile to accurately reflect what the MVP calculates (tracked in `getDashboardSummary` TODO comment).
+4. **Approve M4 unit test execution plan** before any test files are written.
 
----
-
-## 📁 Files Generated/Modified This Session
-| File | Location | Purpose |
-|---|---|---|
-| `package.json` | `apps/web/` | Swapped tailwindcss v4 for v3; added chart.js |
-| `postcss.config.mjs` | `apps/web/` | Reverted to v3 standard plugins |
-| `page.tsx` | `apps/web/app/` | New highly polished landing page w/ animations |
-| `page.tsx` | `apps/web/app/(auth)/login/` | Updated Branding column to match landing page |
-
----
-
-## ⚠️ Errors Encountered & Fixed
-- **Tailwind v4 PostCSS Crash:** Next.js threw an error because Tailwind v4 separated its PostCSS plugin. **Fix:** Since DaisyUI requires Tailwind v3 anyway, we completely uninstalled the v4 packages, installed `tailwindcss@3`, and nuked the `.next` cache to force a clean build.
-- **Exploding SVGs:** Apple/Google SVGs expanded to full screen. **Fix:** Restored PostCSS/Tailwind compilation so `w-5 h-5` utility classes could apply.
-
----
-
-## ⏸️ Where We Stopped
-- **Completed:** Web Auth Flow, Landing Page, and Global Theming. 
-- **Pending:** Mobile Auth Flow (Expo + SecureStore).
-
-**Next Action:** Initialize the Expo Supabase client and build the Mobile Login screen.
-
-
-# AI Agent Directives & Project Context
-
-Always adhere to these architectural constraints when generating or modifying code in this repository.
-
-## 🏗 Project Architecture
-- **Monorepo:** Turborepo managing `apps/web` (Next.js) and `apps/mobile` (Expo React Native).
-- **Package Manager:** PNPM.
-- **Backend:** Supabase (Local Docker environment for dev).
-- **UI:** Tailwind v3 + DaisyUI (Web). standard StyleSheet (Mobile).
-
-## 🛑 Critical Technical Constraints
-
-### 1. Next.js 15 & Supabase SSR
-- **Rule:** The Next.js 15 `cookies()` API is completely asynchronous.
-- **Action:** You MUST `await cookies()` inside `server.ts`, `middleware.ts`, and any Server Actions before attempting to read, set, or delete cookies.
-- **Symptom if ignored:** The Next.js server will silently hang indefinitely (infinite loading screen) without throwing console errors.
-
-### 2. Expo Mobile Authentication
-- **Rule:** Never use `@supabase/ssr` or web cookies in the mobile app.
-- **Action:** Use standard `@supabase/supabase-js`. You MUST use a custom storage adapter leveraging `expo-secure-store` to persist JWTs to the native iOS/Android keychains.
-
-### 3. PNPM + Vitest + React 19 Monorepo Testing
-- **Rule:** PNPM's strict symlinking will cause "Invalid hook call" errors in Vitest due to resolving multiple instances of React. `dedupe` and `preserveSymlinks` are insufficient.
-- **Action:** In `apps/web/vitest.config.ts`, you MUST use hardcoded absolute paths pointing to the root `node_modules` for both `react` and `react-dom` inside the `resolve.alias` object.
-
-### 4. Networking & Localhost
-- **Rule:** Node.js defaults to IPv6 (`::1`) for `localhost`, but local Supabase listens on IPv4.
-- **Action:** Ensure all `.env` files map `SUPABASE_URL` to `http://127.0.0.1:54321` instead of `http://localhost:54321` to prevent silent fetch timeouts.
-
-### 5. Mocking in Vitest
-- **Rule:** When mocking browser APIs that use the `new` keyword (like `IntersectionObserver`), do not use `vi.fn().mockReturnValue()`.
-- **Action:** You must define a mock `class` and assign it to the `window` object using `Object.defineProperty`.
-
-
-
-
+**Open flag — `.gitignore` has `plan.md` and `agentic.md` listed at the bottom.** This means those two key doc files are NOT committed to git. If intentional (keeping them local-only), no action needed. If unintentional, remove those two lines from `.gitignore` so the docs are tracked alongside the source code.

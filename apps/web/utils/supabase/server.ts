@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export async function createClient() {
+  // NEXT.JS 15 FIX: cookies() must be awaited
   const cookieStore = await cookies()
 
   return createServerClient(

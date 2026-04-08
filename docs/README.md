@@ -27,13 +27,13 @@ FinTrack helps users take control of their finances by providing:
 
 | Layer | Technology | Notes |
 |---|---|---|
-| Web App | Next.js 14 (App Router) | Deployed on Vercel |
+| Web App | Next.js 15 (App Router) | Deployed on Vercel |
 | Mobile App | React Native + Expo | iOS & Android via Expo EAS |
 | Backend / DB | Supabase | Auth, PostgreSQL, Edge Functions, RLS |
 | Shared Logic | Turborepo Monorepo | Shared hooks, utils, types |
 | Currency Rates | Frankfurter API | Free, open-source, cached daily |
 | Analytics | PostHog | Event tracking and funnels |
-| UI Library (Web) | shadcn/ui + TailwindCSS | |
+| UI Library (Web) | DaisyUI + Tailwind CSS v3 | |
 | UI Library (Mobile) | Custom + React Native Paper | |
 
 ---
@@ -47,7 +47,7 @@ FinTrack utilizes a modern, serverless architecture designed for maximum code re
 │                    CLIENT LAYER                     │
 │                                                     │
 │   ┌──────────────┐         ┌──────────────────┐     │
-│   │  Next.js 15  │         │  Expo SDK 52     │     │
+│   │  Next.js 15  │         │  Expo SDK 54     │     │
 │   │  (Web App)   │         │  (iOS + Android) │     │
 │   └──────┬───────┘         └────────┬─────────┘     │
 │          │                          │               │
@@ -274,6 +274,26 @@ pnpm --filter mobile start
 
 ---
 
+## 📱 Mobile Local Development
+
+When developing the mobile app locally with a self-hosted or local Supabase instance, you must configure `apps/mobile/.env` correctly to allow the emulator/simulator to reach your host machine.
+
+### Supabase URL Configuration
+- **iOS Simulator:** Can use `http://127.0.0.1:54321`.
+- **Android Emulator:** Must use `http://10.0.2.2:54321` (a special alias to your host's loopback).
+- **Physical Devices:** Must use your machine's **Local Network IP** (e.g., `http://192.168.1.185:54321`).
+
+**Recommended:** Use your Local Network IP for all mobile development to ensure compatibility across all devices and emulators.
+
+#### How to find your Local IP (macOS):
+```bash
+# Run this in your terminal
+ifconfig | grep "inet " | grep -v 127.0.0.1
+```
+Look for the `inet` value starting with `192.168.x.x` or `10.x.x.x`. Update your `apps/mobile/.env` with this value.
+
+---
+
 ## 🤝 Contributing
 
 This project is currently in private development. Branch and PR guidelines:
@@ -293,7 +313,7 @@ To guarantee a frictionless onboarding experience, FinTrack includes an automate
 1. Validates your **Node.js** installation.
 2. Checks for **pnpm** and installs the standalone binary if it is missing.
 3. Initializes the **Turborepo** workspace.
-4. Scaffolds the **Next.js 15** web app and **Expo SDK 52** mobile app.
+4. Scaffolds the **Next.js 15** web app and **Expo SDK 54** mobile app.
 5. Generates the shared `@fintrack` internal packages (`core`, `ui`, `api`).
 6. Installs and links all workspace dependencies.
 

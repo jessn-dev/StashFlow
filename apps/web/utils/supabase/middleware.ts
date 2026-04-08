@@ -3,7 +3,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
-    request,
+    request: {
+      headers: request.headers,
+    },
   })
 
   const supabase = createServerClient(
@@ -27,27 +29,8 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // This forces the token to refresh if it's expired
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // Route Protection Logic
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/signup')
-
-  if (!user && !isAuthRoute && request.nextUrl.pathname !== '/') {
-    // Redirect unauthenticated users to login
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
-
-  if (user && isAuthRoute) {
-    // Redirect authenticated users away from login/signup to the dashboard
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
-  }
+  // This refreshes the session. If it hangs here, Supabase is offline.
+  await supabase.auth.getUser()
 
   return supabaseResponse
 }

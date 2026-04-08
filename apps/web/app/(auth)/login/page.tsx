@@ -63,9 +63,9 @@ export default async function LoginPage({
               {/* Only show Forgot Password on the Sign In view */}
               {!isSignUp && (
                 <label className="label justify-end">
-                  <a href="#" className="label-text-alt font-medium text-brand-accent hover:underline">
+                  <Link href="/forgot-password" data-testid="forgot-password-link" className="label-text-alt font-medium text-brand-accent hover:underline">
                     Forgot Password?
-                  </a>
+                  </Link>
                 </label>
               )}
             </div>
@@ -107,7 +107,7 @@ export default async function LoginPage({
 
           {/* Dynamic Bottom Link */}
           <div className="mt-8 text-center text-sm text-brand-text">
-            {isSignUp ? 'Already have an account? ' : "Don't have an Account? "}
+            {isSignUp ? 'Already have an account? ' : "Don&apos;t have an Account? "}
             <Link
               href={isSignUp ? '/login' : '/login?mode=signup'}
               className="font-bold text-brand-accent hover:underline"
@@ -147,7 +147,7 @@ export default async function LoginPage({
 
           {/* Subtext */}
           <p className="text-base xl:text-lg text-brand-text/80 max-w-[42ch] leading-relaxed mt-10">
-            The financial intelligence layer that transforms raw data into decisive insight. Built for teams that can't afford ambiguity.
+            The financial intelligence layer that transforms raw data into decisive insight. Built for teams that can&apos;t afford ambiguity.
           </p>
         </div>
 

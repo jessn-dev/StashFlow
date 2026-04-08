@@ -197,21 +197,23 @@ cmd_add() {
 
   local pkg="$1"
   local workspace=""
+  local dev_flag=""
   shift || true
 
-  # Parse -w / --workspace flag
+  # Parse flags
   while [[ $# -gt 0 ]]; do
     case "$1" in
       -w|--workspace) workspace="$2"; shift 2 ;;
+      -D|--dev) dev_flag="-D"; shift ;;
       *) die "Unknown option: $1" ;;
     esac
   done
 
-  [[ -z "$pkg" ]] && die "Usage: ./setup.sh add <package-name> [-w <workspace>]"
+  [[ -z "$pkg" ]] && die "Usage: ./setup.sh add <package-name> [-w <workspace>] [-D|--dev]"
 
   if [[ -z "$workspace" ]]; then
     info "Adding '$pkg' to root workspace..."
-    pnpm add -w "$pkg"
+    pnpm add -w $dev_flag "$pkg"
   else
     # Map shorthand name to full filter name
     case "$workspace" in
@@ -223,7 +225,7 @@ cmd_add() {
       *)      die "Unknown workspace '$workspace'. Valid: web, mobile, core, api, ui" ;;
     esac
     info "Adding '$pkg' to workspace '$filter'..."
-    pnpm add --filter "$filter" "$pkg"
+    pnpm add --filter "$filter" $dev_flag "$pkg"
   fi
   success "Package '$pkg' added."
 }

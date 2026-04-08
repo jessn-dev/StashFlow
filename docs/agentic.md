@@ -1,8 +1,8 @@
 # FinTrack — Agentic Session Context
 
-> Current Session: 007 — 16-Issue Optimization & Bug-Fix Pass
+> Current Session: 009 — Database CLI & Environment Automation
 > Date: 2026-04-07
-> Status: All 16 identified bugs/optimizations resolved. Ready for M4 unit tests.
+> Status: setup.sh enhanced with lifecycle management and automated env syncing.
 
 ---
 
@@ -116,10 +116,12 @@ You are a senior full-stack developer building **FinTrack**, a cross-platform pe
 | `./setup.sh dev` | Start web + mobile dev servers via Turbo |
 | `./setup.sh dev web` | Start only the web app (localhost:3000) |
 | `./setup.sh dev mobile` | Start only the mobile app (port 8081) |
-| `./setup.sh db:start` | Start local Supabase via Docker |
+| `./setup.sh db:start` | Start local Supabase via Docker + **auto-sync env keys** |
 | `./setup.sh db:stop` | Stop local Supabase |
 | `./setup.sh db:reset` | Drop + reapply migrations + re-seed (prompts for confirmation) |
 | `./setup.sh db:status` | Show Supabase service URLs and ports |
+| `./setup.sh db:port <port>` | Change the local Supabase API port (updates config.toml) |
+| `./setup.sh db:env` | Update workspace `.env` files with current local Supabase keys |
 | `./setup.sh db:types` | Regenerate `database.types.ts` from local schema |
 | `./setup.sh test` | Run web unit tests (Vitest) |
 | `./setup.sh test coverage` | Run tests with coverage report |
@@ -141,10 +143,15 @@ You are a senior full-stack developer building **FinTrack**, a cross-platform pe
 
 ## Where We Stopped
 
-**Session 008 ended after:**
-- Dead code sweep: removed `create-next-app` scaffold ghost (`apps/web/src/`), 5 unused default SVGs from `public/`, `apps/web/README.md`, `ClientOnly.tsx`, empty dirs (`components/`, `mobile/apps/`, `scripts/`, `supabase/snippets/`), and stale root `package-lock.json`.
-- Rewrote `setup.sh` from an init-only script into a full developer CLI (see Developer CLI section above).
+**Session 009 (Current) ended after:**
+- Enhanced `setup.sh` with lifecycle automation:
+    - Added `db:port <port>` to modify Supabase config.
+    - Added `db:env` to automatically extract and sync Supabase keys to `apps/web/.env.local` and `apps/mobile/.env`.
+    - Integrated `db:env` into `db:start` for a "one-click" developer setup experience.
+- Updated `plan.md` and `agentic.md` to reflect these developer experience improvements.
 
+**Session 008 ended after:**
+...
 **Session 007 ended after:**
 - Full 16-issue code review and bug-fix pass across all layers of the stack.
 - Fixed the seed SQL column misalignment that was causing "Invalid Credentials" on `test@fintrack.com`.

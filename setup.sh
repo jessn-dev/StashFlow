@@ -195,7 +195,7 @@ cmd_install() {
 cmd_add() {
   require_pnpm
 
-  local pkg="$1"
+  local packages=()
   local workspace=""
   local dev_flag=""
   shift || true
@@ -227,7 +227,7 @@ cmd_add() {
     info "Adding '$pkg' to workspace '$filter'..."
     pnpm add --filter "$filter" $dev_flag "$pkg"
   fi
-  success "Package '$pkg' added."
+  success "Packages added."
 }
 
 cmd_dev() {

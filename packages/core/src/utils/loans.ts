@@ -39,7 +39,7 @@ export function generateInstallmentSchedule(
         total: Number(monthlyPayment.toFixed(2)),
         remainingBalance: Math.max(0, remainingBalance),
       })
-      current.setMonth(current.getMonth() + 1)
+      current.setUTCMonth(current.getUTCMonth() + 1)
     }
     return schedule
   }
@@ -70,7 +70,7 @@ export function generateInstallmentSchedule(
       remainingBalance: finalBalance,
     })
 
-    current.setMonth(current.getMonth() + 1)
+    current.setUTCMonth(current.getUTCMonth() + 1)
   }
 
   return schedule

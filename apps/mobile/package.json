@@ -7,7 +7,8 @@
     "dev": "expo start --port 8081",
     "android": "expo start --android --port 8081",
     "ios": "expo start --ios --port 8081",
-    "web": "expo start --web --port 8081"
+    "web": "expo start --web --port 8081",
+    "test": "vitest run"
   },
   "dependencies": {
     "@fintrack/api": "workspace:*",
@@ -21,8 +22,14 @@
     "react-native-url-polyfill": "^3.0.0"
   },
   "devDependencies": {
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^13.3.3",
     "@types/react": "~19.1.0",
-    "typescript": "~5.9.2"
+    "@types/react-native": "^0.73.0",
+    "@vitejs/plugin-react": "^6.0.1",
+    "react-native-web": "^0.21.2",
+    "typescript": "~5.9.2",
+    "vitest": "^4.1.2"
   },
   "private": true
 }

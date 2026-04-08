@@ -82,8 +82,8 @@ M0  — Requirements & Planning              ✅ Complete
 M1  — Monorepo Scaffold                    ✅ Complete
 M2  — Supabase Schema + RLS               ✅ Complete
 M3  — Auth Flow (Web + Mobile)             ✅ Complete
-M4a — Core Logic, API Layer & Seed Data    🟡 In Progress
-M4b — Live Dashboards (Web & Mobile)       ⏳ Pending
+M4a — Core Logic, API Layer & Seed Data    ✅ Complete
+M4b — Live Dashboards (Web & Mobile)       🟡 In Progress
 M5  — Spending Module (Web)                ⏳ Pending
 M6  — Income Module (Web)                  ⏳ Pending
 M7  — Loans Module + Scheduler (Web)       ⏳ Pending
@@ -148,7 +148,7 @@ Full database schema with Row Level Security so data is isolated per user from d
 ---
 
 ## Milestone 3 — Auth Flow (Web + Mobile)
-**Status: 🟡 In Progress**
+**Status: ✅ Complete (Testing Foundation Established)**
 
 ### Objective
 Secure login/signup and session management across both platforms.
@@ -180,7 +180,7 @@ Secure login/signup and session management across both platforms.
 ---
 
 ## Milestone 4a — Core Logic, API Layer & Seed Data
-**Status: 🟡 In Progress**
+**Status: ✅ Complete (Core Logic Verified)**
 
 ### Objective
 Build foundational shared packages, verify them with tests, and provide a realistic local development environment.
@@ -232,3 +232,4 @@ Each will follow the same structure: Objective, Requirements addressed, Pre-exec
 | 2026-04-06 | Split M4 into M4a and M4b, added seed data requirement | — |
 | 2026-04-07 | Enhanced setup.sh (Supabase port/env automation) | — |
 | 2026-04-07 | Branched to feature/m3-m4a-AuthTest-CoreTest; moved seed tasks to M4b | — |
+| 2026-04-08 | Completed unit tests for @fintrack/core, @fintrack/api, and Web Auth | — |

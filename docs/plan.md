@@ -1,7 +1,7 @@
 # FinTrack — Master Development Plan
 
-> Last updated: 2026-04-06
-> Active Branch: `feature/m4-dashboard`
+> Last updated: 2026-04-07
+> Active Branch: `feature/m3-m4a-AuthTest-CoreTest`
 > Status: Milestone 4 — Dashboard, Core Packages & Testing
 
 ---
@@ -127,7 +127,7 @@ Initialize the full project structure so all future milestones have a working fo
 - Turborepo workspace with pnpm
 - `apps/web` (Next.js 15), `apps/mobile` (Expo 54)
 - `packages/core`, `packages/ui`, `packages/api` (shells)
-- Automated `setup.sh` bootstrap script
+- **Enhanced `setup.sh`**: Automated bootstrap, local Supabase lifecycle management, dynamic port configuration, and automatic environment variable synchronization (`.env` / `.env.local`).
 - TypeScript strict mode across all packages
 
 ---
@@ -176,7 +176,6 @@ Secure login/signup and session management across both platforms.
 ### Pending
 - [ ] **Unit Tests (Web)**: Unit tests for Forgot Password and Reset Password flows.
 - [ ] **Unit Tests (Mobile)**: Auth flow tests in Mobile app (none currently exist).
-- [ ] **Seed Data Persistence**: Resolve "Invalid Credentials" error when logging in with `test@fintrack.com` on local Supabase.
 
 ---
 
@@ -193,7 +192,6 @@ Build foundational shared packages, verify them with tests, and provide a realis
 
 ### Pending
 - [ ] **Unit Tests**: Full coverage for `@fintrack/core` and `@fintrack/api`.
-- [ ] **Seed Data Validation**: Ensure `seed.sql` reliably creates a working test user.
 
 ---
 
@@ -212,6 +210,8 @@ Connect both platforms to the live data layer and implement the "Two-Tone" desig
 ### Pending
 - [ ] **Unit Tests (Web)**: Test live dashboard data rendering and formatting.
 - [ ] **Unit Tests (Mobile)**: Test mobile dashboard data display and refresh logic.
+- [ ] **Seed Data Persistence**: Resolve "Invalid Credentials" error when logging in with `test@fintrack.com` on local Supabase.
+- [ ] **Seed Data Validation**: Ensure `seed.sql` reliably creates a working test user.
 
 ---
 

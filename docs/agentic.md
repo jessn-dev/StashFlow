@@ -3,6 +3,9 @@
 > Current Session: 010 — Core & Auth Unit Testing
 > Date: 2026-04-08
 > Status: Milestone 3 & 4a unit tests complete (Web, Core, API).
+> Current Session: 009 — Database CLI & Environment Automation
+> Date: 2026-04-07
+> Status: setup.sh enhanced with lifecycle management and automated env syncing.
 
 ---
 
@@ -95,6 +98,10 @@ You are a senior full-stack developer building **FinTrack**, a cross-platform pe
 | `./setup.sh install` | Install / refresh all workspace dependencies |
 | `./setup.sh add <pkg> [-w workspace] [-D]` | Add package(s) to the monorepo or a specific workspace |
 | `./setup.sh dev [web\|mobile]` | Start dev servers (default: all via Turbo) |
+| `./setup.sh add <pkg> [-w web\|mobile\|core\|api\|ui]` | Add a package to the monorepo or a specific workspace |
+| `./setup.sh dev` | Start web + mobile dev servers via Turbo |
+| `./setup.sh dev web` | Start only the web app (localhost:3000) |
+| `./setup.sh dev mobile` | Start only the mobile app (port 8081) |
 | `./setup.sh db:start` | Start local Supabase via Docker + **auto-sync env keys** |
 | `./setup.sh db:stop` | Stop local Supabase |
 | `./setup.sh db:reset` | Drop + reapply migrations + re-seed (prompts for confirmation) |
@@ -115,6 +122,26 @@ You are a senior full-stack developer building **FinTrack**, a cross-platform pe
 - 100% test coverage for Web Auth Server Actions (`login`, `signup`, `forgotPassword`, `resetPassword`).
 - Upgraded `setup.sh` to support dev-dependencies and multiple packages in the `add` command.
 - Established Vitest infra in `packages/core` and `packages/api`.
+**Session 009 (Current) ended after:**
+- Enhanced `setup.sh` with lifecycle automation:
+    - Added `db:port <port>` to modify Supabase config.
+    - Added `db:env` to automatically extract and sync Supabase keys to `apps/web/.env.local` and `apps/mobile/.env`.
+    - Integrated `db:env` into `db:start` for a "one-click" developer setup experience.
+- Updated `plan.md` and `agentic.md` to reflect these developer experience improvements.
+
+**Session 008 ended after:**
+...
+**Session 007 ended after:**
+- Full 16-issue code review and bug-fix pass across all layers of the stack.
+- Fixed the seed SQL column misalignment that was causing "Invalid Credentials" on `test@fintrack.com`.
+- Hardened all auth server actions (URL encoding, generic error messages, static headers import).
+- Fixed DTI zero-state false positive for new users.
+- Fixed loan amortization floating-point drift.
+- Parallelised dashboard queries and added proper error propagation.
+- Renamed `createBrowserClient` → `createSupabaseClient` for clarity.
+- Typed `options` properly in the API client factory.
+- Fixed mobile sign-out to be async with user-facing error feedback.
+- Deleted orphaned `apps/mobile/apps/index.tsx`.
 
 **Session 009 ended after:**
 - Enhanced `setup.sh` with `db:port` and `db:env` (automated environment variable synchronization).

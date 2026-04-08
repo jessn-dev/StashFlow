@@ -198,25 +198,22 @@ cmd_add() {
   local packages=()
   local workspace=""
   local dev_flag=""
-
-  # The first argument is the first package
-  packages+=("$1")
   shift || true
 
-  # Parse remaining flags and packages
+  # Parse flags
   while [[ $# -gt 0 ]]; do
     case "$1" in
       -w|--workspace) workspace="$2"; shift 2 ;;
       -D|--dev) dev_flag="-D"; shift ;;
-      *) packages+=("$1"); shift ;;
+      *) die "Unknown option: $1" ;;
     esac
   done
 
-  [[ ${#packages[@]} -eq 0 ]] && die "Usage: ./setup.sh add <pkg1> [pkg2...] [-w <workspace>] [-D|--dev]"
+  [[ -z "$pkg" ]] && die "Usage: ./setup.sh add <package-name> [-w <workspace>] [-D|--dev]"
 
   if [[ -z "$workspace" ]]; then
-    info "Adding '${packages[*]}' to root workspace..."
-    pnpm add -w $dev_flag "${packages[@]}"
+    info "Adding '$pkg' to root workspace..."
+    pnpm add -w $dev_flag "$pkg"
   else
     # Map shorthand name to full filter name
     case "$workspace" in
@@ -227,8 +224,8 @@ cmd_add() {
       ui)     filter="@fintrack/ui" ;;
       *)      die "Unknown workspace '$workspace'. Valid: web, mobile, core, api, ui" ;;
     esac
-    info "Adding '${packages[*]}' to workspace '$filter'..."
-    pnpm add --filter "$filter" $dev_flag "${packages[@]}"
+    info "Adding '$pkg' to workspace '$filter'..."
+    pnpm add --filter "$filter" $dev_flag "$pkg"
   fi
   success "Packages added."
 }

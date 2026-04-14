@@ -126,7 +126,7 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-5 bg-white/80 backdrop-blur-md border-b border-brand-primary/10">
         <div className="flex items-center gap-2 font-serif text-2xl font-bold text-brand-primary">
-          <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse"></span>
+          <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse"></span>{' '}
           FinTrack
         </div>
         <ul className="hidden md:flex gap-10 text-sm font-medium tracking-widest uppercase text-brand-text/70">
@@ -171,8 +171,8 @@ export default function LandingPage() {
         <div className="absolute bottom-8 left-0 right-0 overflow-hidden border-y border-brand-primary/10 py-3 animate-in fade-in duration-1000 delay-500 bg-white/50 backdrop-blur-sm">
           <div className="flex gap-12 w-max animate-ticker text-xs font-mono tracking-wider text-brand-text/70">
             {/* Repeated twice for smooth scrolling */}
-            {[...Array(2)].map((_, i) => (
-              <div key={i} className="flex gap-12">
+            {new Array('ticker-1', 'ticker-2').map((key) => (
+              <div key={key} className="flex gap-12">
                 <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">AAPL</span> $187.42 <span className="text-green-600">▲ 1.23%</span></span>
                 <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">MSFT</span> $412.85 <span className="text-green-600">▲ 0.87%</span></span>
                 <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">NVDA</span> $891.20 <span className="text-green-600">▲ 3.14%</span></span>
@@ -193,8 +193,8 @@ export default function LandingPage() {
           { num: '99.9%', label: 'Uptime SLA', sub: '↑ 6 nines target' },
           { num: '8ms', label: 'Avg. Latency', sub: '↓ 41% vs. last year' },
           { num: '4.8k', label: 'Global Clients', sub: '↑ 340 new this month' },
-        ].map((stat, i) => (
-          <div key={i} className="p-8 md:p-12 border-b md:border-b-0 md:border-r border-brand-primary/10 last:border-0 reveal opacity-0 translate-y-6">
+        ].map((stat) => (
+          <div key={stat.label} className="p-8 md:p-12 border-b md:border-b-0 md:border-r border-brand-primary/10 last:border-0 reveal opacity-0 translate-y-6">
             <div className="font-serif text-4xl md:text-5xl font-bold text-brand-primary">{stat.num}</div>
             <div className="text-xs font-bold tracking-widest uppercase text-brand-text/60 mt-3">{stat.label}</div>
             <div className="text-xs font-mono text-brand-accent mt-2">{stat.sub}</div>
@@ -236,8 +236,8 @@ export default function LandingPage() {
               title: 'Cross-Platform',
               desc: 'Manage your wealth anywhere. Seamlessly sync between this web platform and our upcoming native iOS and Android applications.'
             },
-          ].map((feat, i) => (
-            <div key={i} className="p-10 border-r border-b border-brand-primary/10 hover:bg-brand-bg transition-colors reveal opacity-0 translate-y-6">
+          ].map((feat) => (
+            <div key={feat.id} className="p-10 border-r border-b border-brand-primary/10 hover:bg-brand-bg transition-colors reveal opacity-0 translate-y-6">
               <div className="text-xs font-mono tracking-[0.2em] text-brand-accent/70 mb-6">{feat.id}</div>
               <h3 className="font-serif text-2xl font-bold text-brand-primary mb-3">{feat.title}</h3>
               <p className="text-sm text-brand-text/80 leading-relaxed">{feat.desc}</p>
@@ -297,9 +297,9 @@ export default function LandingPage() {
       <footer className="relative z-10 bg-white border-t border-brand-primary/10 p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="text-xs font-mono text-brand-text/50">© 2026 FinTrack Inc. All rights reserved.</div>
         <ul className="flex gap-8 text-xs font-bold tracking-widest uppercase text-brand-text/60">
-          <li><a href="#" className="hover:text-brand-accent">Privacy</a></li>
-          <li><a href="#" className="hover:text-brand-accent">Terms</a></li>
-          <li><a href="#" className="hover:text-brand-accent">Security</a></li>
+          <li><button type="button" className="hover:text-brand-accent transition-colors">Privacy</button></li>
+          <li><button type="button" className="hover:text-brand-accent transition-colors">Terms</button></li>
+          <li><button type="button" className="hover:text-brand-accent transition-colors">Security</button></li>
         </ul>
       </footer>
     </div>

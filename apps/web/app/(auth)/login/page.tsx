@@ -3,9 +3,9 @@ import { login, signup } from './actions'
 
 export default async function LoginPage({
   searchParams,
-}: {
+}: Readonly<{
   searchParams: Promise<{ message?: string; mode?: string }>
-}) {
+}>) {
   const params = await searchParams
   const isSignUp = params?.mode === 'signup'
 

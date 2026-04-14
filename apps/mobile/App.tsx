@@ -16,7 +16,7 @@ function RootNavigator() {
   }
 
   // If we have a session, show Dashboard. Otherwise, show Login.
-  return session && session.user ? <DashboardScreen /> : <LoginScreen />
+  return session?.user ? <DashboardScreen /> : <LoginScreen />
 }
 
 export default function App() {

@@ -2,9 +2,9 @@ import { resetPassword } from '../login/actions'
 
 export default async function ResetPasswordPage({
   searchParams,
-}: {
+}: Readonly<{
   searchParams: Promise<{ message?: string }>
-}) {
+}>) {
   const params = await searchParams
 
   return (

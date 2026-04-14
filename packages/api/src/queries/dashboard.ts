@@ -79,6 +79,6 @@ export async function getRecentTransactions(
   ]
 
   return combined
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5)
 }

@@ -43,30 +43,6 @@ describe('dashboard queries', () => {
     })
 
     it('should handle empty data', async () => {
-      vi.mocked(mockSupabase.from).mockImplementation((table: string) => {
-        return {
-          select: vi.fn().mockImplementation(() => {
-             return {
-               eq: vi.fn().mockResolvedValue({ data: [], error: null }),
-               ...vi.fn().mockResolvedValue({ data: [], error: null })() 
-             }
-          })
-        } as any
-      })
-      
-      // Simplified mock for this specific test case
-      const simpleMock = {
-        from: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
-            // Handle the non-eq case for incomes
-            ...Promise.resolve({ data: [], error: null })
-          }),
-          // Also need to handle when select() is awaited directly
-          select_awaited: Promise.resolve({ data: [], error: null })
-        })
-      }
-
       // Re-mocking more cleanly
       const mFrom = vi.fn()
       const mSelect = vi.fn()

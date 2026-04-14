@@ -3,9 +3,9 @@ import { forgotPassword } from '../login/actions'
 
 export default async function ForgotPasswordPage({
   searchParams,
-}: {
+}: Readonly<{
   searchParams: Promise<{ message?: string }>
-}) {
+}>) {
   const params = await searchParams
 
   return (

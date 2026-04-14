@@ -10,6 +10,7 @@ import {
   ScrollView,
   SafeAreaView
 } from 'react-native'
+import { theme } from '@fintrack/theme'
 import { supabase } from '../utils/supabase'
 
 export function LoginScreen() {
@@ -100,7 +101,7 @@ export function LoginScreen() {
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.colors.white} />
               ) : (
                 <Text style={styles.mainButtonText}>
                   {isSignUp ? 'Sign Up' : 'Sign In'}
@@ -146,101 +147,101 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
   },
   scrollContainer: {
     flexGrow: 1,
   },
   container: {
     flex: 1,
-    padding: 32,
+    padding: theme.spacing.lg,
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
   },
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: theme.spacing.lg,
   },
   logoIcon: {
     width: 32,
     height: 32,
-    backgroundColor: '#0D3D3D',
-    borderRadius: 16,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: theme.spacing.sm,
   },
   logoIconText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    color: theme.colors.white,
+    fontWeight: theme.fonts.weight.bold,
     fontSize: 18,
   },
   logoText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#0D3D3D',
+    fontSize: theme.fonts.size.lg,
+    fontWeight: theme.fonts.weight.bold,
+    color: theme.colors.primary,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#0D3D3D',
-    marginBottom: 8,
+    fontSize: theme.fonts.size.xl,
+    fontWeight: theme.fonts.weight.bold,
+    color: theme.colors.primary,
+    marginBottom: theme.spacing.sm,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#444444',
-    marginBottom: 32,
+    fontSize: theme.fonts.size.sm,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.lg,
     lineHeight: 20,
   },
   form: {
-    gap: 16,
+    gap: theme.spacing.md,
   },
   inputGroup: {
-    marginBottom: 4,
+    marginBottom: theme.spacing.xs,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#444444',
-    marginBottom: 8,
+    fontSize: theme.fonts.size.sm,
+    fontWeight: theme.fonts.weight.medium,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
     borderWidth: 1,
-    borderColor: '#EFEFEF',
-    padding: 16,
-    borderRadius: 8,
-    color: '#444444',
-    fontSize: 16,
+    borderColor: '#EFEFEF', // Keeping local for now or can use theme.colors.bg
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    color: theme.colors.text,
+    fontSize: theme.fonts.size.md,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginTop: 8,
+    marginTop: theme.spacing.sm,
   },
   forgotPasswordText: {
-    color: '#1A7A7A',
-    fontSize: 12,
-    fontWeight: '600',
+    color: theme.colors.accent,
+    fontSize: theme.fonts.size.xs,
+    fontWeight: theme.fonts.weight.semibold,
   },
   mainButton: {
-    backgroundColor: '#0D3D3D',
-    padding: 16,
-    borderRadius: 8,
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: theme.spacing.sm,
   },
   mainButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: theme.colors.white,
+    fontSize: theme.fonts.size.md,
+    fontWeight: theme.fonts.weight.bold,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 32,
+    marginVertical: theme.spacing.lg,
   },
   dividerLine: {
     flex: 1,
@@ -248,39 +249,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFEFEF',
   },
   dividerText: {
-    marginHorizontal: 16,
-    fontSize: 12,
-    color: '#444444',
-    fontWeight: 'bold',
+    marginHorizontal: theme.spacing.md,
+    fontSize: theme.fonts.size.xs,
+    color: theme.colors.text,
+    fontWeight: theme.fonts.weight.bold,
   },
   oauthContainer: {
-    gap: 12,
+    gap: theme.spacing.sm,
   },
   oauthButton: {
     borderWidth: 1,
     borderColor: '#EFEFEF',
-    padding: 14,
-    borderRadius: 8,
+    padding: theme.spacing.sm + 6,
+    borderRadius: theme.radius.md,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
   },
   oauthButtonText: {
-    color: '#444444',
-    fontSize: 14,
-    fontWeight: '500',
+    color: theme.colors.text,
+    fontSize: theme.fonts.size.sm,
+    fontWeight: theme.fonts.weight.medium,
   },
   toggleContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 32,
+    marginTop: theme.spacing.lg,
   },
   toggleText: {
-    color: '#444444',
-    fontSize: 14,
+    color: theme.colors.text,
+    fontSize: theme.fonts.size.sm,
   },
   toggleLink: {
-    color: '#1A7A7A',
-    fontSize: 14,
-    fontWeight: 'bold',
+    color: theme.colors.accent,
+    fontSize: theme.fonts.size.sm,
+    fontWeight: theme.fonts.weight.bold,
   },
 })

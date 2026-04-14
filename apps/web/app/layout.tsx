@@ -2,9 +2,9 @@ import './globals.css'
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
     // Force the custom DaisyUI theme here
     <html lang="en" data-theme="fintrack">

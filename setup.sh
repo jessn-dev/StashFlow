@@ -33,12 +33,12 @@ BOLD='\033[1m'
 RESET='\033[0m'
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-info()    { echo -e "${CYAN}▶  $*${RESET}"; }
-success() { echo -e "${GREEN}✔  $*${RESET}"; }
-warn()    { echo -e "${YELLOW}⚠  $*${RESET}"; }
-error()   { echo -e "${RED}✖  $*${RESET}" >&2; }
+info()    { echo -e "${CYAN}▶  $*${RESET}"; return 0; }
+success() { echo -e "${GREEN}✔  $*${RESET}"; return 0; }
+warn()    { echo -e "${YELLOW}⚠  $*${RESET}"; return 0; }
+error()   { echo -e "${RED}✖  $*${RESET}" >&2; return 0; }
 die()     { error "$*"; exit 1; }
-divider() { echo -e "${BOLD}────────────────────────────────────────────────────────${RESET}"; }
+divider() { echo -e "${BOLD}────────────────────────────────────────────────────────${RESET}"; return 0; }
 
 # ── Resolve project root (the directory this script lives in) ─────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -47,6 +47,7 @@ cd "$SCRIPT_DIR"
 # ── Prerequisite checks ───────────────────────────────────────────────────────
 require_node() {
   command -v node &>/dev/null || die "Node.js is required but not installed.\n   Install Node.js v22.x LTS → https://nodejs.org/"
+  return 0
 }
 
 require_pnpm() {
@@ -60,12 +61,14 @@ require_pnpm() {
     export PATH="$PNPM_HOME:$PATH"
     command -v pnpm &>/dev/null || die "pnpm installation failed. Re-run after sourcing your shell profile."
   fi
+  return 0
 }
 
 require_supabase() {
   if ! command -v supabase &>/dev/null; then
     die "Supabase CLI not found.\n   Install: brew install supabase/tap/supabase\n   Docs:    https://supabase.com/docs/guides/cli/getting-started"
   fi
+  return 0
 }
 
 # ── Commands ──────────────────────────────────────────────────────────────────
@@ -107,6 +110,7 @@ cmd_help() {
   echo -e "    web | mobile | core | api | ui"
   echo ""
   divider
+  return 0
 }
 
 cmd_init() {
@@ -183,6 +187,7 @@ EOF
   echo ""
   info "Next: run './setup.sh db:start' then './setup.sh dev'"
   divider
+  return 0
 }
 
 cmd_install() {
@@ -190,12 +195,12 @@ cmd_install() {
   info "Installing all workspace dependencies..."
   pnpm install
   success "Done."
+  return 0
 }
 
 cmd_add() {
   require_pnpm
 
-  local packages=()
   local workspace=""
   local dev_flag=""
   shift || true
@@ -228,6 +233,7 @@ cmd_add() {
     pnpm add --filter "$filter" $dev_flag "$pkg"
   fi
   success "Packages added."
+  return 0
 }
 
 cmd_dev() {
@@ -251,6 +257,7 @@ cmd_dev() {
       die "Unknown target '$target'. Use: dev, dev web, dev mobile"
       ;;
   esac
+  return 0
 }
 
 cmd_db_start() {
@@ -259,6 +266,7 @@ cmd_db_start() {
   supabase start
   success "Supabase is running. Studio → http://localhost:54323"
   cmd_db_env
+  return 0
 }
 
 cmd_db_stop() {
@@ -266,6 +274,7 @@ cmd_db_stop() {
   info "Stopping local Supabase..."
   supabase stop
   success "Supabase stopped."
+  return 0
 }
 
 cmd_db_env() {
@@ -310,6 +319,7 @@ EOF
   fi
 
   success "Environment files updated."
+  return 0
 }
 
 cmd_db_reset() {
@@ -317,17 +327,19 @@ cmd_db_reset() {
   divider
   warn "This will DROP all local data, reapply migrations, and re-seed."
   read -r -p "   Continue? [y/N] " confirm
-  [[ "$confirm" =~ ^[Yy]$ ]] || { info "Aborted."; exit 0; }
+  [[ "$confirm" =~ ^[Yy]$ ]] || { info "Aborted."; return 0; }
   divider
   info "Resetting database..."
   supabase db reset
   success "Database reset complete. Test user: test@fintrack.com / password123"
+  return 0
 }
 
 cmd_db_status() {
   require_supabase
   info "Supabase service status:"
   supabase status
+  return 0
 }
 
 cmd_db_port() {
@@ -347,6 +359,7 @@ cmd_db_port() {
     error "supabase/config.toml not found."
     return 1
   fi
+  return 0
 }
 
 cmd_db_types() {
@@ -355,6 +368,7 @@ cmd_db_types() {
   info "Generating TypeScript types from local schema..."
   supabase gen types typescript --local > "$output_path"
   success "Types written to $output_path"
+  return 0
 }
 
 cmd_test() {
@@ -373,6 +387,7 @@ cmd_test() {
       die "Unknown test mode '$mode'. Use: test  |  test coverage"
       ;;
   esac
+  return 0
 }
 
 cmd_clean() {
@@ -395,6 +410,7 @@ cmd_clean() {
   rm -rf apps/web/coverage
 
   success "Clean complete."
+  return 0
 }
 
 # ── Main dispatcher ────────────────────────────────────────────────────────────

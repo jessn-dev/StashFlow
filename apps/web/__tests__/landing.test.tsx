@@ -26,7 +26,7 @@ class MockIntersectionObserver {
   unobserve = vi.fn()
   disconnect = vi.fn()
 }
-Object.defineProperty(window, 'IntersectionObserver', {
+Object.defineProperty(globalThis, 'IntersectionObserver', {
   writable: true,
   configurable: true,
   value: MockIntersectionObserver,

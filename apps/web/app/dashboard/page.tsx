@@ -22,7 +22,7 @@ export default async function DashboardPage() {
       {/* Navbar */}
       <nav className="border-b border-brand-primary/10 bg-white px-8 py-5 flex justify-between items-center">
         <div className="flex items-center gap-2 font-serif text-2xl font-bold text-brand-primary">
-          <span className="w-2 h-2 rounded-full bg-brand-accent"></span>
+          <span className="w-2 h-2 rounded-full bg-brand-accent"></span>{' '}
           FinTrack
         </div>
         <div className="flex items-center gap-6">

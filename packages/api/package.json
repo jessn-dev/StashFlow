@@ -16,6 +16,6 @@
   },
   "devDependencies": {
     "@fintrack/core": "workspace:*",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.4"
   }
 }

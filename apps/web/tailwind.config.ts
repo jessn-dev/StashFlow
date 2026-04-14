@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import { theme as sharedTheme } from "@fintrack/theme";
 
 const config: Config = {
   content: [
@@ -10,11 +11,11 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          primary: "#0D3D3D", // Deep Teal
-          accent: "#1A7A7A", // Teal
-          text: "#444444", // Dark Gray
-          bg: "#EFEFEF", // Light Gray
-          white: "#FFFFFF",
+          primary: sharedTheme.colors.primary,
+          accent: sharedTheme.colors.accent,
+          text: sharedTheme.colors.text,
+          bg: sharedTheme.colors.bg,
+          white: sharedTheme.colors.white,
         }
       }
     },
@@ -24,16 +25,16 @@ const config: Config = {
     themes: [
       {
         fintrack: {
-          "primary": "#0D3D3D",
-          "primary-content": "#FFFFFF",
-          "accent": "#1A7A7A",
-          "base-100": "#FFFFFF",
-          "base-200": "#EFEFEF",
-          "base-content": "#444444",
-          "info": "#3ABFF8",
-          "success": "#36D399",
-          "warning": "#FBBD23",
-          "error": "#F87272",
+          "primary": sharedTheme.colors.primary,
+          "primary-content": sharedTheme.colors.white,
+          "accent": sharedTheme.colors.accent,
+          "base-100": sharedTheme.colors.white,
+          "base-200": sharedTheme.colors.bg,
+          "base-content": sharedTheme.colors.text,
+          "info": sharedTheme.colors.info,
+          "success": sharedTheme.colors.success,
+          "warning": sharedTheme.colors.warning,
+          "error": sharedTheme.colors.error,
         },
       },
       "dark", // Fallback for dark mode

@@ -83,8 +83,8 @@ M1  — Monorepo Scaffold                    ✅ Complete
 M2  — Supabase Schema + RLS               ✅ Complete
 M3  — Auth Flow (Web + Mobile)             ✅ Complete
 M4a — Core Logic, API Layer & Seed Data    ✅ Complete
-M4b — Live Dashboards (Web & Mobile)       🟡 In Progress
-M5  — Spending Module (Web)                ⏳ Pending
+M4b — Live Dashboards (Web & Mobile)       ✅ Complete
+M5  — Spending Module (Web)                🟡 In Progress
 M6  — Income Module (Web)                  ⏳ Pending
 M7  — Loans Module + Scheduler (Web)       ⏳ Pending
 M8  — DTI Module (Web)                     ⏳ Pending
@@ -206,12 +206,12 @@ Connect both platforms to the live data layer and implement the "Two-Tone" desig
 - **Mobile Dashboard Integration**: Fully functional dashboard screen mirroring the Web UI with summary cards and live transaction data.
 - **Monorepo Integration**: Fixed TypeScript path resolution and workspace dependency linking across all packages.
 - **Dev Standards**: Explicit dev ports (Web: 3000, Mobile: 8081).
+- **Unit Tests (Web)**: Verified live dashboard data rendering and formatting.
+- **Seed Data Reliability**: Fixed `seed.sql` syntax and schema alignment for reliable local test user creation.
+- **Shared Theme**: Centralized design tokens in `@fintrack/theme` for cross-platform consistency.
 
 ### Pending
-- [ ] **Unit Tests (Web)**: Test live dashboard data rendering and formatting.
-- [ ] **Unit Tests (Mobile)**: Test mobile dashboard data display and refresh logic.
-- [ ] **Seed Data Persistence**: Resolve "Invalid Credentials" error when logging in with `test@fintrack.com` on local Supabase.
-- [ ] **Seed Data Validation**: Ensure `seed.sql` reliably creates a working test user.
+- [ ] **Unit Tests (Mobile)**: (Technical Debt) Resolve `SyntaxError: typeof` in Vitest transformation for React Native components.
 
 ---
 

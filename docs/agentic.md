@@ -1,8 +1,13 @@
 # FinTrack — Agentic Session Context
 
+> Current Session: 011 — Next.js 16 Upgrade, Shared Theme & Dashboard Testing
+> Date: 2026-04-14
+> Status: Web upgraded to Next.js 16/React 19. Shared Theme package created. Web Dashboard tests passing. Mobile tests documented as technical debt.
+
 > Current Session: 010 — Core & Auth Unit Testing
 > Date: 2026-04-08
 > Status: Milestone 3 & 4a unit tests complete (Web, Core, API).
+
 > Current Session: 009 — Database CLI & Environment Automation
 > Date: 2026-04-07
 > Status: setup.sh enhanced with lifecycle management and automated env syncing.
@@ -11,7 +16,7 @@
 
 ## High-Level Instructions
 
-You are a senior full-stack developer building **FinTrack**, a cross-platform personal finance app (Web + iOS + Android). The tech stack uses a Turborepo monorepo with Next.js 15, Expo React Native 54, and Supabase as the backend.
+You are a senior full-stack developer building **FinTrack**, a cross-platform personal finance app (Web + iOS + Android). The tech stack uses a Turborepo monorepo with Next.js 16, Expo React Native 54, and Supabase as the backend.
 
 **Always follow these rules before doing anything:**
 1. Update `plan.md` before writing any code.
@@ -29,37 +34,32 @@ You are a senior full-stack developer building **FinTrack**, a cross-platform pe
 
 | Package | Version | Location | Notes |
 |---|---|---|---|
-| Next.js | 15.5.14 | apps/web | App Router |
-| React | 19.1.0 | Shared | Web + Mobile |
+| Next.js | 16.2.3 | apps/web | App Router (using Proxy convention) |
+| React | 19.2.5 | Shared | Web (Mobile on 19.1.0 due to test debt) |
 | Expo SDK | ~54.0.33 | apps/mobile | iOS + Android |
 | @fintrack/core | workspace:* | apps/web + apps/mobile | Internal Shared Logic |
 | @fintrack/api | workspace:* | apps/web + apps/mobile | Internal API Layer |
-| Tailwind CSS | ^3.4.19 | apps/web | v3 Required for DaisyUI |
-| Vitest | ^4.1.2 | Shared | Test Runner |
+| @fintrack/theme | workspace:* | Shared | Centralized design tokens |
+| Tailwind CSS | ^3.4.19 | apps/web | v3 Integrated with shared theme |
+| Vitest | 4.1.4 | Monorepo | Latest stable test runner |
 
 ---
 
 ## Critical Technical Constraints
 
-### 1. Next.js 15 Async APIs
-- **Rule:** `cookies()` AND `headers()` must be awaited.
-- **Action:** Import `headers` statically from `next/headers`. Use `const origin = (await headers()).get('origin') ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'`.
+### 1. Next.js 16 Conventions
+- **Proxy instead of Middleware:** The `middleware.ts` convention is deprecated. Use `proxy.ts` and export a `proxy` function instead.
+- **Async APIs:** `cookies()` and `headers()` must be awaited.
 
-### 2. Mobile Network (Local Dev)
-- **Rule:** Android Emulator cannot reach `127.0.0.1`.
-- **Action:** Use local network IP (e.g., `192.168.1.185`) in `apps/mobile/.env` for universal compatibility.
+### 2. React 19 Testing (Web)
+- **Action:** Wrap `render` in `act` and use `await screen.findBy*` methods to handle the new asynchronous rendering behavior in React 19.
 
-### 3. Monorepo TypeScript Paths
-- **Rule:** Workspace dependencies require explicit path mapping in `tsconfig.json`.
-- **Action:** Map `@fintrack/*` in `apps/*/tsconfig.json` to `../../packages/*/src/index.ts`.
+### 3. Styling Consistency
+- **Rule:** Never use hardcoded hex colors in components.
+- **Action:** Use `@fintrack/theme` for all design tokens. In Web, map them in `tailwind.config.ts`. In Mobile, import the `theme` object into `StyleSheet`.
 
-### 4. Supabase Auth Manual Seeding
-- **Rule:** Manual `INSERT` into `auth.users` requires specific non-nullable fields.
-- **Action:** Always include `instance_id`, `aud` ('authenticated'), and `confirmation_token`.
-
-### 5. Date Arithmetic (Timezones)
-- **Rule:** `new Date('YYYY-MM-DD')` can shift days depending on local timezone.
-- **Action:** Use `T00:00:00Z` suffix and `getUTCMonth`/`setUTCMonth` methods for consistent cross-environment testing.
+### 4. Supabase Seed Data
+- **Rule:** Use `DO $$ ... END $$;` blocks in `seed.sql` for constants to ensure compatibility with Supabase CLI batch execution (avoids `\set` errors).
 
 ---
 
@@ -70,84 +70,58 @@ You are a senior full-stack developer building **FinTrack**, a cross-platform pe
 | M0 — Requirements & Planning | ✅ Complete |
 | M1 — Monorepo Scaffold | ✅ Complete |
 | M2 — Supabase Schema + RLS | ✅ Complete |
-| M3 — Auth Flow (Web + Mobile) | ✅ Complete (Testing Foundation Established) |
-| M4a — Core Logic, API Layer & Seed Data | ✅ Complete (Core Logic Verified) |
-| M4b — Live Dashboards (Web & Mobile) | 🟡 In Progress |
+| M3 — Auth Flow (Web + Mobile) | ✅ Complete |
+| M4a — Core Logic, API Layer & Seed Data | ✅ Complete |
+| M4b — Live Dashboards (Web & Mobile) | ✅ Complete (Mobile Tests deferred as Tech Debt) |
+| M5 — Spending Module (Web) | 🟡 In Progress |
 
 ---
 
-## Errors Encountered & Fixed (Session 010)
+## Errors Encountered & Fixed (Session 011)
 
 | Error / Issue | Fix | File |
 |---|---|---|
-| `setup.sh add` unknown option `--dev` | Added support for `-D / --dev` flags in `cmd_add` | `setup.sh` |
-| `setup.sh add` only supported one package | Updated `cmd_add` to handle multiple package arguments | `setup.sh` |
-| Corepack / pnpm signature errors | Force-reinstalled `pnpm` via `npm install -g pnpm@latest --force` | — |
-| Loan schedule date drift in tests | Switched to `T00:00:00Z` start dates and `setUTCMonth` in logic | `packages/core/src/utils/loans.ts` |
-| Mobile Vitest `SyntaxError: Unexpected token 'typeof'` | Configured `react-native-web` alias and `deps.optimizer`, though RN testing remains complex | `apps/mobile/vitest.config.ts` |
+| `middleware` deprecated in Next.js 16 | Renamed `middleware.ts` -> `proxy.ts` and updated export. | `apps/web/proxy.ts` |
+| `String.raw` in Next.js config matcher | Replaced with standard string literal. | `apps/web/proxy.ts` |
+| Web Dashboard tests failing (empty body) | Wrapped `render` in `act` and switched to `findBy` queries. | `apps/web/__tests__/dashboard.test.tsx` |
+| Mobile Vitest `SyntaxError: typeof` | Documented as technical debt. Likely Flow/React 19 transformation conflict. | `apps/mobile/vitest.config.ts` |
+| `seed.sql` syntax error near `\` | Switched from `psql` metacommands to PL/pgSQL `DO` blocks. | `supabase/seed.sql` |
 
 ---
 
-## Developer CLI (setup.sh)
+## Technical Debt
 
-`setup.sh` is the single entrypoint for all project tasks. Run `./setup.sh help` at any time.
-
-| Command | What it does |
-|---|---|
-| `./setup.sh init` | First-time scaffold (run once) |
-| `./setup.sh install` | Install / refresh all workspace dependencies |
-| `./setup.sh add <pkg> [-w workspace] [-D]` | Add package(s) to the monorepo or a specific workspace |
-| `./setup.sh dev [web\|mobile]` | Start dev servers (default: all via Turbo) |
-| `./setup.sh add <pkg> [-w web\|mobile\|core\|api\|ui]` | Add a package to the monorepo or a specific workspace |
-| `./setup.sh dev` | Start web + mobile dev servers via Turbo |
-| `./setup.sh dev web` | Start only the web app (localhost:3000) |
-| `./setup.sh dev mobile` | Start only the mobile app (port 8081) |
-| `./setup.sh db:start` | Start local Supabase via Docker + **auto-sync env keys** |
-| `./setup.sh db:stop` | Stop local Supabase |
-| `./setup.sh db:reset` | Drop + reapply migrations + re-seed (prompts for confirmation) |
-| `./setup.sh db:status` | Show Supabase service URLs and ports |
-| `./setup.sh db:port <port>` | Change the local Supabase API port (updates config.toml) |
-| `./setup.sh db:env` | Update workspace `.env` files with current local Supabase keys |
-| `./setup.sh db:types` | Regenerate `database.types.ts` from local schema |
-| `./setup.sh test` | Run web unit tests (Vitest) |
+| Debt Item | Priority | Context |
+|---|---|---|
+| Mobile Unit Tests | High | `DashboardScreen` and `LoginScreen` tests currently fail with transformation errors in Vitest 4 + React 19. Needs architectural fix or alternative runner. |
 
 ---
 
 ## Where We Stopped
 
-**Session 010 (Current) ended after:**
+**Session 011 (Current) ended after:**
+- Upgraded Web app to Next.js 16.2.3 and React 19.2.5.
+- Created `@fintrack/theme` package and integrated it into both Web and Mobile.
+- Refactored Web Dashboard to separate UI (`DashboardUI`) from data fetching.
+- Achieved passing unit tests for Web Dashboard.
+- Fixed `seed.sql` to reliably create test users without syntax or auth errors.
+- Merged all bugfix changes into `feature/m4b-dashboard-live`.
+
+**Session 010 ended after:**
 - Branched to `feature/m3-m4a-AuthTest-CoreTest`.
 - 100% test coverage for `@fintrack/core` utilities (DTI, Loans, Currency).
 - 100% test coverage for `@fintrack/api` dashboard queries (mocked Supabase).
 - 100% test coverage for Web Auth Server Actions (`login`, `signup`, `forgotPassword`, `resetPassword`).
 - Upgraded `setup.sh` to support dev-dependencies and multiple packages in the `add` command.
 - Established Vitest infra in `packages/core` and `packages/api`.
-**Session 009 (Current) ended after:**
+
+**Session 009 ended after:**
 - Enhanced `setup.sh` with lifecycle automation:
     - Added `db:port <port>` to modify Supabase config.
     - Added `db:env` to automatically extract and sync Supabase keys to `apps/web/.env.local` and `apps/mobile/.env`.
     - Integrated `db:env` into `db:start` for a "one-click" developer setup experience.
 - Updated `plan.md` and `agentic.md` to reflect these developer experience improvements.
 
-**Session 008 ended after:**
-...
-**Session 007 ended after:**
-- Full 16-issue code review and bug-fix pass across all layers of the stack.
-- Fixed the seed SQL column misalignment that was causing "Invalid Credentials" on `test@fintrack.com`.
-- Hardened all auth server actions (URL encoding, generic error messages, static headers import).
-- Fixed DTI zero-state false positive for new users.
-- Fixed loan amortization floating-point drift.
-- Parallelised dashboard queries and added proper error propagation.
-- Renamed `createBrowserClient` → `createSupabaseClient` for clarity.
-- Typed `options` properly in the API client factory.
-- Fixed mobile sign-out to be async with user-facing error feedback.
-- Deleted orphaned `apps/mobile/apps/index.tsx`.
-
-**Session 009 ended after:**
-- Enhanced `setup.sh` with `db:port` and `db:env` (automated environment variable synchronization).
-
 **Next actions required:**
-1. **M4b Unit Tests** — Write tests for the Web Dashboard page rendering and Mobile Dashboard logic.
-2. **Dashboard UI label** — Update "Total Assets" card to "Total Income" on both web and mobile.
-3. **Mobile Test Infrastructure** — Resolve the `SyntaxError` in mobile tests or decide on a different testing strategy (e.g., Maverick or purely logic-based tests).
-4. **Seed Data Validation (M4b)** — Verify test user login after `db:reset`.
+1. **M5 Spending Module** — Implement the spending logging module on Web.
+2. **Dashboard UI label** — Update "Total Assets" card to "Total Income" on both platforms.

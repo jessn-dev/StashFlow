@@ -10,6 +10,7 @@ import {
   Alert,
   RefreshControl
 } from 'react-native'
+import { theme } from '@fintrack/theme'
 import { supabase } from '../utils/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { getDashboardSummary, getRecentTransactions } from '@fintrack/api'
@@ -50,7 +51,7 @@ export function DashboardScreen() {
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0D3D3D" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     )
   }
@@ -76,7 +77,7 @@ export function DashboardScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0D3D3D" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
         }
       >
         <Text style={styles.userEmail}>{session?.user?.email}</Text>
@@ -163,11 +164,11 @@ export function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#EFEFEF' },
+  safeArea: { flex: 1, backgroundColor: theme.colors.bg },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   navbar: {
     height: 64,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -176,14 +177,14 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(13, 61, 61, 0.1)',
   },
   brandContainer: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  brandDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#1A7A7A', marginRight: 8 },
-  brandText: { fontSize: 20, fontWeight: 'bold', color: '#0D3D3D' },
-  signOutText: { fontSize: 12, fontWeight: 'bold', color: '#1A7A7A', textTransform: 'uppercase', letterSpacing: 1 },
+  brandDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.accent, marginRight: 8 },
+  brandText: { fontSize: 20, fontWeight: theme.fonts.weight.bold, color: theme.colors.primary },
+  signOutText: { fontSize: 12, fontWeight: theme.fonts.weight.bold, color: theme.colors.accent, textTransform: 'uppercase', letterSpacing: 1 },
   scrollContainer: { padding: 20, paddingBottom: 40 },
-  userEmail: { fontSize: 12, color: '#444444', opacity: 0.7, marginBottom: 4, fontWeight: '500' },
-  header: { fontSize: 32, fontWeight: 'bold', color: '#0D3D3D', marginBottom: 24 },
+  userEmail: { fontSize: 12, color: theme.colors.text, opacity: 0.7, marginBottom: 4, fontWeight: theme.fonts.weight.medium },
+  header: { fontSize: 32, fontWeight: theme.fonts.weight.bold, color: theme.colors.primary, marginBottom: 24 },
   summaryContainer: { marginBottom: 24 },
-  card: { backgroundColor: '#FFFFFF', padding: 24, borderBottomWidth: 0, marginBottom: 16 },
+  card: { backgroundColor: theme.colors.white, padding: 24, borderBottomWidth: 0, marginBottom: 16 },
   row: { flexDirection: 'row', marginBottom: 0 },
   shadow: {
     shadowColor: '#000',
@@ -194,14 +195,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(13, 61, 61, 0.05)',
   },
-  cardLabel: { fontSize: 10, fontWeight: 'bold', color: '#444444', opacity: 0.6, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
-  netWorthValue: { fontSize: 40, fontWeight: 'bold', color: '#0D3D3D' },
-  assetValue: { fontSize: 24, fontWeight: 'bold', color: '#0D3D3D' },
-  liabilityValue: { fontSize: 24, fontWeight: 'bold', color: '#444444', opacity: 0.8 },
-  cardSubtext: { fontSize: 10, color: '#1A7A7A', marginTop: 12, fontWeight: '600' },
-  transactionsModule: { backgroundColor: '#FFFFFF' },
+  cardLabel: { fontSize: 10, fontWeight: theme.fonts.weight.bold, color: theme.colors.text, opacity: 0.6, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
+  netWorthValue: { fontSize: 40, fontWeight: theme.fonts.weight.bold, color: theme.colors.primary },
+  assetValue: { fontSize: 24, fontWeight: theme.fonts.weight.bold, color: theme.colors.primary },
+  liabilityValue: { fontSize: 24, fontWeight: theme.fonts.weight.bold, color: theme.colors.text, opacity: 0.8 },
+  cardSubtext: { fontSize: 10, color: theme.colors.accent, marginTop: 12, fontWeight: theme.fonts.weight.semibold },
+  transactionsModule: { backgroundColor: theme.colors.white },
   moduleHeader: { padding: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(13, 61, 61, 0.1)' },
-  moduleTitle: { fontSize: 18, fontWeight: 'bold', color: '#0D3D3D' },
+  moduleTitle: { fontSize: 18, fontWeight: theme.fonts.weight.bold, color: theme.colors.primary },
   transactionItem: {
     flexDirection: 'row',
     padding: 16,
@@ -210,19 +211,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   txInfo: { flex: 1 },
-  txMainText: { fontSize: 14, fontWeight: 'bold', color: '#0D3D3D' },
-  txSubText: { fontSize: 12, color: '#444444', opacity: 0.5, marginTop: 2 },
+  txMainText: { fontSize: 14, fontWeight: theme.fonts.weight.bold, color: theme.colors.primary },
+  txSubText: { fontSize: 12, color: theme.colors.text, opacity: 0.5, marginTop: 2 },
   txAmountContainer: { alignItems: 'flex-end' },
-  txAmount: { fontSize: 14, fontWeight: 'bold' },
-  incomeText: { color: '#1A7A7A' },
-  expenseText: { color: '#444444' },
+  txAmount: { fontSize: 14, fontWeight: theme.fonts.weight.bold },
+  incomeText: { color: theme.colors.accent },
+  expenseText: { color: theme.colors.text },
   viewAllButton: { padding: 20, alignItems: 'center' },
-  viewAllText: { fontSize: 12, fontWeight: 'bold', color: '#1A7A7A', textTransform: 'uppercase', letterSpacing: 1 },
+  viewAllText: { fontSize: 12, fontWeight: theme.fonts.weight.bold, color: theme.colors.accent, textTransform: 'uppercase', letterSpacing: 1 },
   emptyContainer: { padding: 40, alignItems: 'center' },
-  emptyIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#EFEFEF', justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(13, 61, 61, 0.1)' },
-  emptyIcon: { fontSize: 24, color: '#1A7A7A', fontWeight: '300' },
-  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: '#0D3D3D', marginBottom: 8 },
-  emptySubtext: { fontSize: 12, color: '#444444', opacity: 0.6, textAlign: 'center', lineHeight: 18, marginBottom: 24 },
-  addButton: { backgroundColor: '#0D3D3D', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 0 },
-  addButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 },
+  emptyIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: theme.colors.bg, justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(13, 61, 61, 0.1)' },
+  emptyIcon: { fontSize: 24, color: theme.colors.accent, fontWeight: '300' },
+  emptyTitle: { fontSize: 18, fontWeight: theme.fonts.weight.bold, color: theme.colors.primary, marginBottom: 8 },
+  emptySubtext: { fontSize: 12, color: theme.colors.text, opacity: 0.6, textAlign: 'center', lineHeight: 18, marginBottom: 24 },
+  addButton: { backgroundColor: theme.colors.primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 0 },
+  addButtonText: { color: theme.colors.white, fontSize: 12, fontWeight: theme.fonts.weight.bold, textTransform: 'uppercase', letterSpacing: 1 },
 })

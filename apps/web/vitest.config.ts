@@ -7,14 +7,16 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './'),
-      // FORCE Vite to use the exact same root instance of React
-      'react': path.resolve(__dirname, '../../node_modules/react'),
-      'react-dom': path.resolve(__dirname, '../../node_modules/react-dom'),
     },
   },
   test: {
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
+    server: {
+      deps: {
+        inline: ['@fintrack/core', '@fintrack/api', '@fintrack/theme', 'react', 'react-dom']
+      }
+    }
   },
 })

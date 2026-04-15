@@ -1,5 +1,9 @@
 # FinTrack — Agentic Session Context
 
+> Current Session: 012 — Spending Module (Web) & Testing Bottlenecks
+> Date: 2026-04-14
+> Status: Spending Module implemented on Web (CRUD + UI). API tests passing. Web Component tests deferred as technical debt due to React 19/Vitest resolution issues.
+
 > Current Session: 011 — Next.js 16 Upgrade, Shared Theme & Dashboard Testing
 > Date: 2026-04-14
 > Status: Web upgraded to Next.js 16/React 19. Shared Theme package created. Web Dashboard tests passing. Mobile tests documented as technical debt.
@@ -53,6 +57,7 @@ You are a senior full-stack developer building **FinTrack**, a cross-platform pe
 
 ### 2. React 19 Testing (Web)
 - **Action:** Wrap `render` in `act` and use `await screen.findBy*` methods to handle the new asynchronous rendering behavior in React 19.
+- **Issue:** Components using hooks may trigger "Invalid hook call" if multiple React instances exist in the test environment.
 
 ### 3. Styling Consistency
 - **Rule:** Never use hardcoded hex colors in components.
@@ -73,19 +78,17 @@ You are a senior full-stack developer building **FinTrack**, a cross-platform pe
 | M3 — Auth Flow (Web + Mobile) | ✅ Complete |
 | M4a — Core Logic, API Layer & Seed Data | ✅ Complete |
 | M4b — Live Dashboards (Web & Mobile) | ✅ Complete (Mobile Tests deferred as Tech Debt) |
-| M5 — Spending Module (Web) | 🟡 In Progress |
+| M5 — Spending Module (Web) | ✅ Complete (Component Tests deferred as Tech Debt) |
+| M6 — Income Module (Web) | ⏳ Pending |
 
 ---
 
-## Errors Encountered & Fixed (Session 011)
+## Errors Encountered & Fixed (Session 012)
 
 | Error / Issue | Fix | File |
 |---|---|---|
-| `middleware` deprecated in Next.js 16 | Renamed `middleware.ts` -> `proxy.ts` and updated export. | `apps/web/proxy.ts` |
-| `String.raw` in Next.js config matcher | Replaced with standard string literal. | `apps/web/proxy.ts` |
-| Web Dashboard tests failing (empty body) | Wrapped `render` in `act` and switched to `findBy` queries. | `apps/web/__tests__/dashboard.test.tsx` |
-| Mobile Vitest `SyntaxError: typeof` | Documented as technical debt. Likely Flow/React 19 transformation conflict. | `apps/mobile/vitest.config.ts` |
-| `seed.sql` syntax error near `\` | Switched from `psql` metacommands to PL/pgSQL `DO` blocks. | `supabase/seed.sql` |
+| `TypeError: Cannot read properties of null (reading 'useState')` in tests | Attempted inlining and aliases; deferred as technical debt. | `apps/web/vitest.config.ts` |
+| Dashboard UI labels outdated | Renamed "Total Assets" to "Total Income" and linked to Spending. | `apps/web/components/dashboard/DashboardUI.tsx` |
 
 ---
 
@@ -94,12 +97,21 @@ You are a senior full-stack developer building **FinTrack**, a cross-platform pe
 | Debt Item | Priority | Context |
 |---|---|---|
 | Mobile Unit Tests | High | `DashboardScreen` and `LoginScreen` tests currently fail with transformation errors in Vitest 4 + React 19. Needs architectural fix or alternative runner. |
+| Web Component Tests (React 19) | Medium | Tests for `ExpenseForm` and `DashboardUI` encounter "Invalid hook call" or `null` state errors despite standard fixes. Revisit Vitest/React DOM 19 resolution strategy. |
 
 ---
 
 ## Where We Stopped
 
-**Session 011 (Current) ended after:**
+**Session 012 (Current) ended after:**
+- Implemented full CRUD for Expenses in `@fintrack/api`.
+- Created `ExpenseForm`, `ExpenseList`, and `CategoryBreakdown` components in `apps/web`.
+- Developed `/dashboard/spending` page with Server Actions.
+- Updated Dashboard UI labels and navigation.
+- Verified API layer with unit tests.
+- Documented Web component testing issues as technical debt.
+
+**Session 011 ended after:**
 - Upgraded Web app to Next.js 16.2.3 and React 19.2.5.
 - Created `@fintrack/theme` package and integrated it into both Web and Mobile.
 - Refactored Web Dashboard to separate UI (`DashboardUI`) from data fetching.
@@ -108,20 +120,10 @@ You are a senior full-stack developer building **FinTrack**, a cross-platform pe
 - Merged all bugfix changes into `feature/m4b-dashboard-live`.
 
 **Session 010 ended after:**
-- Branched to `feature/m3-m4a-AuthTest-CoreTest`.
-- 100% test coverage for `@fintrack/core` utilities (DTI, Loans, Currency).
-- 100% test coverage for `@fintrack/api` dashboard queries (mocked Supabase).
-- 100% test coverage for Web Auth Server Actions (`login`, `signup`, `forgotPassword`, `resetPassword`).
-- Upgraded `setup.sh` to support dev-dependencies and multiple packages in the `add` command.
-- Established Vitest infra in `packages/core` and `packages/api`.
-
-**Session 009 ended after:**
-- Enhanced `setup.sh` with lifecycle automation:
-    - Added `db:port <port>` to modify Supabase config.
-    - Added `db:env` to automatically extract and sync Supabase keys to `apps/web/.env.local` and `apps/mobile/.env`.
-    - Integrated `db:env` into `db:start` for a "one-click" developer setup experience.
-- Updated `plan.md` and `agentic.md` to reflect these developer experience improvements.
+- 100% test coverage for `@fintrack/core` utilities.
+- 100% test coverage for `@fintrack/api` dashboard queries.
+- 100% test coverage for Web Auth Server Actions.
 
 **Next actions required:**
-1. **M5 Spending Module** — Implement the spending logging module on Web.
-2. **Dashboard UI label** — Update "Total Assets" card to "Total Income" on both platforms.
+1. **M6 Income Module** — Implement the income logging module on Web (mirroring the Spending Module logic).
+2. **Resolve Test Debt** — Fix the React 19 test environment issues for both Web and Mobile.

@@ -1,5 +1,6 @@
 import { formatCurrency } from '@fintrack/core'
 import { DashboardSummary, Transaction } from '@fintrack/core'
+import Link from 'next/link'
 
 interface DashboardUIProps {
   userEmail: string | undefined
@@ -13,8 +14,10 @@ export default function DashboardUI({ userEmail, summary, transactions }: Dashbo
       {/* Navbar */}
       <nav className="border-b border-brand-primary/10 bg-white px-8 py-5 flex justify-between items-center">
         <div className="flex items-center gap-2 font-serif text-2xl font-bold text-brand-primary">
-          <span className="w-2 h-2 rounded-full bg-brand-accent"></span>{' '}
-          FinTrack
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-brand-accent"></span>{' '}
+            FinTrack
+          </Link>
         </div>
         <div className="flex items-center gap-6">
           <span className="text-sm font-mono text-brand-text/70">{userEmail}</span>
@@ -28,7 +31,15 @@ export default function DashboardUI({ userEmail, summary, transactions }: Dashbo
 
       {/* Main Content */}
       <main className="mx-auto max-w-6xl px-8 py-12">
-        <h1 className="font-serif text-4xl font-bold text-brand-primary mb-10">Overview</h1>
+        <div className="flex justify-between items-end mb-10">
+          <h1 className="font-serif text-4xl font-bold text-brand-primary">Overview</h1>
+          <Link 
+            href="/dashboard/spending" 
+            className="bg-brand-primary text-white text-xs font-bold tracking-widest uppercase px-6 py-3 hover:bg-brand-primary/90 transition-colors"
+          >
+            Manage Spending
+          </Link>
+        </div>
 
         {/* Wealth Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -43,7 +54,7 @@ export default function DashboardUI({ userEmail, summary, transactions }: Dashbo
           </div>
 
           <div className="bg-white p-8 border border-brand-primary/10 shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-xs font-mono tracking-widest text-brand-text/60 uppercase mb-3">Total Assets</div>
+            <div className="text-xs font-mono tracking-widest text-brand-text/60 uppercase mb-3">Total Income</div>
             <div className="font-serif text-4xl font-bold text-brand-primary">
               {formatCurrency(summary.totalAssets)}
             </div>
@@ -59,8 +70,11 @@ export default function DashboardUI({ userEmail, summary, transactions }: Dashbo
 
         {/* Recent Transactions Module */}
         <div className="bg-white border border-brand-primary/10 shadow-sm">
-          <div className="p-8 border-b border-brand-primary/10">
+          <div className="p-8 border-b border-brand-primary/10 flex justify-between items-center">
             <h2 className="font-serif text-2xl font-bold text-brand-primary">Recent Transactions</h2>
+            <Link href="/dashboard/spending" className="text-xs font-bold tracking-widest uppercase text-brand-accent hover:text-brand-primary transition-colors">
+              View All
+            </Link>
           </div>
           
           {transactions.length > 0 ? (
@@ -105,9 +119,9 @@ export default function DashboardUI({ userEmail, summary, transactions }: Dashbo
                 </tbody>
               </table>
               <div className="p-8 border-t border-brand-primary/5 text-center">
-                <button className="text-xs font-bold tracking-widest uppercase text-brand-accent hover:text-brand-primary transition-colors">
+                <Link href="/dashboard/spending" className="text-xs font-bold tracking-widest uppercase text-brand-accent hover:text-brand-primary transition-colors">
                   View All Transactions
-                </button>
+                </Link>
               </div>
             </div>
           ) : (
@@ -119,9 +133,12 @@ export default function DashboardUI({ userEmail, summary, transactions }: Dashbo
               </div>
               <h3 className="font-bold text-brand-primary text-lg mb-2">No data available</h3>
               <p className="text-sm text-brand-text/60 max-w-sm mb-6">You haven&apos;t added any transactions yet. Start tracking your expenses to see your insights here.</p>
-              <button className="bg-brand-primary text-white text-xs font-bold tracking-widest uppercase px-6 py-3 hover:bg-brand-primary/90 transition-colors">
+              <Link 
+                href="/dashboard/spending"
+                className="bg-brand-primary text-white text-xs font-bold tracking-widest uppercase px-6 py-3 hover:bg-brand-primary/90 transition-colors"
+              >
                 Add Transaction
-              </button>
+              </Link>
             </div>
           )}
         </div>

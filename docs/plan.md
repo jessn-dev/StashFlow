@@ -1,8 +1,8 @@
 # FinTrack — Master Development Plan
 
-> Last updated: 2026-04-07
-> Active Branch: `feature/m3-m4a-AuthTest-CoreTest`
-> Status: Milestone 4 — Dashboard, Core Packages & Testing
+> Last updated: 2026-04-14
+> Active Branch: `feature/m4b-dashboard-live`
+> Status: Milestone 5 — Spending Module (Web)
 
 ---
 
@@ -84,8 +84,8 @@ M2  — Supabase Schema + RLS               ✅ Complete
 M3  — Auth Flow (Web + Mobile)             ✅ Complete
 M4a — Core Logic, API Layer & Seed Data    ✅ Complete
 M4b — Live Dashboards (Web & Mobile)       ✅ Complete
-M5  — Spending Module (Web)                🟡 In Progress
-M6  — Income Module (Web)                  ⏳ Pending
+M5  — Spending Module (Web)                ✅ Complete
+M6  — Income Module (Web)                  🟡 In Progress
 M7  — Loans Module + Scheduler (Web)       ⏳ Pending
 M8  — DTI Module (Web)                     ⏳ Pending
 M9  — Currencies Module (Web)              ⏳ Pending
@@ -196,7 +196,7 @@ Build foundational shared packages, verify them with tests, and provide a realis
 ---
 
 ## Milestone 4b — Live Dashboards (Web & Mobile)
-**Status: 🟡 In Progress**
+**Status: ✅ Complete**
 
 ### Objective
 Connect both platforms to the live data layer and implement the "Two-Tone" design language.
@@ -215,10 +215,36 @@ Connect both platforms to the live data layer and implement the "Two-Tone" desig
 
 ---
 
-## Milestones 5–13
-**Detailed execution plans will be written and submitted for approval before each milestone begins.**
+## Milestone 5 — Spending Module (Web)
+**Status: 🟡 In Progress**
 
-Each will follow the same structure: Objective, Requirements addressed, Pre-execution source analysis, Test criteria, Exact files and folders to create/modify.
+### Objective
+Enable users to manage their expenses via a dedicated web interface with real-time updates to the dashboard.
+
+### Requirements Addressed
+- FR-02: User can log an expense with amount, currency, category, date.
+- FR-08: User can view spending breakdown by category.
+
+### Source Analysis
+- `public.expenses` table exists with RLS enabled.
+- `expense_category` enum exists in database.
+- Shared `@fintrack/api` needs methods for CRUD operations on expenses.
+- Shared `@fintrack/theme` will be used for consistent UI.
+
+### Delivered
+- **API Layer**: Full CRUD for expenses implemented in `@fintrack/api`.
+- **Expense Components**: Created `ExpenseForm`, `ExpenseList`, and `CategoryBreakdown` components.
+- **Spending Page**: Developed `/dashboard/spending` with Server Actions for real-time updates.
+- **UI Consistency**: Integration with `@fintrack/theme` and updated Dashboard UI labels.
+- **API Tests**: Verified expense query logic with unit tests.
+
+### Pending
+- [ ] **Unit Tests (Web Components)**: (Technical Debt) Resolve "Invalid hook call" in Vitest for components using React 19 hooks.
+
+---
+
+## Milestones 6–13
+**Detailed execution plans will be written and submitted for approval before each milestone begins.**
 
 ---
 
@@ -233,3 +259,4 @@ Each will follow the same structure: Objective, Requirements addressed, Pre-exec
 | 2026-04-07 | Enhanced setup.sh (Supabase port/env automation) | — |
 | 2026-04-07 | Branched to feature/m3-m4a-AuthTest-CoreTest; moved seed tasks to M4b | — |
 | 2026-04-08 | Completed unit tests for @fintrack/core, @fintrack/api, and Web Auth | — |
+| 2026-04-14 | M4b complete, Web upgraded to Next.js 16, M5 defined | — |

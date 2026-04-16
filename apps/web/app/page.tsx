@@ -3,18 +3,18 @@
 import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Chart from 'chart.js/auto'
+import { YStack, XStack, Text, Heading, Button, Circle, View } from 'tamagui'
 
 export default function LandingPage() {
   const chartRef = useRef<HTMLCanvasElement>(null)
 
-  // Intersection Observer for Scroll Reveals
+  // Scroll Reveal Logic
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
           if (e.isIntersecting) {
-            e.target.classList.add('opacity-100', 'translate-y-0')
-            e.target.classList.remove('opacity-0', 'translate-y-6')
+            e.target.classList.add('reveal-visible')
           }
         })
       },
@@ -33,7 +33,6 @@ export default function LandingPage() {
     if (!ctx) return
 
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    // Realistic personal finance data: Net worth going up, Debt going down
     const netWorthData = [45000, 48500, 51000, 50500, 54000, 58000, 62000, 61500, 66000, 71000, 75500, 82400]
     const debtData = [28000, 27200, 26400, 25600, 24800, 23000, 22200, 21400, 20600, 18000, 17200, 15400]
 
@@ -45,7 +44,7 @@ export default function LandingPage() {
           {
             label: 'Net Worth',
             data: netWorthData,
-            borderColor: '#1A7A7A', // brand-accent
+            borderColor: '#1A7A7A',
             borderWidth: 2,
             pointRadius: 0,
             pointHoverRadius: 4,
@@ -61,7 +60,7 @@ export default function LandingPage() {
           {
             label: 'Total Liabilities',
             data: debtData,
-            borderColor: '#444444', // brand-text for contrast
+            borderColor: '#444444',
             borderWidth: 1.5,
             borderDash: [4, 4],
             pointRadius: 0,
@@ -76,14 +75,6 @@ export default function LandingPage() {
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: false },
-          tooltip: {
-            backgroundColor: '#0D3D3D',
-            titleColor: '#FFFFFF',
-            bodyColor: '#EFEFEF',
-            callbacks: {
-              label: (ctx) => ` ${ctx.dataset.label}: $${(ctx.parsed.y ?? 0).toLocaleString()}`,
-            },
-          },
         },
         scales: {
           x: {
@@ -94,7 +85,7 @@ export default function LandingPage() {
             grid: { color: 'rgba(13, 61, 61, 0.05)', drawTicks: false },
             ticks: {
               color: '#444444',
-              callback: (v) => `$${(Number(v) / 1000).toFixed(0)}k`, // Formats as $50k, $80k
+              callback: (v) => `$${(Number(v) / 1000).toFixed(0)}k`,
             },
             min: 0,
             max: 100000,
@@ -107,9 +98,8 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text font-sans selection:bg-brand-accent selection:text-white relative overflow-x-hidden">
-      
-      {/* Inline styles for specific animations that are tedious to put in tailwind config */}
+    <YStack minHeight="100vh" backgroundColor="$brandBg" position="relative" overflowX="hidden">
+
       <style dangerouslySetInnerHTML={{__html: `
         .bg-grid {
           background-image: linear-gradient(rgba(13,61,61,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(13,61,61,0.04) 1px, transparent 1px);
@@ -117,7 +107,15 @@ export default function LandingPage() {
         }
         @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         .animate-ticker { animation: ticker 30s linear infinite; }
-        .reveal { transition: opacity 0.7s ease, transform 0.7s ease; }
+        .reveal {
+          opacity: 0;
+          transform: translateY(24px);
+          transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+        .reveal-visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
         .hero-label { animation: fadeUp 0.7s ease forwards; }
         .hero-h1 { animation: fadeUp 0.7s ease 0.1s both; }
@@ -127,202 +125,391 @@ export default function LandingPage() {
       `}} />
 
       {/* Grid Background */}
-      <div className="fixed inset-0 bg-grid pointer-events-none z-0"></div>
+      <YStack position="fixed" top={0} left={0} right={0} bottom={0} className="bg-grid" pointerEvents="none" zIndex={0} />
 
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-5 bg-white/80 backdrop-blur-md border-b border-brand-primary/10">
-        <div className="flex items-center gap-2 font-serif text-2xl font-bold text-brand-primary">
-          <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse"></span>{' '}
-          FinTrack
-        </div>
-        <ul className="hidden md:flex gap-10 text-sm font-medium tracking-widest uppercase text-brand-text/70">
-          {/*<li><a href="#" className="hover:text-brand-accent transition-colors">Platform</a></li>*/}
-          {/*<li><a href="#" className="hover:text-brand-accent transition-colors">Analytics</a></li>*/}
-          {/*<li><a href="#" className="hover:text-brand-accent transition-colors">Pricing</a></li>*/}
-        </ul>
-        <Link href="/login" className="text-sm font-bold tracking-widest uppercase px-6 py-2 border border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white transition-colors">
-          Sign In
+      <XStack
+        tag="nav"
+        position="fixed"
+        top={0}
+        left={0}
+        right={0}
+        zIndex={50}
+        alignItems="center"
+        justifyContent="space-between"
+        paddingHorizontal={32}
+        paddingVertical={20}
+        backgroundColor="rgba(255,255,255,0.8)"
+        {...({ style: { backdropFilter: 'blur(10px)' } } as any)}
+        borderBottomWidth={1}
+        borderColor="rgba(13,61,61,0.1)"
+      >
+        <XStack alignItems="center" gap={8}>
+          <Circle size={8} backgroundColor="$brandAccent" />
+          <Heading size="$lg" color="$brandPrimary" fontWeight="700" fontFamily="$heading">FinTrack</Heading>
+        </XStack>
+
+        <Link href="/login" style={{ textDecoration: 'none' }}>
+          <Button
+            size="$3"
+            borderRadius={0}
+            borderWidth={1}
+            borderColor="$brandPrimary"
+            backgroundColor="transparent"
+            color="$brandPrimary"
+            fontWeight="700"
+            style={{ textTransform: 'uppercase' }}
+            letterSpacing={1}
+            hoverStyle={{ backgroundColor: '$brandPrimary', color: 'white' }}
+          >
+            Sign In
+          </Button>
         </Link>
-      </nav>
+      </XStack>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex flex-col justify-center px-8 pt-32 pb-28 z-10 lg:px-24">
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 font-serif text-[30vw] font-black text-brand-primary/[0.03] pointer-events-none select-none leading-none">
+      <YStack
+        tag="section"
+        position="relative"
+        minHeight="100vh"
+        justifyContent="center"
+        paddingHorizontal={32}
+        paddingTop={128}
+        paddingBottom={80}
+        zIndex={10}
+      >
+        {/* Background Decorative Text */}
+        <Text
+          position="absolute"
+          right={-100}
+          top="50%"
+          style={{ transform: 'translateY(-50%)', fontSize: '30vw', userSelect: 'none' }}
+          fontWeight="900"
+          color="$brandPrimary"
+          opacity={0.03}
+          pointerEvents="none"
+          fontFamily="$serif"
+        >
           $
-        </div>
+        </Text>
 
-        <div className="hero-label text-sm font-mono tracking-[0.3em] uppercase text-brand-accent mb-8 flex items-center gap-4">
-          <div className="w-10 h-[1px] bg-brand-accent"></div>
-          Revolutionize Finance
-        </div>
+        <XStack alignItems="center" gap={16} marginBottom={32} className="hero-label">
+          <View width={40} height={1} backgroundColor="$brandAccent" />
+          <Text fontSize={12} color="$brandAccent" fontWeight="700" style={{ textTransform: 'uppercase' }} letterSpacing={4}>
+            Revolutionize Finance
+          </Text>
+        </XStack>
 
-        <h1 className="hero-h1 font-serif text-6xl md:text-[7rem] font-black leading-[0.95] text-brand-primary max-w-[14ch]">
-          <span className="block">Smarter</span>
-          <em className="block italic text-brand-accent font-light">Tracking.</em>
-          <span className="block">Total</span>
-          <span className="block">Clarity.</span>
-        </h1>
+        <YStack className="hero-h1" marginBottom={24}>
+          <Heading
+            style={{ fontSize: 'clamp(48px, 8vw, 96px)', lineHeight: 0.95 }}
+            fontWeight="900"
+            color="$brandPrimary"
+            fontFamily="$heading"
+          >
+            <Text tag="span" display="block">Smarter</Text>
+            <Text tag="span" display="block" color="$brandAccent" fontStyle="italic" fontWeight="300">Tracking.</Text>
+            <Text tag="span" display="block">Total</Text>
+            <Text tag="span" display="block">Clarity.</Text>
+          </Heading>
+        </YStack>
 
-        <p className="hero-p text-lg md:text-xl text-brand-text/80 max-w-[42ch] leading-relaxed mt-8">
+        <Text fontSize={18} color="$brandText" opacity={0.8} maxWidth={450} lineHeight={28} marginBottom={48} className="hero-p">
           The financial intelligence layer that transforms raw data into decisive insight. Built for individuals who can&apos;t afford ambiguity.
-        </p>
+        </Text>
 
-        <div className="hero-cta flex items-center gap-8 mt-12">
-          <Link href="/login" className="bg-brand-primary text-white text-sm font-bold tracking-widest uppercase px-10 py-4 hover:bg-brand-primary/90 transition-all hover:-translate-y-0.5">
-            Start Tracking
+        <XStack gap={32} alignItems="center" className="hero-cta">
+          <Link href="/login" style={{ textDecoration: 'none' }}>
+            <Button
+              size="$5"
+              borderRadius={0}
+              backgroundColor="$brandPrimary"
+              color="$brandWhite"
+              fontWeight="700"
+              style={{ textTransform: 'uppercase' }}
+              letterSpacing={1.5}
+              paddingHorizontal={40}
+              hoverStyle={{ backgroundColor: '$brandAccent' }}
+              pressStyle={{ scale: 0.98 }}
+            >
+              Start Tracking
+            </Button>
           </Link>
-          <button className="text-sm font-bold tracking-widest uppercase text-brand-text hover:text-brand-accent transition-colors flex items-center gap-2 group">
-            See the Demo <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
-          </button>
-        </div>
-      </section>
+          <XStack
+            tag="button"
+            padding={0}
+            backgroundColor="transparent"
+            borderWidth={0}
+            alignItems="center"
+            cursor="pointer"
+            hoverStyle={{ opacity: 0.7 }}
+          >
+            <Text fontSize={12} fontWeight="700" color="$brandPrimary" style={{ textTransform: 'uppercase' }} letterSpacing={1}>
+              See the Demo →
+            </Text>
+          </XStack>
+        </XStack>
+      </YStack>
 
       {/* Ticker — full-width band outside hero */}
-      <div className="ticker-band relative z-10 w-full overflow-hidden border-y border-brand-primary/10 py-3 bg-white/50 backdrop-blur-sm">
-        <div className="flex gap-12 w-max animate-ticker text-xs font-mono tracking-wider text-brand-text/70">
+      <div className="ticker-band" style={{ position: 'relative', zIndex: 10, width: '100%', overflow: 'hidden', borderTop: '1px solid rgba(13,61,61,0.1)', borderBottom: '1px solid rgba(13,61,61,0.1)', paddingTop: '12px', paddingBottom: '12px', backgroundColor: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(4px)' }}>
+        <div style={{ display: 'flex', gap: '48px', width: 'max-content' }} className="animate-ticker">
           {(['ticker-1', 'ticker-2'] as const).map((key) => (
-            <div key={key} className="flex gap-12">
-              <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">AAPL</span> $187.42 <span className="text-green-600">▲ 1.23%</span></span>
-              <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">MSFT</span> $412.85 <span className="text-green-600">▲ 0.87%</span></span>
-              <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">NVDA</span> $891.20 <span className="text-green-600">▲ 3.14%</span></span>
-              <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">TSLA</span> $178.60 <span className="text-red-500">▼ 0.55%</span></span>
-              <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">AMZN</span> $192.30 <span className="text-green-600">▲ 1.77%</span></span>
-              <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">GOOGL</span> $171.95 <span className="text-green-600">▲ 0.43%</span></span>
-              <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">BTC</span> $67,442 <span className="text-green-600">▲ 2.91%</span></span>
+            <div key={key} style={{ display: 'flex', gap: '48px' }}>
+              <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', fontFamily: 'monospace' }}><strong style={{ color: '#0D3D3D' }}>AAPL</strong> $187.42 <span style={{ color: '#16a34a' }}>▲ 1.23%</span></span>
+              <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', fontFamily: 'monospace' }}><strong style={{ color: '#0D3D3D' }}>MSFT</strong> $412.85 <span style={{ color: '#16a34a' }}>▲ 0.87%</span></span>
+              <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', fontFamily: 'monospace' }}><strong style={{ color: '#0D3D3D' }}>NVDA</strong> $891.20 <span style={{ color: '#16a34a' }}>▲ 3.14%</span></span>
+              <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', fontFamily: 'monospace' }}><strong style={{ color: '#0D3D3D' }}>TSLA</strong> $178.60 <span style={{ color: '#ef4444' }}>▼ 0.55%</span></span>
+              <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', fontFamily: 'monospace' }}><strong style={{ color: '#0D3D3D' }}>AMZN</strong> $192.30 <span style={{ color: '#16a34a' }}>▲ 1.77%</span></span>
+              <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', fontFamily: 'monospace' }}><strong style={{ color: '#0D3D3D' }}>GOOGL</strong> $171.95 <span style={{ color: '#16a34a' }}>▲ 0.43%</span></span>
+              <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', fontFamily: 'monospace' }}><strong style={{ color: '#0D3D3D' }}>BTC</strong> $67,442 <span style={{ color: '#16a34a' }}>▲ 2.91%</span></span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Stats Band */}
-      <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 border-y border-brand-primary/10 bg-white">
+      <XStack
+        flexWrap="wrap"
+        backgroundColor="$brandWhite"
+        borderTopWidth={1}
+        borderBottomWidth={1}
+        borderColor="rgba(13,61,61,0.1)"
+        zIndex={10}
+        position="relative"
+      >
         {[
           { num: '$2.4T', label: 'Assets Tracked', sub: '↑ 18.3% this quarter' },
           { num: '99.9%', label: 'Uptime SLA', sub: '↑ 6 nines target' },
           { num: '8ms', label: 'Avg. Latency', sub: '↓ 41% vs. last year' },
-          { num: '4.8k', label: 'Global Clients', sub: '↑ 340 new this month' },
-        ].map((stat) => (
-          <div key={stat.label} className="p-8 md:p-12 border-b md:border-b-0 md:border-r border-brand-primary/10 last:border-0 reveal opacity-0 translate-y-6">
-            <div className="font-serif text-4xl md:text-5xl font-bold text-brand-primary">{stat.num}</div>
-            <div className="text-xs font-bold tracking-widest uppercase text-brand-text/60 mt-3">{stat.label}</div>
-            <div className="text-xs font-mono text-brand-accent mt-2">{stat.sub}</div>
-          </div>
+          { num: '4.8k', label: 'Users', sub: '↑ 340 new this month' },
+        ].map((stat, i) => (
+          <YStack
+            key={i}
+            flex={1}
+            minWidth={200}
+            padding={48}
+            borderRightWidth={i === 3 ? 0 : 1}
+            borderColor="rgba(13,61,61,0.1)"
+            className="reveal"
+          >
+            <Text fontSize={48} fontWeight="900" color="$brandPrimary" fontFamily="$serif">{stat.num}</Text>
+            <Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} style={{ textTransform: 'uppercase' }} letterSpacing={1.5} marginTop={12}>{stat.label}</Text>
+            <Text fontSize={11} color="$brandAccent" marginTop={8} fontFamily="$mono">{stat.sub}</Text>
+          </YStack>
         ))}
-      </div>
+      </XStack>
 
       {/* Core Capabilities */}
-      <section className="relative z-10 bg-brand-bg">
+      <YStack tag="section" backgroundColor="$brandBg" zIndex={10}>
         {/* Section Header */}
-        <div className="bg-white border-y border-brand-primary/10 px-10 py-16 md:px-16 md:py-20 grid grid-cols-1 md:grid-cols-2 gap-8 items-end reveal opacity-0 translate-y-6">
-          <div>
-            <div className="text-xs font-mono tracking-[0.3em] uppercase text-brand-accent mb-6">Core Capabilities</div>
-            <h2 className="font-serif text-4xl md:text-5xl font-bold text-brand-primary leading-tight">
-              Every edge.<br />Every signal.
-            </h2>
-          </div>
-          <p className="text-brand-text/70 leading-relaxed md:text-right md:max-w-[40ch] md:ml-auto">
+        <XStack
+          backgroundColor="$brandWhite"
+          borderTopWidth={1}
+          borderBottomWidth={1}
+          borderColor="rgba(13,61,61,0.1)"
+          paddingHorizontal={64}
+          paddingVertical={80}
+          gap={32}
+          flexDirection="column"
+          $gtMd={{ flexDirection: 'row', alignItems: 'flex-end' }}
+          className="reveal"
+        >
+          <YStack flex={1}>
+            <Text fontSize={12} color="$brandAccent" fontWeight="700" style={{ textTransform: 'uppercase' }} letterSpacing={4} marginBottom={24}>
+              Core Capabilities
+            </Text>
+            <Heading
+              style={{ fontSize: 'clamp(32px, 4vw, 48px)', lineHeight: 1.1 }}
+              fontWeight="700"
+              color="$brandPrimary"
+              fontFamily="$heading"
+            >
+              Every edge.{'\n'}Every signal.
+            </Heading>
+          </YStack>
+          <Text fontSize={16} color="$brandText" opacity={0.7} lineHeight={26} flex={1} $gtMd={{ textAlign: 'right', marginLeft: 'auto' as any }} maxWidth={420}>
             Six pillars built for teams demanding precision where it counts most. No noise. No lag. No compromise.
-          </p>
-        </div>
+          </Text>
+        </XStack>
 
         {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 border-t border-brand-primary/10 bg-white">
+        <View
+          display="grid"
+          gridTemplateColumns="repeat(auto-fit, minmax(300px, 1fr))"
+          backgroundColor="$brandWhite"
+          borderBottomWidth={1}
+          borderColor="rgba(13,61,61,0.1)"
+        >
           {[
-            {
-              id: '01',
-              title: 'Real-Time Pulse',
-              desc: 'Sub-10ms market data ingestion across 180+ exchanges. Every tick captured and indexed.'
-            },
-            {
-              id: '02',
-              title: 'Predictive Forecast',
-              desc: 'Proprietary models trained on market cycles. Probability-weighted scenarios, not gut feel.'
-            },
-            {
-              id: '03',
-              title: 'Portfolio Command',
-              desc: 'Consolidated view across equities, crypto, and alternatives. One dashboard, every exposure.'
-            },
-            {
-              id: '04',
-              title: 'Risk Architecture',
-              desc: 'Dynamic VaR, stress testing, and tail-risk modeling with regulatory-grade reporting baked in.'
-            },
-            {
-              id: '05',
-              title: 'Alpha Intelligence',
-              desc: 'Sentiment analysis and alternative data signals surfaced automatically before consensus.'
-            },
-            {
-              id: '06',
-              title: 'Automation Engine',
-              desc: 'Rules-based workflows, smart alerts, and API-first architecture that fits into any stack.'
-            },
-          ].map((feat) => (
-            <div key={feat.id} className="p-10 border-r border-b border-brand-primary/10 hover:bg-brand-bg transition-colors reveal opacity-0 translate-y-6">
-              <div className="text-xs font-mono tracking-[0.2em] text-brand-accent/70 mb-6">{feat.id}</div>
-              <h3 className="font-serif text-2xl font-bold text-brand-primary mb-3">{feat.title}</h3>
-              <p className="text-sm text-brand-text/80 leading-relaxed">{feat.desc}</p>
-            </div>
+            { id: '01', title: 'Real-Time Pulse', desc: 'Sub-10ms market data ingestion across 180+ exchanges. Every tick captured and indexed.' },
+            { id: '02', title: 'Predictive Forecast', desc: 'Proprietary models trained on market cycles. Probability-weighted scenarios, not gut feel.' },
+            { id: '03', title: 'Portfolio Command', desc: 'Consolidated view across equities, crypto, and alternatives. One dashboard, every exposure.' },
+            { id: '04', title: 'Risk Architecture', desc: 'Dynamic VaR, stress testing, and tail-risk modeling with regulatory-grade reporting baked in.' },
+            { id: '05', title: 'Alpha Intelligence', desc: 'Sentiment analysis and alternative data signals surfaced automatically before consensus.' },
+            { id: '06', title: 'Automation Engine', desc: 'Rules-based workflows, smart alerts, and API-first architecture that fits into any stack.' },
+          ].map((feat, i) => (
+            <YStack
+              key={i}
+              padding={40}
+              borderRightWidth={1}
+              borderBottomWidth={1}
+              borderColor="rgba(13,61,61,0.1)"
+              hoverStyle={{ backgroundColor: 'rgba(13,61,61,0.02)' }}
+              className="reveal"
+            >
+              <Text fontSize={12} color="$brandAccent" opacity={0.7} fontFamily="$mono" letterSpacing={2} marginBottom={24}>{feat.id}</Text>
+              <Heading size="$md" color="$brandPrimary" fontWeight="700" marginBottom={12} fontFamily="$heading">{feat.title}</Heading>
+              <Text fontSize={14} color="$brandText" opacity={0.8} lineHeight={22}>{feat.desc}</Text>
+            </YStack>
           ))}
-        </div>
-      </section>
+        </View>
+      </YStack>
 
       {/* Chart Section */}
-      <section className="relative z-10 grid grid-cols-1 md:grid-cols-2 min-h-[500px] border-y border-brand-primary/10 bg-white">
-        <div className="p-12 lg:p-24 border-b md:border-b-0 md:border-r border-brand-primary/10 flex flex-col justify-center gap-8 reveal opacity-0 translate-y-6">
-          <div className="inline-flex items-center gap-2 text-xs font-mono tracking-[0.2em] text-brand-accent uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse"></span> Live Performance
-          </div>
-          <div>
-            <h2 className="font-serif text-4xl font-bold text-brand-primary mb-4">Returns that speak for themselves</h2>
-            <p className="text-brand-text/80 leading-relaxed">Portfolios using FinTrack consistently outperform benchmark indices through disciplined, data-led rebalancing.</p>
-          </div>
-          <div className="flex items-baseline gap-3">
-            <span className="font-serif text-6xl font-bold text-brand-primary">+34.2%</span>
-            <span className="font-mono text-brand-accent text-sm">↑ vs. 18.7% SPX</span>
-          </div>
-        </div>
-        <div className="p-8 lg:p-16 flex flex-col justify-center reveal opacity-0 translate-y-6 bg-brand-bg/30">
-          <div className="w-full h-[260px] relative">
-            <canvas id="mainChart" ref={chartRef}></canvas>
-          </div>
-          {/* Mini Legend */}
-          <div className="flex gap-6 mt-6 justify-center">
-            <div className="flex items-center gap-2 text-xs font-mono text-brand-text/70 uppercase tracking-wider">
-              <div className="w-2.5 h-2.5 rounded-full bg-brand-accent"></div> Net Worth
-            </div>
-            <div className="flex items-center gap-2 text-xs font-mono text-brand-text/70 uppercase tracking-wider">
-              <div className="w-2.5 h-2.5 rounded-full bg-brand-text border border-brand-text border-dashed"></div> Liabilities
-            </div>
-          </div>
-        </div>
-      </section>
+      <XStack
+        tag="section"
+        backgroundColor="$brandWhite"
+        borderTopWidth={1}
+        borderBottomWidth={1}
+        borderColor="rgba(13,61,61,0.1)"
+        zIndex={10}
+        flexDirection="column"
+        $gtMd={{ flexDirection: 'row' }}
+      >
+        <YStack
+          flex={1}
+          padding={48}
+          $gtLg={{ padding: 96 }}
+          borderRightWidth={0}
+          $gtMd={{ borderRightWidth: 1 }}
+          borderColor="rgba(13,61,61,0.1)"
+          justifyContent="center"
+          gap={32}
+          className="reveal"
+        >
+          <XStack alignItems="center" gap={8}>
+            <Circle size={6} backgroundColor="$brandAccent" />
+            <Text fontSize={12} color="$brandAccent" fontWeight="700" style={{ textTransform: 'uppercase' }} letterSpacing={2}>
+              Live Performance
+            </Text>
+          </XStack>
+          <YStack>
+            <Heading size="$2xl" color="$brandPrimary" fontWeight="700" marginBottom={16} fontFamily="$heading">
+              Returns that speak for themselves
+            </Heading>
+            <Text fontSize={16} color="$brandText" opacity={0.8} lineHeight={26}>
+              Portfolios using FinTrack consistently outperform benchmark indices through disciplined, data-led rebalancing.
+            </Text>
+          </YStack>
+          <XStack alignItems="baseline" gap={12}>
+            <Text fontSize={64} fontWeight="900" color="$brandPrimary" fontFamily="$serif">+34.2%</Text>
+            <Text fontSize={13} color="$brandAccent" fontFamily="$mono">↑ vs. 18.7% SPX</Text>
+          </XStack>
+        </YStack>
+
+        <YStack
+          flex={1}
+          padding={32}
+          $gtLg={{ padding: 64 }}
+          backgroundColor="rgba(13,61,61,0.02)"
+          justifyContent="center"
+          className="reveal"
+        >
+          <View width="100%" height={300} position="relative">
+            <canvas ref={chartRef}></canvas>
+          </View>
+          <XStack justifyContent="center" gap={24} marginTop={24}>
+            <XStack alignItems="center" gap={8}>
+              <Circle size={10} backgroundColor="$brandAccent" />
+              <Text fontSize={11} color="$brandText" opacity={0.7} style={{ textTransform: 'uppercase' }} letterSpacing={1}>Net Worth</Text>
+            </XStack>
+            <XStack alignItems="center" gap={8}>
+              <View width={10} height={10} borderRadius={999} borderWidth={1} borderColor="$brandText" borderStyle="dashed" />
+              <Text fontSize={11} color="$brandText" opacity={0.7} style={{ textTransform: 'uppercase' }} letterSpacing={1}>Liabilities</Text>
+            </XStack>
+          </XStack>
+        </YStack>
+      </XStack>
 
       {/* CTA Section */}
-      <section className="relative z-10 py-32 px-8 text-center bg-brand-bg overflow-hidden reveal opacity-0 translate-y-6">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-brand-accent/5 rounded-[100%] blur-3xl pointer-events-none"></div>
-        <div className="text-xs font-bold tracking-widest uppercase text-brand-accent mb-6">Get Started Today</div>
-        <h2 className="font-serif text-5xl md:text-6xl font-black text-brand-primary mb-6">
-          Your path to <em className="italic text-brand-accent font-light">financial freedom</em> starts here.
-        </h2>
-        <p className="max-w-2xl mx-auto text-brand-text/80 mb-12">
+      <YStack
+        tag="section"
+        paddingVertical={128}
+        paddingHorizontal={32}
+        alignItems="center"
+        backgroundColor="$brandBg"
+        position="relative"
+        zIndex={10}
+        className="reveal"
+      >
+        <View
+          position="absolute"
+          width={600}
+          height={300}
+          backgroundColor="$brandAccent"
+          opacity={0.05}
+          borderRadius={999}
+          style={{ filter: 'blur(80px)' }}
+          pointerEvents="none"
+        />
+        <Text fontSize={12} fontWeight="700" color="$brandAccent" style={{ textTransform: 'uppercase' }} letterSpacing={3} marginBottom={24}>Get Started Today</Text>
+        <Heading
+          style={{ fontSize: 'clamp(36px, 5vw, 60px)' }}
+          textAlign="center"
+          color="$brandPrimary"
+          fontWeight="900"
+          marginBottom={24}
+          maxWidth={800}
+          fontFamily="$heading"
+        >
+          Your path to <Text color="$brandAccent" fontStyle="italic" fontWeight="300">financial freedom</Text> starts here.
+        </Heading>
+        <Text fontSize={16} color="$brandText" opacity={0.8} textAlign="center" maxWidth={600} marginBottom={48}>
           Stop wondering where your money goes. Join FinTrack to securely manage your spending, crush your debt, and build your wealth.
-        </p>
-        <Link href="/login" className="inline-block bg-brand-primary text-white text-sm font-bold tracking-widest uppercase px-10 py-4 hover:bg-brand-primary/90 transition-all hover:-translate-y-0.5 shadow-lg shadow-brand-primary/20">
-          Create Your Free Account
+        </Text>
+        <Link href="/login" style={{ textDecoration: 'none' }}>
+          <Button
+            size="$5"
+            borderRadius={0}
+            backgroundColor="$brandPrimary"
+            color="$brandWhite"
+            fontWeight="700"
+            style={{ textTransform: 'uppercase' }}
+            letterSpacing={1.5}
+            paddingHorizontal={48}
+            hoverStyle={{ backgroundColor: '$brandAccent' }}
+            shadowColor="black"
+            shadowOpacity={0.1}
+            shadowRadius={20}
+          >
+            Create Your Free Account
+          </Button>
         </Link>
-      </section>
+      </YStack>
 
       {/* Footer */}
-      <footer className="relative z-10 bg-white border-t border-brand-primary/10 p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="text-xs font-mono text-brand-text/50">© 2026 FinTrack Inc. All rights reserved.</div>
-        <ul className="flex gap-8 text-xs font-bold tracking-widest uppercase text-brand-text/60">
-          <li><button type="button" className="hover:text-brand-accent transition-colors">Privacy</button></li>
-          <li><button type="button" className="hover:text-brand-accent transition-colors">Terms</button></li>
-          <li><button type="button" className="hover:text-brand-accent transition-colors">Security</button></li>
-        </ul>
-      </footer>
-    </div>
+      <XStack
+        tag="footer"
+        padding={48}
+        backgroundColor="$brandWhite"
+        borderTopWidth={1}
+        borderColor="rgba(13,61,61,0.1)"
+        justifyContent="space-between"
+        alignItems="center"
+        zIndex={10}
+        flexDirection="column"
+        $gtMd={{ flexDirection: 'row' }}
+        gap={24}
+      >
+        <Text fontSize={11} color="$brandText" opacity={0.5} fontFamily="$mono">© 2026 FinTrack Inc. All rights reserved.</Text>
+        <XStack gap={32}>
+          <Link href="#" style={{ textDecoration: 'none' }}><Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} style={{ textTransform: 'uppercase' }} letterSpacing={1}>Privacy</Text></Link>
+          <Link href="#" style={{ textDecoration: 'none' }}><Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} style={{ textTransform: 'uppercase' }} letterSpacing={1}>Terms</Text></Link>
+          <Link href="#" style={{ textDecoration: 'none' }}><Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} style={{ textTransform: 'uppercase' }} letterSpacing={1}>Security</Text></Link>
+        </XStack>
+      </XStack>
+
+    </YStack>
   )
 }

@@ -1,4 +1,6 @@
 import './globals.css'
+import '@tamagui/core/reset.css'
+import TamaguiClientProvider from '@/components/TamaguiClientProvider'
 
 export default function RootLayout({
   children,
@@ -6,10 +8,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    // Force the custom DaisyUI theme here
-    <html lang="en" data-theme="fintrack">
-      <body className="antialiased bg-brand-bg text-brand-text">
-        {children}
+    <html lang="en">
+      <body suppressHydrationWarning>
+        <TamaguiClientProvider>
+          {children}
+        </TamaguiClientProvider>
       </body>
     </html>
   )

@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import {
-  View,
-  TextInput,
-  TouchableOpacity,
+  YStack,
+  XStack,
   Text,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
+  Heading,
+  Button,
+  Input,
   ScrollView,
-  SafeAreaView
-} from 'react-native'
-import { theme } from '@fintrack/theme'
+  Spinner,
+} from 'tamagui'
+import { DollarSign } from 'lucide-react-native'
+import { Alert, SafeAreaView } from 'react-native'
 import { supabase } from '../utils/supabase'
 
 export function LoginScreen() {
@@ -39,249 +39,117 @@ export function LoginScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-        <View style={styles.container}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+        <YStack flex={1} paddingHorizontal={32} justifyContent="center" backgroundColor="$white">
           {/* Logo / Branding */}
-          <View style={styles.logoContainer}>
-            <View style={styles.logoIcon}>
-              <Text style={styles.logoIconText}>$</Text>
-            </View>
-            <Text style={styles.logoText}>FinTrack</Text>
-          </View>
+          <XStack alignItems="center" marginBottom={32} gap={8}>
+            <YStack width={32} height={32} backgroundColor="$brandPrimary" borderRadius={8} alignItems="center" justifyContent="center">
+              <DollarSign color="white" size={16} />
+            </YStack>
+            <Heading size="$lg" color="$brandPrimary" fontWeight="700">
+              FinTrack
+            </Heading>
+          </XStack>
 
           {/* Dynamic Headings */}
-          <Text style={styles.title}>
-            {isSignUp ? 'Create an Account' : 'Welcome Back!'}
-          </Text>
-          <Text style={styles.subtitle}>
-            {isSignUp
-              ? 'Sign up to start tracking your net worth and optimizing your finances.'
-              : 'Sign in to access your dashboard and continue optimizing your financial process.'}
-          </Text>
+          <YStack gap={4} marginBottom={32}>
+            <Heading size="$xl" color="$brandPrimary">
+              {isSignUp ? 'Create an Account' : 'Welcome Back!'}
+            </Heading>
+            <Text fontSize={14} color="$brandText">
+              {isSignUp
+                ? 'Sign up to start tracking your net worth and optimizing your finances.'
+                : 'Sign in to access your dashboard and continue optimizing your financial process.'}
+            </Text>
+          </YStack>
 
           {/* Form */}
-          <View style={styles.form}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
-                onChangeText={setEmail}
+          <YStack gap={16}>
+            <YStack gap={4}>
+              <Text fontSize={11} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5}>
+                Email
+              </Text>
+              <Input 
+                placeholder="Enter your email" 
                 value={email}
-                placeholder="Enter your email"
-                placeholderTextColor="#999"
+                onChangeText={setEmail}
                 autoCapitalize="none"
                 keyboardType="email-address"
-                editable={!loading}
+                borderRadius={8}
+                borderColor="#E2E8F0"
               />
-            </View>
+            </YStack>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={styles.input}
-                onChangeText={setPassword}
+            <YStack gap={4}>
+              <Text fontSize={11} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5}>
+                Password
+              </Text>
+              <Input 
+                placeholder="Enter your password" 
                 value={password}
+                onChangeText={setPassword}
                 secureTextEntry
-                placeholder="Enter your password"
-                placeholderTextColor="#999"
                 autoCapitalize="none"
-                editable={!loading}
+                borderRadius={8}
+                borderColor="#E2E8F0"
               />
               {!isSignUp && (
-                <TouchableOpacity style={styles.forgotPassword}>
-                  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                </TouchableOpacity>
+                <Button chromeless alignSelf="flex-end" padding={0} marginTop={4}>
+                  <Text fontSize={12} color="$brandAccent" fontWeight="600">
+                    Forgot Password?
+                  </Text>
+                </Button>
               )}
-            </View>
+            </YStack>
 
-            <TouchableOpacity
-              style={styles.mainButton}
-              onPress={handleAuth}
+            <Button
+              size="$large"
+              backgroundColor="$brandPrimary"
+              borderRadius={8}
               disabled={loading}
+              onPress={handleAuth}
+              marginTop={8}
             >
-              {loading ? (
-                <ActivityIndicator color={theme.colors.white} />
-              ) : (
-                <Text style={styles.mainButtonText}>
+              <XStack gap={8} alignItems="center">
+                {loading && <Spinner color="white" />}
+                <Text color="white" fontWeight="700" textTransform="uppercase" letterSpacing={1}>
                   {isSignUp ? 'Sign Up' : 'Sign In'}
                 </Text>
-              )}
-            </TouchableOpacity>
-          </View>
+              </XStack>
+            </Button>
+          </YStack>
 
           {/* Divider */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.dividerLine} />
-          </View>
+          <XStack alignItems="center" marginVertical={32} gap={16}>
+            <YStack flex={1} height={1} backgroundColor="#E2E8F0" />
+            <Text fontSize={11} color="$brandText" fontWeight="700">OR</Text>
+            <YStack flex={1} height={1} backgroundColor="#E2E8F0" />
+          </XStack>
 
           {/* OAuth Placeholders */}
-          <View style={styles.oauthContainer}>
-            <TouchableOpacity style={styles.oauthButton}>
-              <Text style={styles.oauthButtonText}>Continue with Google</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.oauthButton}>
-              <Text style={styles.oauthButtonText}>Continue with Apple</Text>
-            </TouchableOpacity>
-          </View>
+          <YStack gap={12}>
+            <Button variant="outline" borderColor="#E2E8F0" backgroundColor="white">
+              <Text color="$brandText" fontSize={14} fontWeight="500">Continue with Google</Text>
+            </Button>
+            <Button variant="outline" borderColor="#E2E8F0" backgroundColor="white">
+              <Text color="$brandText" fontSize={14} fontWeight="500">Continue with Apple</Text>
+            </Button>
+          </YStack>
 
           {/* Toggle Link */}
-          <View style={styles.toggleContainer}>
-            <Text style={styles.toggleText}>
+          <XStack justifyContent="center" marginTop={32} gap={4}>
+            <Text fontSize={14} color="$brandText">
               {isSignUp ? 'Already have an account? ' : "Don't have an Account? "}
             </Text>
-            <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)}>
-              <Text style={styles.toggleLink}>
+            <Button chromeless padding={0} onPress={() => setIsSignUp(!isSignUp)}>
+              <Text fontSize={14} color="$brandAccent" fontWeight="700">
                 {isSignUp ? 'Sign In' : 'Sign Up'}
               </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+            </Button>
+          </XStack>
+        </YStack>
       </ScrollView>
     </SafeAreaView>
   )
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.white,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-  },
-  container: {
-    flex: 1,
-    padding: theme.spacing.lg,
-    justifyContent: 'center',
-    backgroundColor: theme.colors.white,
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.spacing.lg,
-  },
-  logoIcon: {
-    width: 32,
-    height: 32,
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.radius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: theme.spacing.sm,
-  },
-  logoIconText: {
-    color: theme.colors.white,
-    fontWeight: theme.fonts.weight.bold,
-    fontSize: 18,
-  },
-  logoText: {
-    fontSize: theme.fonts.size.lg,
-    fontWeight: theme.fonts.weight.bold,
-    color: theme.colors.primary,
-  },
-  title: {
-    fontSize: theme.fonts.size.xl,
-    fontWeight: theme.fonts.weight.bold,
-    color: theme.colors.primary,
-    marginBottom: theme.spacing.sm,
-  },
-  subtitle: {
-    fontSize: theme.fonts.size.sm,
-    color: theme.colors.text,
-    marginBottom: theme.spacing.lg,
-    lineHeight: 20,
-  },
-  form: {
-    gap: theme.spacing.md,
-  },
-  inputGroup: {
-    marginBottom: theme.spacing.xs,
-  },
-  label: {
-    fontSize: theme.fonts.size.sm,
-    fontWeight: theme.fonts.weight.medium,
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
-  },
-  input: {
-    backgroundColor: theme.colors.white,
-    borderWidth: 1,
-    borderColor: '#EFEFEF', // Keeping local for now or can use theme.colors.bg
-    padding: theme.spacing.md,
-    borderRadius: theme.radius.md,
-    color: theme.colors.text,
-    fontSize: theme.fonts.size.md,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginTop: theme.spacing.sm,
-  },
-  forgotPasswordText: {
-    color: theme.colors.accent,
-    fontSize: theme.fonts.size.xs,
-    fontWeight: theme.fonts.weight.semibold,
-  },
-  mainButton: {
-    backgroundColor: theme.colors.primary,
-    padding: theme.spacing.md,
-    borderRadius: theme.radius.md,
-    alignItems: 'center',
-    marginTop: theme.spacing.sm,
-  },
-  mainButtonText: {
-    color: theme.colors.white,
-    fontSize: theme.fonts.size.md,
-    fontWeight: theme.fonts.weight.bold,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: theme.spacing.lg,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#EFEFEF',
-  },
-  dividerText: {
-    marginHorizontal: theme.spacing.md,
-    fontSize: theme.fonts.size.xs,
-    color: theme.colors.text,
-    fontWeight: theme.fonts.weight.bold,
-  },
-  oauthContainer: {
-    gap: theme.spacing.sm,
-  },
-  oauthButton: {
-    borderWidth: 1,
-    borderColor: '#EFEFEF',
-    padding: theme.spacing.sm + 6,
-    borderRadius: theme.radius.md,
-    alignItems: 'center',
-    backgroundColor: theme.colors.white,
-  },
-  oauthButtonText: {
-    color: theme.colors.text,
-    fontSize: theme.fonts.size.sm,
-    fontWeight: theme.fonts.weight.medium,
-  },
-  toggleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: theme.spacing.lg,
-  },
-  toggleText: {
-    color: theme.colors.text,
-    fontSize: theme.fonts.size.sm,
-  },
-  toggleLink: {
-    color: theme.colors.accent,
-    fontSize: theme.fonts.size.sm,
-    fontWeight: theme.fonts.weight.bold,
-  },
-})

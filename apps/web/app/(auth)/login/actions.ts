@@ -58,12 +58,12 @@ export async function forgotPassword(formData: FormData) {
   })
 
   if (error) {
-    return redirect(`/forgot-password?message=${encodeURIComponent(error.message)}`)
+    return redirect(`/login?mode=forgot&message=${encodeURIComponent(error.message)}`)
   }
 
   // Generic success message — do not reveal whether the email is registered
   return redirect(
-    `/forgot-password?message=${encodeURIComponent("If this email is registered, you'll receive a reset link shortly.")}`
+    `/login?mode=forgot&message=${encodeURIComponent("If this email is registered, you'll receive a reset link shortly.")}`
   )
 }
 

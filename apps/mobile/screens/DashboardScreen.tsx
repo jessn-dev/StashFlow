@@ -1,16 +1,16 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
-  View,
+  YStack,
+  XStack,
   Text,
-  StyleSheet,
+  Heading,
+  Button,
   ScrollView,
-  SafeAreaView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  RefreshControl
-} from 'react-native'
-import { theme } from '@fintrack/theme'
+  Spinner,
+  Circle,
+} from 'tamagui'
+import { Plus } from 'lucide-react-native'
+import { Alert, SafeAreaView, RefreshControl, ActivityIndicator } from 'react-native'
 import { supabase } from '../utils/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { getDashboardSummary, getRecentTransactions } from '@fintrack/api'
@@ -50,180 +50,158 @@ export function DashboardScreen() {
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
+      <YStack flex={1} backgroundColor="$white" alignItems="center" justifyContent="center">
+        <ActivityIndicator size="large" color="#0D3D3D" />
+      </YStack>
     )
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#EFEFEF' }}>
       {/* Navbar Mirror */}
-      <View style={styles.navbar}>
-        <View style={styles.brandContainer}>
-          <View style={styles.brandDot} />
-          <Text style={styles.brandText}>FinTrack</Text>
-        </View>
-        <TouchableOpacity
+      <XStack 
+        height={64} 
+        backgroundColor="$white" 
+        paddingHorizontal={20} 
+        borderBottomWidth={1} 
+        borderColor="rgba(13,61,61,0.1)" 
+        alignItems="center" 
+        justifyContent="space-between"
+      >
+        <XStack alignItems="center" gap={8}>
+          <Circle size={8} backgroundColor="$brandAccent" />
+          <Heading size="$md" color="$brandPrimary" fontWeight="700">
+            FinTrack
+          </Heading>
+        </XStack>
+        <Button 
+          chromeless
           onPress={async () => {
             const { error } = await supabase.auth.signOut()
             if (error) Alert.alert('Sign Out Failed', error.message)
           }}
         >
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
-      </View>
+          <Text fontSize={12} fontWeight="700" color="$brandAccent" textTransform="uppercase" letterSpacing={1}>
+            Sign Out
+          </Text>
+        </Button>
+      </XStack>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0D3D3D" />
         }
       >
-        <Text style={styles.userEmail}>{session?.user?.email}</Text>
-        <Text style={styles.header}>Overview</Text>
+        <Text fontSize={12} color="$brandText" opacity={0.7} marginBottom={4} fontWeight="500">
+          {session?.user?.email}
+        </Text>
+        <Heading size="$2xl" color="$brandPrimary" fontWeight="700" marginBottom={24}>
+          Overview
+        </Heading>
 
         {/* Wealth Summary Cards */}
-        <View style={styles.summaryContainer}>
-          <View style={[styles.card, styles.shadow]}>
-            <Text style={styles.cardLabel}>Net Worth</Text>
-            <Text style={styles.netWorthValue}>
-              {summary ? formatCurrency(summary.netWorth) : '$0.00'}
+        <YStack gap={16} marginBottom={24}>
+          <YStack 
+            backgroundColor="$white" 
+            padding={24} 
+            borderWidth={1} 
+            borderColor="rgba(13,61,61,0.05)" 
+          >
+            <Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} textTransform="uppercase" letterSpacing={1.5} marginBottom={8}>
+              Net Worth
             </Text>
-            <Text style={styles.cardSubtext}>
+            <Heading size="$3xl" color="$brandPrimary" fontWeight="700">
+              {summary ? formatCurrency(summary.netWorth) : '$0.00'}
+            </Heading>
+            <Text fontSize={12} color="$brandAccent" marginTop={12} fontWeight="600">
               {summary?.netWorth === 0 ? 'Connect accounts to begin' : 'Your total financial value'}
             </Text>
-          </View>
+          </YStack>
 
-          <View style={styles.row}>
-            <View style={[styles.card, styles.shadow, { flex: 1, marginRight: 8 }]}>
-              <Text style={styles.cardLabel}>Total Assets</Text>
-              <Text style={styles.assetValue}>
+          <XStack gap={16}>
+            <YStack 
+              flex={1} 
+              backgroundColor="$white" 
+              padding={24} 
+              borderWidth={1} 
+              borderColor="rgba(13,61,61,0.05)"
+            >
+              <Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} textTransform="uppercase" letterSpacing={1.5} marginBottom={8}>
+                Total Income
+              </Text>
+              <Heading size="$lg" color="$brandPrimary" fontWeight="700">
                 {summary ? formatCurrency(summary.totalAssets) : '$0.00'}
+              </Heading>
+            </YStack>
+            <YStack 
+              flex={1} 
+              backgroundColor="$white" 
+              padding={24} 
+              borderWidth={1} 
+              borderColor="rgba(13,61,61,0.05)"
+            >
+              <Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} textTransform="uppercase" letterSpacing={1.5} marginBottom={8}>
+                Total Debt
               </Text>
-            </View>
-            <View style={[styles.card, styles.shadow, { flex: 1, marginLeft: 8 }]}>
-              <Text style={styles.cardLabel}>Liabilities</Text>
-              <Text style={styles.liabilityValue}>
+              <Heading size="$lg" color="$brandText" opacity={0.8} fontWeight="700">
                 {summary ? formatCurrency(summary.totalLiabilities) : '$0.00'}
-              </Text>
-            </View>
-          </View>
-        </View>
+              </Heading>
+            </YStack>
+          </XStack>
+        </YStack>
 
         {/* Recent Transactions Module */}
-        <View style={[styles.transactionsModule, styles.shadow]}>
-          <View style={styles.moduleHeader}>
-            <Text style={styles.moduleTitle}>Recent Transactions</Text>
-          </View>
+        <YStack backgroundColor="$white" borderWidth={1} borderColor="rgba(13,61,61,0.05)">
+          <YStack padding={20} borderBottomWidth={1} borderColor="rgba(13,61,61,0.1)">
+            <Heading size="$md" color="$brandPrimary" fontWeight="700">
+              Recent Transactions
+            </Heading>
+          </YStack>
 
           {transactions.length > 0 ? (
-            <View>
+            <YStack>
               {transactions.map((tx) => (
-                <View key={tx.id} style={styles.transactionItem}>
-                  <View style={styles.txInfo}>
-                    <Text style={styles.txMainText}>
+                <XStack key={tx.id} padding={16} borderBottomWidth={1} borderColor="rgba(13,61,61,0.05)" alignItems="center" justifyContent="space-between">
+                  <YStack flex={1}>
+                    <Text fontSize={14} fontWeight="700" color="$brandPrimary">
                       {tx.type === 'income' ? tx.source : tx.description}
                     </Text>
-                    <Text style={styles.txSubText}>
+                    <Text fontSize={12} color="$brandText" opacity={0.5} marginTop={4}>
                       {new Date(tx.date).toLocaleDateString()} • {tx.type === 'income' ? 'Income' : tx.category}
                     </Text>
-                  </View>
-                  <View style={styles.txAmountContainer}>
-                    <Text style={[
-                      styles.txAmount,
-                      tx.type === 'income' ? styles.incomeText : styles.expenseText
-                    ]}>
-                      {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount, tx.currency)}
-                    </Text>
-                  </View>
-                </View>
+                  </YStack>
+                  <Text fontSize={14} fontWeight="700" color={tx.type === 'income' ? '$brandAccent' : '$brandText'}>
+                    {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount, tx.currency)}
+                  </Text>
+                </XStack>
               ))}
-              <TouchableOpacity style={styles.viewAllButton}>
-                <Text style={styles.viewAllText}>View All Transactions</Text>
-              </TouchableOpacity>
-            </View>
+              <Button chromeless padding={20}>
+                <Text fontSize={12} fontWeight="700" color="$brandAccent" textTransform="uppercase" letterSpacing={1}>
+                  View All Transactions
+                </Text>
+              </Button>
+            </YStack>
           ) : (
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconCircle}>
-                <Text style={styles.emptyIcon}>+</Text>
-              </View>
-              <Text style={styles.emptyTitle}>No data available</Text>
-              <Text style={styles.emptySubtext}>
-                You haven't added any transactions yet. Start tracking your expenses to see your insights here.
-              </Text>
-              <TouchableOpacity style={styles.addButton}>
-                <Text style={styles.addButtonText}>Add Transaction</Text>
-              </TouchableOpacity>
-            </View>
+            <YStack padding={40} alignItems="center" gap={20}>
+              <YStack width={48} height={48} borderRadius={999} backgroundColor="$brandBg" borderWidth={1} borderColor="rgba(13,61,61,0.1)" alignItems="center" justifyContent="center">
+                <Plus size={24} color="#1A7A7A" strokeWidth={1.5} />
+              </YStack>
+              <YStack gap={4} alignItems="center">
+                <Heading size="$sm" color="$brandPrimary">No data available</Heading>
+                <Text fontSize={12} color="$brandText" opacity={0.6} textAlign="center" lineHeight={18}>
+                  You haven&apos;t added any transactions yet. Start tracking your expenses to see your insights here.
+                </Text>
+              </YStack>
+              <Button size="$small" backgroundColor="$brandPrimary" borderRadius={0}>
+                <Text color="$white" fontSize={12} fontWeight="700" textTransform="uppercase" letterSpacing={1}>
+                  Add Transaction
+                </Text>
+              </Button>
+            </YStack>
           )}
-        </View>
+        </YStack>
       </ScrollView>
     </SafeAreaView>
   )
 }
-
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.bg },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  navbar: {
-    height: 64,
-    backgroundColor: theme.colors.white,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(13, 61, 61, 0.1)',
-  },
-  brandContainer: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  brandDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.accent, marginRight: 8 },
-  brandText: { fontSize: 20, fontWeight: theme.fonts.weight.bold, color: theme.colors.primary },
-  signOutText: { fontSize: 12, fontWeight: theme.fonts.weight.bold, color: theme.colors.accent, textTransform: 'uppercase', letterSpacing: 1 },
-  scrollContainer: { padding: 20, paddingBottom: 40 },
-  userEmail: { fontSize: 12, color: theme.colors.text, opacity: 0.7, marginBottom: 4, fontWeight: theme.fonts.weight.medium },
-  header: { fontSize: 32, fontWeight: theme.fonts.weight.bold, color: theme.colors.primary, marginBottom: 24 },
-  summaryContainer: { marginBottom: 24 },
-  card: { backgroundColor: theme.colors.white, padding: 24, borderBottomWidth: 0, marginBottom: 16 },
-  row: { flexDirection: 'row', marginBottom: 0 },
-  shadow: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: 'rgba(13, 61, 61, 0.05)',
-  },
-  cardLabel: { fontSize: 10, fontWeight: theme.fonts.weight.bold, color: theme.colors.text, opacity: 0.6, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
-  netWorthValue: { fontSize: 40, fontWeight: theme.fonts.weight.bold, color: theme.colors.primary },
-  assetValue: { fontSize: 24, fontWeight: theme.fonts.weight.bold, color: theme.colors.primary },
-  liabilityValue: { fontSize: 24, fontWeight: theme.fonts.weight.bold, color: theme.colors.text, opacity: 0.8 },
-  cardSubtext: { fontSize: 10, color: theme.colors.accent, marginTop: 12, fontWeight: theme.fonts.weight.semibold },
-  transactionsModule: { backgroundColor: theme.colors.white },
-  moduleHeader: { padding: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(13, 61, 61, 0.1)' },
-  moduleTitle: { fontSize: 18, fontWeight: theme.fonts.weight.bold, color: theme.colors.primary },
-  transactionItem: {
-    flexDirection: 'row',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(13, 61, 61, 0.05)',
-    alignItems: 'center',
-  },
-  txInfo: { flex: 1 },
-  txMainText: { fontSize: 14, fontWeight: theme.fonts.weight.bold, color: theme.colors.primary },
-  txSubText: { fontSize: 12, color: theme.colors.text, opacity: 0.5, marginTop: 2 },
-  txAmountContainer: { alignItems: 'flex-end' },
-  txAmount: { fontSize: 14, fontWeight: theme.fonts.weight.bold },
-  incomeText: { color: theme.colors.accent },
-  expenseText: { color: theme.colors.text },
-  viewAllButton: { padding: 20, alignItems: 'center' },
-  viewAllText: { fontSize: 12, fontWeight: theme.fonts.weight.bold, color: theme.colors.accent, textTransform: 'uppercase', letterSpacing: 1 },
-  emptyContainer: { padding: 40, alignItems: 'center' },
-  emptyIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: theme.colors.bg, justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(13, 61, 61, 0.1)' },
-  emptyIcon: { fontSize: 24, color: theme.colors.accent, fontWeight: '300' },
-  emptyTitle: { fontSize: 18, fontWeight: theme.fonts.weight.bold, color: theme.colors.primary, marginBottom: 8 },
-  emptySubtext: { fontSize: 12, color: theme.colors.text, opacity: 0.6, textAlign: 'center', lineHeight: 18, marginBottom: 24 },
-  addButton: { backgroundColor: theme.colors.primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 0 },
-  addButtonText: { color: theme.colors.white, fontSize: 12, fontWeight: theme.fonts.weight.bold, textTransform: 'uppercase', letterSpacing: 1 },
-})

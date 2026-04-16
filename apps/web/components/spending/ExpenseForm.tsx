@@ -3,145 +3,207 @@
 import { useState } from 'react'
 import { addExpense } from '@/app/dashboard/spending/actions'
 import { Database } from '@fintrack/core'
+import { XStack, YStack, Text, Input, Button, Label, TextArea, Spinner } from 'tamagui'
 
 type ExpenseCategory = Database['public']['Enums']['expense_category']
 
 const CATEGORIES: ExpenseCategory[] = [
-  'housing', 'food', 'transport', 'utilities', 'healthcare', 
-  'entertainment', 'education', 'personal', 'other'
+  'housing', 'food', 'transport', 'utilities', 'healthcare',
+  'entertainment', 'education', 'personal', 'other',
 ]
 
 export default function ExpenseForm() {
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
     setMessage(null)
-    
     const result = await addExpense(formData)
-    
     if (result.error) {
       setMessage({ type: 'error', text: result.error })
     } else {
       setMessage({ type: 'success', text: 'Expense added successfully!' })
-      // Optional: Reset form if needed, but standard HTML form reset works if we don't control values
       const form = document.getElementById('expense-form') as HTMLFormElement
       form?.reset()
     }
     setLoading(false)
   }
 
+  const labelProps = {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase' as const,
+    color: '$brandPrimary',
+    marginBottom: 4,
+  }
+
   return (
-    <div className="bg-white p-8 border border-brand-primary/10 shadow-sm">
-      <h2 className="font-serif text-2xl font-bold text-brand-primary mb-6">Log New Expense</h2>
-      
-      <form id="expense-form" action={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="form-control w-full">
-            <label className="label">
-              <span className="label-text font-bold text-brand-primary uppercase tracking-widest text-xs">Amount</span>
-            </label>
-            <input 
-              type="number" 
-              name="amount" 
-              step="0.01" 
-              placeholder="0.00" 
-              className="input input-bordered w-full rounded-none border-brand-primary/20 focus:border-brand-accent focus:outline-none" 
-              required 
-            />
-          </div>
+    <YStack
+      backgroundColor="$brandWhite"
+      padding={32}
+      borderWidth={1}
+      borderColor="rgba(13,61,61,0.1)"
+      gap={24}
+    >
+      <Text fontSize={22} fontWeight="700" color="$brandPrimary">Log New Expense</Text>
 
-          <div className="form-control w-full">
-            <label className="label">
-              <span className="label-text font-bold text-brand-primary uppercase tracking-widest text-xs">Currency</span>
-            </label>
+      <form id="expense-form" action={handleSubmit}>
+        <YStack gap={16}>
+
+          {/* Amount + Currency */}
+          <XStack gap={16} flexWrap="wrap">
+            <YStack flex={1} minWidth={200}>
+              <Label {...labelProps}>Amount</Label>
+              <Input
+                name="amount"
+                inputMode="decimal"
+                placeholder="0.00"
+                borderRadius={0}
+                borderColor="rgba(13,61,61,0.2)"
+                focusStyle={{ borderColor: '$brandAccent', outlineStyle: 'none' }}
+                required
+              />
+            </YStack>
+            <YStack flex={1} minWidth={200}>
+              <Label {...labelProps}>Currency</Label>
+              <select 
+                name="currency" 
+                defaultValue="USD" 
+                style={{
+                  height: 44,
+                  padding: '0 16px',
+                  borderRadius: 0,
+                  border: '1px solid rgba(13,61,61,0.2)',
+                  backgroundColor: '#FFFFFF',
+                  fontSize: 14,
+                  color: '#444444',
+                  outline: 'none',
+                }}
+              >
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+                <option value="JPY">JPY (¥)</option>
+              </select>
+            </YStack>
+          </XStack>
+
+          {/* Category */}
+          <YStack>
+            <Label {...labelProps}>Category</Label>
             <select 
-              name="currency" 
-              className="select select-bordered w-full rounded-none border-brand-primary/20 focus:border-brand-accent focus:outline-none"
-              defaultValue="USD"
+              name="category" 
+              required 
+              style={{
+                height: 44,
+                padding: '0 16px',
+                borderRadius: 0,
+                border: '1px solid rgba(13,61,61,0.2)',
+                backgroundColor: '#FFFFFF',
+                fontSize: 14,
+                color: '#444444',
+                outline: 'none',
+                textTransform: 'capitalize',
+              }}
             >
-              <option value="USD">USD ($)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="GBP">GBP (£)</option>
-              <option value="JPY">JPY (¥)</option>
+              {CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
             </select>
-          </div>
-        </div>
+          </YStack>
 
-        <div className="form-control w-full">
-          <label className="label">
-            <span className="label-text font-bold text-brand-primary uppercase tracking-widest text-xs">Category</span>
-          </label>
-          <select 
-            name="category" 
-            className="select select-bordered w-full rounded-none border-brand-primary/20 focus:border-brand-accent focus:outline-none"
-            required
+          {/* Description */}
+          <YStack>
+            <Label {...labelProps}>Description</Label>
+            <Input
+              name="description"
+              placeholder="e.g. Weekly Groceries"
+              borderRadius={0}
+              borderColor="rgba(13,61,61,0.2)"
+              focusStyle={{ borderColor: '$brandAccent', outlineStyle: 'none' }}
+              required
+            />
+          </YStack>
+
+          {/* Date */}
+          <YStack>
+            <Label {...labelProps}>Date</Label>
+            <Input
+              type="date"
+              name="date"
+              defaultValue={new Date().toISOString().split('T')[0]}
+              borderRadius={0}
+              borderColor="rgba(13,61,61,0.2)"
+              focusStyle={{ borderColor: '$brandAccent', outlineStyle: 'none' }}
+              required
+            />
+          </YStack>
+
+          {/* Recurring */}
+          <XStack alignItems="center" gap={12}>
+            <input
+              type="checkbox"
+              name="is_recurring"
+              id="is_recurring"
+              style={{ width: 18, height: 18, accentColor: '#0D3D3D', cursor: 'pointer' }}
+            />
+            <Label htmlFor="is_recurring" {...labelProps} marginBottom={0} cursor="pointer">
+              Recurring Expense
+            </Label>
+          </XStack>
+
+          {/* Notes */}
+          <YStack>
+            <Label {...labelProps}>Notes (Optional)</Label>
+            <TextArea
+              name="notes"
+              placeholder="Add any extra details..."
+              height={80}
+              borderRadius={0}
+              borderColor="rgba(13,61,61,0.2)"
+              focusStyle={{ borderColor: '$brandAccent', outlineStyle: 'none' }}
+            />
+          </YStack>
+
+          {/* Feedback */}
+          {message && (
+            <YStack
+              padding={16}
+              backgroundColor={message.type === 'success' ? 'rgba(54,211,153,0.1)' : 'rgba(248,114,114,0.1)'}
+            >
+              <Text
+                fontSize={14}
+                color={message.type === 'success' ? '#059669' : '#DC2626'}
+                fontFamily="$mono"
+              >
+                {message.text}
+              </Text>
+            </YStack>
+          )}
+
+          {/* Submit */}
+          <Button
+            theme="active"
+            disabled={loading}
+            onPress={(e) => {
+              const form = (e.target as any).closest('form')
+              if (form) form.requestSubmit()
+            }}
+            borderRadius={0}
+            backgroundColor="$brandPrimary"
+            color="$brandWhite"
+            fontWeight="700"
+            letterSpacing={1}
+            textTransform="uppercase"
+            pressStyle={{ opacity: 0.8 }}
           >
-            {CATEGORIES.map(cat => (
-              <option key={cat} value={cat} className="capitalize">{cat}</option>
-            ))}
-          </select>
-        </div>
+            {loading ? <Spinner color="$brandWhite" /> : 'Add Expense'}
+          </Button>
 
-        <div className="form-control w-full">
-          <label className="label">
-            <span className="label-text font-bold text-brand-primary uppercase tracking-widest text-xs">Description</span>
-          </label>
-          <input 
-            type="text" 
-            name="description" 
-            placeholder="e.g. Weekly Groceries" 
-            className="input input-bordered w-full rounded-none border-brand-primary/20 focus:border-brand-accent focus:outline-none" 
-            required 
-          />
-        </div>
-
-        <div className="form-control w-full">
-          <label className="label">
-            <span className="label-text font-bold text-brand-primary uppercase tracking-widest text-xs">Date</span>
-          </label>
-          <input 
-            type="date" 
-            name="date" 
-            className="input input-bordered w-full rounded-none border-brand-primary/20 focus:border-brand-accent focus:outline-none" 
-            defaultValue={new Date().toISOString().split('T')[0]}
-            required 
-          />
-        </div>
-
-        <div className="form-control">
-          <label className="label cursor-pointer justify-start gap-4">
-            <input type="checkbox" name="is_recurring" className="checkbox checkbox-primary rounded-none" />
-            <span className="label-text font-bold text-brand-primary uppercase tracking-widest text-xs">Recurring Expense</span>
-          </label>
-        </div>
-
-        <div className="form-control w-full">
-          <label className="label">
-            <span className="label-text font-bold text-brand-primary uppercase tracking-widest text-xs">Notes (Optional)</span>
-          </label>
-          <textarea 
-            name="notes" 
-            className="textarea textarea-bordered h-24 rounded-none border-brand-primary/20 focus:border-brand-accent focus:outline-none" 
-            placeholder="Add any extra details..."
-          ></textarea>
-        </div>
-
-        {message && (
-          <div className={`p-4 text-sm font-mono ${message.type === 'success' ? 'bg-success/10 text-success' : 'bg-error/10 text-error'}`}>
-            {message.text}
-          </div>
-        )}
-
-        <button 
-          type="submit" 
-          disabled={loading}
-          className="btn btn-primary w-full rounded-none font-bold tracking-widest uppercase"
-        >
-          {loading ? <span className="loading loading-spinner"></span> : 'Add Expense'}
-        </button>
+        </YStack>
       </form>
-    </div>
+    </YStack>
   )
 }

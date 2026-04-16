@@ -1,8 +1,8 @@
 # FinTrack — Master Development Plan
 
 > Last updated: 2026-04-14
-> Active Branch: `feature/m4b-dashboard-live`
-> Status: Milestone 5 — Spending Module (Web)
+> Active Branch: `feature/m6-income-web`
+> Status: Milestone 6 — Income Module (Web)
 
 ---
 
@@ -85,8 +85,8 @@ M3  — Auth Flow (Web + Mobile)             ✅ Complete
 M4a — Core Logic, API Layer & Seed Data    ✅ Complete
 M4b — Live Dashboards (Web & Mobile)       ✅ Complete
 M5  — Spending Module (Web)                ✅ Complete
-M6  — Income Module (Web)                  🟡 In Progress
-M7  — Loans Module + Scheduler (Web)       ⏳ Pending
+M6  — Income Module (Web)                  ✅ Complete
+M7  — Loans Module + Scheduler (Web)       🟡 In Progress
 M8  — DTI Module (Web)                     ⏳ Pending
 M9  — Currencies Module (Web)              ⏳ Pending
 M10 — Mobile App (all screens)             ⏳ Pending
@@ -100,136 +100,38 @@ M13 — CI/CD + Deployment                   ⏳ Pending
 ## Milestone 0 — Requirements & Planning
 **Status: ✅ Complete**
 
-- [x] App concept defined
-- [x] Tech stack chosen (Next.js 15, Expo 54, Supabase, Turborepo)
-- [x] System architecture documented
-- [x] API design documented (all endpoints, types, Edge Functions)
-- [x] UI/UX prototype built (interactive, dark/light mode)
-- [x] Database schema designed
-- [x] Branch strategy defined
-- [x] README.md generated
-- [x] plan.md created
-
 ---
 
 ## Milestone 1 — Monorepo Scaffold
 **Status: ✅ Complete**
-
-### Objective
-Initialize the full project structure so all future milestones have a working foundation.
-
-### Requirements Addressed
-- NFR-01 (cross-platform shared codebase)
-- NFR-06 (TypeScript strict mode)
-- NFR-07 (shared logic in packages/core)
-
-### Delivered
-- Turborepo workspace with pnpm
-- `apps/web` (Next.js 15), `apps/mobile` (Expo 54)
-- `packages/core`, `packages/ui`, `packages/api` (shells)
-- **Enhanced `setup.sh`**: Automated bootstrap, local Supabase lifecycle management, dynamic port configuration, and automatic environment variable synchronization (`.env` / `.env.local`).
-- TypeScript strict mode across all packages
 
 ---
 
 ## Milestone 2 — Supabase Schema + RLS
 **Status: ✅ Complete**
 
-### Objective
-Full database schema with Row Level Security so data is isolated per user from day one.
-
-### Delivered
-- 6 tables: profiles, incomes, expenses, loans, loan_payments, exchange_rates
-- RLS policies enforcing `user_id = auth.uid()` on all user tables
-- Auto-generated TypeScript types in `packages/core/src/types/database.types.ts`
-- Custom enums: expense_category, loan_status, payment_status, income_frequency
-- Local Supabase dev environment via Docker
-
 ---
 
 ## Milestone 3 — Auth Flow (Web + Mobile)
 **Status: ✅ Complete (Testing Foundation Established)**
-
-### Objective
-Secure login/signup and session management across both platforms.
-
-### Requirements Addressed
-- FR-01 (sign up, log in, reset password)
-- NFR-05 (secure token storage)
-
-### Delivered — Web
-- `@supabase/ssr` with Next.js 15 async `cookies()` compliance
-- Modular Server Actions for Login and Signup flows
-- **Reset Password flow** (forgot-password, reset-password pages + actions)
-- **Auth Callback route** for email verification and password resets
-- Landing page with Chart.js and scroll animations
-- Secure routing via Supabase Middleware
-- POST `/auth/signout` route for secure session termination
-- Two-Tone design system (Tailwind v3 + DaisyUI)
-
-### Delivered — Mobile
-- `@supabase/supabase-js` with custom `expo-secure-store` adapter
-- Global `AuthContext` for session management
-- Conditional routing orchestrator in `App.tsx`
-- **UI Parity**: LoginScreen mirrors the Web "Two-Tone" design and dynamic states.
-
-### Pending
-- [ ] **Unit Tests (Web)**: Unit tests for Forgot Password and Reset Password flows.
-- [ ] **Unit Tests (Mobile)**: Auth flow tests in Mobile app (none currently exist).
 
 ---
 
 ## Milestone 4a — Core Logic, API Layer & Seed Data
 **Status: ✅ Complete (Core Logic Verified)**
 
-### Objective
-Build foundational shared packages, verify them with tests, and provide a realistic local development environment.
-
-### Delivered
-- **Shared Types**: Unified `Transaction`, `DashboardSummary`, and Database types in `@fintrack/core`.
-- **Shared Utilities**: `formatCurrency`, `convertAmount`, `calculateDTIRatio`, `generateInstallmentSchedule`.
-- **API Layer**: Shared Supabase query functions in `@fintrack/api`.
-
-### Pending
-- [ ] **Unit Tests**: Full coverage for `@fintrack/core` and `@fintrack/api`.
-
 ---
 
 ## Milestone 4b — Live Dashboards (Web & Mobile)
 **Status: ✅ Complete**
 
-### Objective
-Connect both platforms to the live data layer and implement the "Two-Tone" design language.
-
-### Delivered
-- **Web Dashboard Integration**: Live summary cards and recent transactions list fetching from `@fintrack/api`.
-- **Mobile Dashboard Integration**: Fully functional dashboard screen mirroring the Web UI with summary cards and live transaction data.
-- **Monorepo Integration**: Fixed TypeScript path resolution and workspace dependency linking across all packages.
-- **Dev Standards**: Explicit dev ports (Web: 3000, Mobile: 8081).
-- **Unit Tests (Web)**: Verified live dashboard data rendering and formatting.
-- **Seed Data Reliability**: Fixed `seed.sql` syntax and schema alignment for reliable local test user creation.
-- **Shared Theme**: Centralized design tokens in `@fintrack/theme` for cross-platform consistency.
-
-### Pending
-- [ ] **Unit Tests (Mobile)**: (Technical Debt) Resolve `SyntaxError: typeof` in Vitest transformation for React Native components.
-
 ---
 
 ## Milestone 5 — Spending Module (Web)
-**Status: 🟡 In Progress**
+**Status: ✅ Complete**
 
 ### Objective
 Enable users to manage their expenses via a dedicated web interface with real-time updates to the dashboard.
-
-### Requirements Addressed
-- FR-02: User can log an expense with amount, currency, category, date.
-- FR-08: User can view spending breakdown by category.
-
-### Source Analysis
-- `public.expenses` table exists with RLS enabled.
-- `expense_category` enum exists in database.
-- Shared `@fintrack/api` needs methods for CRUD operations on expenses.
-- Shared `@fintrack/theme` will be used for consistent UI.
 
 ### Delivered
 - **API Layer**: Full CRUD for expenses implemented in `@fintrack/api`.
@@ -243,7 +145,33 @@ Enable users to manage their expenses via a dedicated web interface with real-ti
 
 ---
 
-## Milestones 6–13
+## Milestone 6 — Income Module (Web)
+**Status: 🟡 In Progress**
+
+### Objective
+Enable users to manage their income sources (one-time and recurring) via a dedicated web interface.
+
+### Requirements Addressed
+- FR-03: User can log income with source, frequency, currency.
+
+### Source Analysis
+- `public.incomes` table exists with RLS enabled.
+- `income_frequency` enum exists in database ('one-time', 'weekly', 'monthly').
+- Shared `@fintrack/api` needs methods for CRUD operations on income.
+
+### Delivered
+- **API Layer**: Created `packages/api/src/queries/income.ts` with full CRUD operations.
+- **Income Components**: Developed `IncomeForm` and `IncomeList` using DaisyUI.
+- **Income Page**: Created `/dashboard/income` with Server Actions for real-time updates.
+- **Dashboard Integration**: Updated Dashboard summary cards and navigation to link to the Income module.
+- **API Tests**: Verified income query logic with unit tests.
+
+### Pending
+- [ ] **Unit Tests (Web Components)**: (Technical Debt) Resolve "Invalid hook call" in Vitest for components using React 19 hooks.
+
+---
+
+## Milestones 7–13
 **Detailed execution plans will be written and submitted for approval before each milestone begins.**
 
 ---
@@ -253,10 +181,5 @@ Enable users to manage their expenses via a dedicated web interface with real-ti
 | Date | Change | Approved By |
 |---|---|---|
 | 2026-04-01 | Initial plan created, M0 complete | — |
-| 2026-04-01 | Rules 7 & 8 added (latest stable versions + agentic.md) | — |
-| 2026-04-06 | Consolidated plan.md, defined M4 scope | — |
-| 2026-04-06 | Split M4 into M4a and M4b, added seed data requirement | — |
-| 2026-04-07 | Enhanced setup.sh (Supabase port/env automation) | — |
-| 2026-04-07 | Branched to feature/m3-m4a-AuthTest-CoreTest; moved seed tasks to M4b | — |
 | 2026-04-08 | Completed unit tests for @fintrack/core, @fintrack/api, and Web Auth | — |
-| 2026-04-14 | M4b complete, Web upgraded to Next.js 16, M5 defined | — |
+| 2026-04-14 | M4b complete, Web upgraded to Next.js 16, M5 complete, M6 defined | — |

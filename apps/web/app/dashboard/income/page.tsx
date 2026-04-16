@@ -1,13 +1,12 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { getExpenses, getExpensesByCategory } from '@fintrack/api'
-import ExpenseForm from '@/components/spending/ExpenseForm'
-import ExpenseList from '@/components/spending/ExpenseList'
-import CategoryBreakdown from '@/components/spending/CategoryBreakdown'
+import { getIncomes } from '@fintrack/api'
+import IncomeForm from '@/components/income/IncomeForm'
+import IncomeList from '@/components/income/IncomeList'
 import { YStack, XStack, Text, Heading } from 'tamagui'
 import Link from 'next/link'
 
-export default async function SpendingPage() {
+export default async function IncomePage() {
   const supabase = await createClient()
 
   const { data: { user }, error } = await supabase.auth.getUser()
@@ -15,10 +14,7 @@ export default async function SpendingPage() {
     redirect('/login')
   }
 
-  const [expenses, breakdown] = await Promise.all([
-    getExpenses(supabase),
-    getExpensesByCategory(supabase)
-  ])
+  const incomes = await getIncomes(supabase)
 
   return (
     <YStack minHeight="100vh" backgroundColor="$brandBg">
@@ -51,27 +47,28 @@ export default async function SpendingPage() {
                 ← Back to Overview
               </Text>
             </Link>
-            <Heading size="$2xl" color="$brandPrimary" fontWeight="700">Spending</Heading>
+            <Heading size="$2xl" color="$brandPrimary" fontWeight="700">Income</Heading>
           </YStack>
         </XStack>
 
         <XStack gap={32} flexWrap="wrap">
           {/* Left Column: Form & History */}
           <YStack flex={2} minWidth={350} gap={32}>
-            <ExpenseForm />
-            <ExpenseList expenses={expenses} />
+            <IncomeForm />
+            <IncomeList incomes={incomes} />
           </YStack>
 
-          {/* Right Column: Breakdown */}
+          {/* Right Column: Tips */}
           <YStack flex={1} minWidth={350} gap={32}>
-            <CategoryBreakdown data={breakdown} />
-            
-            {/* Quick Tips Card */}
             <YStack backgroundColor="$brandPrimary" padding={32} gap={16}>
-              <Text fontSize={20} fontWeight="700" color="$brandWhite">Financial Tip</Text>
+              <Text fontSize={20} fontWeight="700" color="$brandWhite">Income Tracking</Text>
               <Text fontSize={14} fontFamily="$mono" color="$brandWhite" opacity={0.8} lineHeight={22}>
-                Try to keep your &apos;Other&apos; category below 10% of your total spending. 
-                Detailed categorization leads to better financial clarity and easier budgeting.
+                Tracking all sources of income, including side hustles and bonuses, 
+                provides a more accurate picture of your true financial capacity.
+              </Text>
+              <Text fontSize={14} fontFamily="$mono" color="$brandWhite" opacity={0.8} lineHeight={22}>
+                This data is used to calculate your **Debt-to-Income (DTI) ratio** 
+                on the dashboard.
               </Text>
             </YStack>
           </YStack>

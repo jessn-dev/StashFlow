@@ -1,4 +1,7 @@
+'use client'
+
 import { formatCurrency } from '@fintrack/core'
+import { YStack, XStack, Text } from 'tamagui'
 
 interface CategoryData {
   category: string
@@ -15,45 +18,47 @@ export default function CategoryBreakdown({ data }: CategoryBreakdownProps) {
 
   if (total === 0) {
     return (
-      <div className="bg-white p-8 border border-brand-primary/10 shadow-sm">
-        <h2 className="font-serif text-2xl font-bold text-brand-primary mb-6">Spending Breakdown</h2>
-        <p className="text-brand-text/60 font-mono text-sm">No data to display.</p>
-      </div>
+      <YStack backgroundColor="$brandWhite" padding={32} borderWidth={1} borderColor="rgba(13,61,61,0.1)" shadowColor="black" shadowOpacity={0.05} shadowRadius={2}>
+        <Text fontSize={24} fontWeight="700" color="$brandPrimary" marginBottom={24}>Spending Breakdown</Text>
+        <Text color="$brandText" opacity={0.6} fontFamily="$mono" fontSize={14}>No data to display.</Text>
+      </YStack>
     )
   }
 
   return (
-    <div className="bg-white p-8 border border-brand-primary/10 shadow-sm">
-      <h2 className="font-serif text-2xl font-bold text-brand-primary mb-6">Spending Breakdown</h2>
+    <YStack backgroundColor="$brandWhite" padding={32} borderWidth={1} borderColor="rgba(13,61,61,0.1)" shadowColor="black" shadowOpacity={0.05} shadowRadius={2}>
+      <Text fontSize={24} fontWeight="700" color="$brandPrimary" marginBottom={24}>Spending Breakdown</Text>
       
-      <div className="space-y-6">
+      <YStack gap={24}>
         {sortedData.map((item) => {
           const percentage = (item.amount / total) * 100
           return (
-            <div key={item.category}>
-              <div className="flex justify-between items-end mb-2">
-                <span className="text-xs font-bold text-brand-primary uppercase tracking-widest capitalize">
+            <YStack key={item.category} gap={8}>
+              <XStack justifyContent="space-between" alignItems="flex-end">
+                <Text fontSize={11} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.2}>
                   {item.category}
-                </span>
-                <span className="text-sm font-mono text-brand-text/70">
+                </Text>
+                <Text fontSize={12} fontFamily="$mono" color="$brandText" opacity={0.7}>
                   {formatCurrency(item.amount)} ({percentage.toFixed(1)}%)
-                </span>
-              </div>
-              <div className="w-full bg-brand-bg h-2 overflow-hidden">
-                <div 
-                  className="bg-brand-accent h-full transition-all duration-500" 
-                  style={{ width: `${percentage}%` }}
-                ></div>
-              </div>
-            </div>
+                </Text>
+              </XStack>
+              <YStack width="100%" backgroundColor="$brandBg" height={8} overflow="hidden">
+                <YStack 
+                  backgroundColor="$brandAccent" 
+                  height="100%" 
+                  width={`${percentage}%`}
+                  {...({ style: { transition: 'width 0.5s ease-in-out' } } as any)}
+                />
+              </YStack>
+            </YStack>
           )
         })}
-      </div>
+      </YStack>
 
-      <div className="mt-10 pt-6 border-t border-brand-primary/10 flex justify-between items-center">
-        <span className="text-sm font-bold text-brand-primary uppercase tracking-widest">Total Spending</span>
-        <span className="text-2xl font-serif font-bold text-brand-primary">{formatCurrency(total)}</span>
-      </div>
-    </div>
+      <XStack marginTop={40} paddingTop={24} borderTopWidth={1} borderColor="rgba(13,61,61,0.1)" justifyContent="space-between" alignItems="center">
+        <Text fontSize={12} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5}>Total Spending</Text>
+        <Text fontSize={24} fontWeight="700" color="$brandPrimary">{formatCurrency(total)}</Text>
+      </XStack>
+    </YStack>
   )
 }

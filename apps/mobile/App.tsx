@@ -1,4 +1,6 @@
 import { ActivityIndicator, View } from 'react-native'
+import { TamaguiProvider } from 'tamagui'
+import { tamaguiConfig } from '@fintrack/theme'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LoginScreen } from './screens/LoginScreen'
 import { DashboardScreen } from './screens/DashboardScreen'
@@ -21,8 +23,10 @@ function RootNavigator() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <RootNavigator />
-    </AuthProvider>
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
+    </TamaguiProvider>
   )
 }

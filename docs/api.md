@@ -96,7 +96,7 @@ getDTIRatio(month?: string) → {
 // Simulate DTI (What-If Calculator)
 simulateDTI(payload: { add_loan?: object, add_income?: object, pay_off_loan?: object }) → { current_dti: number, projected_dti: number, change: number, new_status: string }
 ```
-## 7. 🏦 Loans & Installments
+## 7. 💱 Currency / Exchange Rates
 ```
 // Get Cached Rates
 getRates(payload: { base: string, targets: string[] }) → { base: string, rates: Record<string, number>, fetched_at: string, is_cached: boolean }
@@ -107,7 +107,7 @@ convertAmount(payload: { amount: number, from: string, to: string }) → { origi
 // Supported List
 getSupportedCurrencies() → { code: string, name: string, symbol: string }[]
 ```
-## 8. 🏦 Loans & Installments
+## 8. 📊 Dashboard Aggregation
 ```
 // Get Dashboard Payload (⚡ Edge Function: getDashboard)
 getDashboard() → { 

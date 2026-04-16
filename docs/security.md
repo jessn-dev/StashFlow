@@ -51,6 +51,17 @@ Before finalizing any feature or milestone, the following checks must be verifie
 
 ---
 
+# FinTrack — Security Protocol & Ledger
+
+## 🚨 Active Remediation Progress
+### 1. IDOR Prevention
+* **Status:** ✅ Integrated. RLS policies are active on 5 core tables. Web Auth now uses `getUser()` server-side to prevent IDOR via JWT.
+
+### 2. Auth Token Exposure 
+* **Risk:** Storing JWTs in `localStorage` on Web makes them vulnerable to XSS.
+* **Resolution:** Implemented `@supabase/ssr` to store tokens in `httpOnly` cookies. Tokens are inaccessible to client-side JS.
+* **Status:** ✅ Complete (Web) / ⏳ Pending (Mobile via SecureStore).
+
 ## 📝 Incident & Update Log
 
 | Date | Event / Update | Notes |

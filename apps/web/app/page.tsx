@@ -105,8 +105,6 @@ export default function LandingPage() {
           background-image: linear-gradient(rgba(13,61,61,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(13,61,61,0.04) 1px, transparent 1px);
           background-size: 60px 60px;
         }
-        @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        .animate-ticker { animation: ticker 30s linear infinite; }
         .reveal {
           opacity: 0;
           transform: translateY(24px);
@@ -121,7 +119,6 @@ export default function LandingPage() {
         .hero-h1 { animation: fadeUp 0.7s ease 0.1s both; }
         .hero-p { animation: fadeUp 0.7s ease 0.2s both; }
         .hero-cta { animation: fadeUp 0.7s ease 0.3s both; }
-        .ticker-band { animation: fadeUp 1s ease 0.5s both; }
       `}} />
 
       {/* Grid Background */}
@@ -177,7 +174,7 @@ export default function LandingPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }} className="hero-label">
           <div style={{ width: '40px', height: '1px', backgroundColor: '#1A7A7A' }} />
           <span style={{ fontSize: '12px', color: '#1A7A7A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '4px', fontFamily: 'monospace' }}>
-            Revolutionize Finance
+            Personal Finance, Simplified
           </span>
         </div>
 
@@ -190,7 +187,7 @@ export default function LandingPage() {
         </h1>
 
         <p className="hero-p" style={{ fontSize: 'clamp(16px, 2vw, 20px)', color: '#444444', opacity: 0.8, maxWidth: '42ch', lineHeight: 1.7, margin: 0, marginBottom: '48px' }}>
-          The financial intelligence layer that transforms raw data into decisive insight. Built for individuals who can&apos;t afford ambiguity.
+          See every account, every expense, and every goal in one place. FinTrack makes it easy to understand your money and actually do something about it.
         </p>
 
         <div className="hero-cta" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
@@ -216,23 +213,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Ticker — full-width band outside hero */}
-      <div className="ticker-band" style={{ position: 'relative', zIndex: 10, width: '100%', overflow: 'hidden', borderTop: '1px solid rgba(13,61,61,0.1)', borderBottom: '1px solid rgba(13,61,61,0.1)', paddingTop: '12px', paddingBottom: '12px', backgroundColor: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(4px)' }}>
-        <div style={{ display: 'flex', gap: '48px', width: 'max-content' }} className="animate-ticker">
-          {(['ticker-1', 'ticker-2'] as const).map((key) => (
-            <div key={key} style={{ display: 'flex', gap: '48px' }}>
-              <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', fontFamily: 'monospace' }}><strong style={{ color: '#0D3D3D' }}>AAPL</strong> $187.42 <span style={{ color: '#16a34a' }}>▲ 1.23%</span></span>
-              <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', fontFamily: 'monospace' }}><strong style={{ color: '#0D3D3D' }}>MSFT</strong> $412.85 <span style={{ color: '#16a34a' }}>▲ 0.87%</span></span>
-              <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', fontFamily: 'monospace' }}><strong style={{ color: '#0D3D3D' }}>NVDA</strong> $891.20 <span style={{ color: '#16a34a' }}>▲ 3.14%</span></span>
-              <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', fontFamily: 'monospace' }}><strong style={{ color: '#0D3D3D' }}>TSLA</strong> $178.60 <span style={{ color: '#ef4444' }}>▼ 0.55%</span></span>
-              <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', fontFamily: 'monospace' }}><strong style={{ color: '#0D3D3D' }}>AMZN</strong> $192.30 <span style={{ color: '#16a34a' }}>▲ 1.77%</span></span>
-              <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', fontFamily: 'monospace' }}><strong style={{ color: '#0D3D3D' }}>GOOGL</strong> $171.95 <span style={{ color: '#16a34a' }}>▲ 0.43%</span></span>
-              <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', fontFamily: 'monospace' }}><strong style={{ color: '#0D3D3D' }}>BTC</strong> $67,442 <span style={{ color: '#16a34a' }}>▲ 2.91%</span></span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Stats Band */}
       <XStack
         flexWrap="wrap"
@@ -244,10 +224,10 @@ export default function LandingPage() {
         position="relative"
       >
         {[
-          { num: '$2.4T', label: 'Assets Tracked', sub: '↑ 18.3% this quarter' },
-          { num: '99.9%', label: 'Uptime SLA', sub: '↑ 6 nines target' },
-          { num: '8ms', label: 'Avg. Latency', sub: '↓ 41% vs. last year' },
-          { num: '4.8k', label: 'Users', sub: '↑ 340 new this month' },
+          { num: 'Free',  label: 'To Get Started',      sub: 'No credit card required' },
+          { num: '🔒',    label: 'Bank-Level Security',  sub: 'Encrypted & never sold' },
+          { num: '4.8k',  label: 'People Signed Up',     sub: '↑ 340 new this month' },
+          { num: 'Any',   label: 'Device, Anytime',      sub: 'Web · iOS · Android soon' },
         ].map((stat, i) => (
           <YStack
             key={i}
@@ -282,7 +262,7 @@ export default function LandingPage() {
         >
           <YStack flex={1}>
             <Text fontSize={12} color="$brandAccent" fontWeight="700" style={{ textTransform: 'uppercase' }} letterSpacing={4} marginBottom={24}>
-              Core Capabilities
+              What You Can Do
             </Text>
             <Heading
               style={{ fontSize: 'clamp(32px, 4vw, 48px)', lineHeight: 1.1 }}
@@ -290,11 +270,11 @@ export default function LandingPage() {
               color="$brandPrimary"
               fontFamily="$heading"
             >
-              Every edge.{'\n'}Every signal.
+              Everything you need{'\n'}to own your money.
             </Heading>
           </YStack>
           <Text fontSize={16} color="$brandText" opacity={0.7} lineHeight={26} flex={1} $gtMd={{ textAlign: 'right', marginLeft: 'auto' as any }} maxWidth={420}>
-            Six pillars built for teams demanding precision where it counts most. No noise. No lag. No compromise.
+            Six features designed around how real people actually manage money — from the first paycheck to the last debt payment.
           </Text>
         </XStack>
 
@@ -307,12 +287,12 @@ export default function LandingPage() {
           borderColor="rgba(13,61,61,0.1)"
         >
           {[
-            { id: '01', title: 'Real-Time Pulse', desc: 'Sub-10ms market data ingestion across 180+ exchanges. Every tick captured and indexed.' },
-            { id: '02', title: 'Predictive Forecast', desc: 'Proprietary models trained on market cycles. Probability-weighted scenarios, not gut feel.' },
-            { id: '03', title: 'Portfolio Command', desc: 'Consolidated view across equities, crypto, and alternatives. One dashboard, every exposure.' },
-            { id: '04', title: 'Risk Architecture', desc: 'Dynamic VaR, stress testing, and tail-risk modeling with regulatory-grade reporting baked in.' },
-            { id: '05', title: 'Alpha Intelligence', desc: 'Sentiment analysis and alternative data signals surfaced automatically before consensus.' },
-            { id: '06', title: 'Automation Engine', desc: 'Rules-based workflows, smart alerts, and API-first architecture that fits into any stack.' },
+            { id: '01', title: 'Expense Tracking',   desc: 'Every purchase, subscription, and bill — automatically categorized so you always know where your money went.' },
+            { id: '02', title: 'Budget Planning',    desc: 'Build a monthly budget that actually works. Set limits by category and get a nudge before you overspend.' },
+            { id: '03', title: 'Net Worth Tracking', desc: 'Watch your assets grow and your debt shrink on one simple chart. Your financial health, at a glance.' },
+            { id: '04', title: 'Debt Payoff',        desc: 'See all your loans and credit cards in one place. Pick a payoff strategy and track your progress month by month.' },
+            { id: '05', title: 'Income Tracking',    desc: 'Log paychecks, freelance income, and side projects. Understand your full picture, not just what you spend.' },
+            { id: '06', title: 'Secure & Private',   desc: 'Bank-level encryption, read-only account access, and zero data selling. Your finances stay yours.' },
           ].map((feat, i) => (
             <YStack
               key={i}
@@ -356,20 +336,20 @@ export default function LandingPage() {
           <XStack alignItems="center" gap={8}>
             <Circle size={6} backgroundColor="$brandAccent" />
             <Text fontSize={12} color="$brandAccent" fontWeight="700" style={{ textTransform: 'uppercase' }} letterSpacing={2}>
-              Live Performance
+              Your Progress Over Time
             </Text>
           </XStack>
           <YStack>
             <Heading size="$2xl" color="$brandPrimary" fontWeight="700" marginBottom={16} fontFamily="$heading">
-              Returns that speak for themselves
+              Watch your net worth grow, month by month.
             </Heading>
             <Text fontSize={16} color="$brandText" opacity={0.8} lineHeight={26}>
-              Portfolios using FinTrack consistently outperform benchmark indices through disciplined, data-led rebalancing.
+              FinTrack shows you the full picture — what you own, what you owe, and how far you&apos;ve come. No spreadsheets required.
             </Text>
           </YStack>
           <XStack alignItems="baseline" gap={12}>
-            <Text fontSize={64} fontWeight="900" color="$brandPrimary" fontFamily="$serif">+34.2%</Text>
-            <Text fontSize={13} color="$brandAccent" fontFamily="$mono">↑ vs. 18.7% SPX</Text>
+            <Text fontSize={64} fontWeight="900" color="$brandPrimary" fontFamily="$serif">+$37.4k</Text>
+            <Text fontSize={13} color="$brandAccent" fontFamily="$mono">↑ net worth growth this year</Text>
           </XStack>
         </YStack>
 

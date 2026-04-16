@@ -1,6 +1,6 @@
 'use client'
 
-import { formatCurrency, DashboardSummary, Transaction } from '@fintrack/core'
+import { formatCurrency, DashboardSummary, Transaction } from '@stashflow/core'
 import Link from 'next/link'
 import { XStack, YStack, Text, Button, Separator } from 'tamagui'
 import { Plus, LayoutDashboard, ArrowUpRight, ArrowDownRight } from 'lucide-react-native'
@@ -33,7 +33,7 @@ export default function DashboardUI({ userEmail, summary, transactions }: Dashbo
           <Link href="/dashboard" style={{ textDecoration: 'none' }}>
             <XStack alignItems="center" gap={8}>
               <YStack width={8} height={8} borderRadius={9999} backgroundColor="$brandAccent" />
-              <Text fontSize={16} fontWeight="700" color="$brandPrimary">FinTrack</Text>
+              <Text fontSize={16} fontWeight="700" color="$brandPrimary">StashFlow</Text>
             </XStack>
           </Link>
 

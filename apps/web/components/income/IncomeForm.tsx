@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { addIncome } from '@/app/dashboard/income/actions'
-import { Database } from '@fintrack/core'
+import { Database } from '@stashflow/core'
 import { YStack, XStack, Text, Input, TextArea, Button, Label, Spinner } from 'tamagui'
 
 type IncomeFrequency = Database['public']['Enums']['income_frequency']

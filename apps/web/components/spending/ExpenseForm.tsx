@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { addExpense } from '@/app/dashboard/spending/actions'
-import { Database } from '@fintrack/core'
+import { Database } from '@stashflow/core'
 import { XStack, YStack, Text, Input, Button, Label, TextArea, Spinner } from 'tamagui'
 
 type ExpenseCategory = Database['public']['Enums']['expense_category']

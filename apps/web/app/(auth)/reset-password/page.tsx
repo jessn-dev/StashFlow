@@ -35,7 +35,7 @@ export default function ResetPasswordPage() {
             >
               <Text color="$brandWhite" fontSize={16} fontWeight="700">$</Text>
             </YStack>
-            <Text color="$brandPrimary" fontSize={20} fontWeight="700">FinTrack</Text>
+            <Text color="$brandPrimary" fontSize={20} fontWeight="700">StashFlow</Text>
           </XStack>
 
           {/* Heading */}

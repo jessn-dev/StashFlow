@@ -1,7 +1,7 @@
 import 'react-native-url-polyfill/auto'
 import * as SecureStore from 'expo-secure-store'
 import { createClient } from '@supabase/supabase-js'
-import { Database } from '@fintrack/core'
+import { Database } from '@stashflow/core'
 
 // Custom adapter to securely store JWTs on the device
 const ExpoSecureStoreAdapter = {

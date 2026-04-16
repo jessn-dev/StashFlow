@@ -15,7 +15,7 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     server: {
       deps: {
-        inline: ['@fintrack/core', '@fintrack/api', '@fintrack/theme', 'react', 'react-dom']
+        inline: ['@stashflow/core', '@stashflow/api', '@stashflow/theme', 'react', 'react-dom']
       }
     }
   },

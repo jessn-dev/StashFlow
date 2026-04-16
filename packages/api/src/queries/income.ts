@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '@fintrack/core'
+import { Database } from '@stashflow/core'
 
 export type IncomeInsert = Database['public']['Tables']['incomes']['Insert']
 export type IncomeUpdate = Database['public']['Tables']['incomes']['Update']

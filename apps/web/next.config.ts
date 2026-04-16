@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   transpilePackages: [
     "react-native-svg",
     "lucide-react-native",
-    "@fintrack/theme",
+    "@stashflow/theme",
     "@expo/html-elements",
     "react-native-web",
     "react-native",

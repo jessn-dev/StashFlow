@@ -1,4 +1,4 @@
-# FinTrack — Master Development Plan
+# StashFlow — Master Development Plan
 
 > Last updated: 2026-04-14
 > Active Branch: `feature/m6-income-web`
@@ -134,10 +134,10 @@ M13 — CI/CD + Deployment                   ⏳ Pending
 Enable users to manage their expenses via a dedicated web interface with real-time updates to the dashboard.
 
 ### Delivered
-- **API Layer**: Full CRUD for expenses implemented in `@fintrack/api`.
+- **API Layer**: Full CRUD for expenses implemented in `@stashflow/api`.
 - **Expense Components**: Created `ExpenseForm`, `ExpenseList`, and `CategoryBreakdown` components.
 - **Spending Page**: Developed `/dashboard/spending` with Server Actions for real-time updates.
-- **UI Consistency**: Integration with `@fintrack/theme` and updated Dashboard UI labels.
+- **UI Consistency**: Integration with `@stashflow/theme` and updated Dashboard UI labels.
 - **API Tests**: Verified expense query logic with unit tests.
 
 ### Pending
@@ -157,7 +157,7 @@ Enable users to manage their income sources (one-time and recurring) via a dedic
 ### Source Analysis
 - `public.incomes` table exists with RLS enabled.
 - `income_frequency` enum exists in database ('one-time', 'weekly', 'monthly').
-- Shared `@fintrack/api` needs methods for CRUD operations on income.
+- Shared `@stashflow/api` needs methods for CRUD operations on income.
 
 ### Delivered
 - **API Layer**: Created `packages/api/src/queries/income.ts` with full CRUD operations.
@@ -181,5 +181,5 @@ Enable users to manage their income sources (one-time and recurring) via a dedic
 | Date | Change | Approved By |
 |---|---|---|
 | 2026-04-01 | Initial plan created, M0 complete | — |
-| 2026-04-08 | Completed unit tests for @fintrack/core, @fintrack/api, and Web Auth | — |
+| 2026-04-08 | Completed unit tests for @stashflow/core, @stashflow/api, and Web Auth | — |
 | 2026-04-14 | M4b complete, Web upgraded to Next.js 16, M5 complete, M6 defined | — |

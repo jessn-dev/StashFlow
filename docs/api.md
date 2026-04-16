@@ -1,6 +1,6 @@
-# FinTrack API Specification
+# StashFlow API Specification
 
-> **Architecture Note:** FinTrack utilizes Supabase. Standard CRUD operations are handled via the Supabase JS client directly against the database with Row Level Security (RLS) enforced. Complex logic (Amortization, DTI, Dashboard Aggregation) is routed through Supabase Edge Functions.
+> **Architecture Note:** StashFlow utilizes Supabase. Standard CRUD operations are handled via the Supabase JS client directly against the database with Row Level Security (RLS) enforced. Complex logic (Amortization, DTI, Dashboard Aggregation) is routed through Supabase Edge Functions.
 
 ## 1. 🔐 Auth API
 Handled entirely by Supabase Auth. No custom backend routes required.

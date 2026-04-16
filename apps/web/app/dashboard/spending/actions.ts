@@ -1,10 +1,10 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
-import { createExpense, deleteExpense } from '@fintrack/api'
+import { createExpense, deleteExpense } from '@stashflow/api'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { Database } from '@fintrack/core'
+import { Database } from '@stashflow/core'
 
 type ExpenseCategory = Database['public']['Enums']['expense_category']
 

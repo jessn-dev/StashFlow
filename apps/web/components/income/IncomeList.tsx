@@ -1,7 +1,7 @@
 'use client'
 
 import { removeIncome } from '@/app/dashboard/income/actions'
-import { formatCurrency, Database } from '@fintrack/core'
+import { formatCurrency, Database } from '@stashflow/core'
 import { useState } from 'react'
 import { YStack, XStack, Text, Button, Spinner } from 'tamagui'
 import { Trash2 } from 'lucide-react-native'

@@ -1,6 +1,6 @@
-# 🛠️ FinTrack Developer Setup & Workflow Guide
+# 🛠️ StashFlow Developer Setup & Workflow Guide
 
-Welcome to FinTrack! This document outlines the required steps to initialize your local development environment, set up the database, and adhere to our security standards.
+Welcome to StashFlow! This document outlines the required steps to initialize your local development environment, set up the database, and adhere to our security standards.
 
 ## 🚀 1. Prerequisites
 Before cloning the repository, ensure you have the following installed on your machine:
@@ -26,7 +26,7 @@ source ~/.bash_profile  # For Bash users
 ```
 
 ## 🗄️ 3. First-Time Database Setup & Environment Variables
-FinTrack uses a local-first Supabase environment. You need to start the database and link it to the frontends.
+StashFlow uses a local-first Supabase environment. You need to start the database and link it to the frontends.
 
 Step A: Start the Local DatabaseMake sure Docker is running, then execute:
 ```bash
@@ -63,7 +63,7 @@ Never make permanent schema changes via the Supabase Studio UI. All changes must
 |------------------|:---------------------------------:|----------------------------------------------------------------------------------------------------------:|
 | Start Backend    |           pnpm db:start           |                                                                               Boots the local containers. |
 | Apply Migrations |           pnpm db:reset           | Wipes local DB and cleanly applies all migrations in order. Run this when you pull new code from develop. |
-| Sync Types       |           pnpm db:types           |                            Generates strict TypeScript interfaces from the DB schema into @fintrack/core. |
+| Sync Types       |           pnpm db:types           |                            Generates strict TypeScript interfaces from the DB schema into @stashflow/core. |
 | New Migration    | npx supabase migration new <name> |                                                    Creates a new timestamped SQL file for schema changes. |
 
 *Note: Always run pnpm db:types after modifying the database schema or pulling a new migration to ensure the web and mobile apps maintain type safety.*

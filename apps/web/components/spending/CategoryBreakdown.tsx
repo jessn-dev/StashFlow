@@ -1,6 +1,6 @@
 'use client'
 
-import { formatCurrency } from '@fintrack/core'
+import { formatCurrency } from '@stashflow/core'
 import { YStack, XStack, Text } from 'tamagui'
 
 interface CategoryData {

@@ -2,7 +2,7 @@ import React from 'react'
 import { render, waitFor, screen } from '@testing-library/react-native'
 import { DashboardScreen } from '../DashboardScreen'
 import { useAuth } from '../../contexts/AuthContext'
-import { getDashboardSummary, getRecentTransactions } from '@fintrack/api'
+import { getDashboardSummary, getRecentTransactions } from '@stashflow/api'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 // Mock Auth Context
@@ -10,8 +10,8 @@ vi.mock('../../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
 }))
 
-// Mock FinTrack API
-vi.mock('@fintrack/api', () => ({
+// Mock StashFlow API
+vi.mock('@stashflow/api', () => ({
   getDashboardSummary: vi.fn(),
   getRecentTransactions: vi.fn(),
 }))

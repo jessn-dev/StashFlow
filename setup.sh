@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# FinTrack Developer CLI
+# StashFlow Developer CLI
 # =============================================================================
 # Usage: ./setup.sh <command> [options]
 #
@@ -75,7 +75,7 @@ require_supabase() {
 
 cmd_help() {
   divider
-  echo -e "${BOLD}  FinTrack Developer CLI${RESET}"
+  echo -e "${BOLD}  StashFlow Developer CLI${RESET}"
   divider
   echo ""
   echo -e "  ${BOLD}Usage:${RESET} ./setup.sh <command> [options]"
@@ -119,7 +119,7 @@ cmd_init() {
 
   info "Node $(node -v) · pnpm $(pnpm -v)"
   divider
-  info "Initialising FinTrack monorepo..."
+  info "Initialising StashFlow monorepo..."
 
   pnpm init
   npm pkg set private=true
@@ -153,11 +153,11 @@ EOF
     mkdir -p "$pkg/src"
     cd "$pkg"
     pnpm init
-    npm pkg set name="@fintrack/$pkg" version="0.1.0" main="src/index.ts"
+    npm pkg set name="@stashflow/$pkg" version="0.1.0" main="src/index.ts"
     touch src/index.ts
     cd ..
   done
-  pnpm --filter @fintrack/api add @supabase/supabase-js@latest
+  pnpm --filter @stashflow/api add @supabase/supabase-js@latest
   cd ..
 
   info "Writing Turborepo pipeline..."
@@ -224,9 +224,9 @@ cmd_add() {
     case "$workspace" in
       web)    filter="web" ;;
       mobile) filter="mobile" ;;
-      core)   filter="@fintrack/core" ;;
-      api)    filter="@fintrack/api" ;;
-      ui)     filter="@fintrack/ui" ;;
+      core)   filter="@stashflow/core" ;;
+      api)    filter="@stashflow/api" ;;
+      ui)     filter="@stashflow/ui" ;;
       *)      die "Unknown workspace '$workspace'. Valid: web, mobile, core, api, ui" ;;
     esac
     info "Adding '$pkg' to workspace '$filter'..."
@@ -331,7 +331,7 @@ cmd_db_reset() {
   divider
   info "Resetting database..."
   supabase db reset
-  success "Database reset complete. Test user: test@fintrack.com / password123"
+  success "Database reset complete. Test user: test@stashflow.com / password123"
   return 0
 }
 

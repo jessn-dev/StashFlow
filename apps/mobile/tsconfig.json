@@ -4,8 +4,8 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@fintrack/core": ["../../packages/core/src/index.ts"],
-      "@fintrack/api": ["../../packages/api/src/index.ts"]
+      "@stashflow/core": ["../../packages/core/src/index.ts"],
+      "@stashflow/api": ["../../packages/api/src/index.ts"]
     }
   }
 }

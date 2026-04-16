@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { getDashboardSummary, getRecentTransactions } from '@fintrack/api'
+import { getDashboardSummary, getRecentTransactions } from '@stashflow/api'
 import DashboardUI from '@/components/dashboard/DashboardUI'
 
 export default async function DashboardPage() {

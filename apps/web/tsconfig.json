@@ -26,10 +26,10 @@
       "@/*": [
         "./*"
       ],
-      "@fintrack/core": [
+      "@stashflow/core": [
         "../../packages/core/src/index.ts"
       ],
-      "@fintrack/api": [
+      "@stashflow/api": [
         "../../packages/api/src/index.ts"
       ]
     }

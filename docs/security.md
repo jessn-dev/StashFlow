@@ -1,11 +1,11 @@
-# FinTrack — Security Protocol & Ledger
+# StashFlow — Security Protocol & Ledger
 
 > Last updated: 2026-04-01
 > Status: Active — Integrated into Development Lifecycle
 
 ## 🛡️ Core Security Principles
 
-FinTrack handles sensitive financial data. Our security posture relies heavily on the Supabase architecture, meaning security must be enforced at the database and edge computing layers, never just on the client.
+StashFlow handles sensitive financial data. Our security posture relies heavily on the Supabase architecture, meaning security must be enforced at the database and edge computing layers, never just on the client.
 
 1. **Zero-Trust Client:** The frontend (Web/Mobile) is inherently untrusted. It cannot dictate *whose* data it is operating on.
 2. **Row Level Security (RLS) is Mandatory:** No table is ever created without an active RLS policy.
@@ -19,7 +19,7 @@ These vulnerabilities were identified during the M0 Planning Phase and must be r
 
 ### 1. IDOR (Insecure Direct Object Reference) Prevention
 * **Risk:** Malicious users swapping `userId` payloads to view/edit other users' financial data.
-* **Resolution:** * Strip all `userId` parameters from `@fintrack/api` payload definitions.
+* **Resolution:** * Strip all `userId` parameters from `@stashflow/api` payload definitions.
   * The Supabase client automatically attaches the user's JWT.
   * Database RLS policies strictly enforce `user_id = auth.uid()` for all CRUD operations.
 * **Status:** ⏳ Pending Implementation (Target: M2 & M5)
@@ -51,7 +51,7 @@ Before finalizing any feature or milestone, the following checks must be verifie
 
 ---
 
-# FinTrack — Security Protocol & Ledger
+# StashFlow — Security Protocol & Ledger
 
 ## 🚨 Active Remediation Progress
 ### 1. IDOR Prevention

@@ -1,6 +1,6 @@
 import { ActivityIndicator, View } from 'react-native'
 import { TamaguiProvider } from 'tamagui'
-import { tamaguiConfig } from '@fintrack/theme'
+import { tamaguiConfig } from '@stashflow/theme'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LoginScreen } from './screens/LoginScreen'
 import { DashboardScreen } from './screens/DashboardScreen'

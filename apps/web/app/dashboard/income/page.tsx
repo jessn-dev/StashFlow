@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { getIncomes } from '@fintrack/api'
+import { getIncomes } from '@stashflow/api'
 import IncomeForm from '@/components/income/IncomeForm'
 import IncomeList from '@/components/income/IncomeList'
 import { YStack, XStack, Text, Heading } from 'tamagui'
@@ -24,7 +24,7 @@ export default async function IncomePage() {
           <Link href="/dashboard" style={{ textDecoration: 'none' }}>
             <XStack alignItems="center" gap={8}>
               <YStack width={8} height={8} borderRadius={9999} backgroundColor="$brandAccent" />
-              <Text fontSize={16} fontWeight="700" color="$brandPrimary">FinTrack</Text>
+              <Text fontSize={16} fontWeight="700" color="$brandPrimary">StashFlow</Text>
             </XStack>
           </Link>
           <XStack alignItems="center" gap={24}>

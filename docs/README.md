@@ -1,4 +1,4 @@
-# 💰 FinTrack
+# 💰 StashFlow
 
 > A personal finance tracker for managing spending, debt-to-income ratio, loan installments, and multi-currency support — available on Web, iOS, and Android.
 
@@ -11,7 +11,7 @@
 
 ## 📌 Overview
 
-FinTrack helps users take control of their finances by providing:
+StashFlow helps users take control of their finances by providing:
 
 - **Spending Tracker** — log and categorize daily expenses
 - **Income Logger** — track one-time and recurring income sources
@@ -40,7 +40,7 @@ FinTrack helps users take control of their finances by providing:
 
 ## 🏗️ System Architecture Overview
 
-FinTrack utilizes a modern, serverless architecture designed for maximum code reuse across web and mobile platforms, backed by a secure and scalable PostgreSQL database.
+StashFlow utilizes a modern, serverless architecture designed for maximum code reuse across web and mobile platforms, backed by a secure and scalable PostgreSQL database.
 
 ```text
 ┌─────────────────────────────────────────────────────┐
@@ -53,9 +53,9 @@ FinTrack utilizes a modern, serverless architecture designed for maximum code re
 │          │                          │               │
 │          └──────────┬───────────────┘               │
 │                     │  Shared via Turborepo         │
-│              @fintrack/core  (hooks, utils, types)  │
-│              @fintrack/ui    (components)           │
-│              @fintrack/api   (Supabase queries)     │
+│              @stashflow/core  (hooks, utils, types)  │
+│              @stashflow/ui    (components)           │
+│              @stashflow/api   (Supabase queries)     │
 └─────────────────────┬───────────────────────────────┘
                       │ HTTPS / WebSocket (Realtime)
 ┌─────────────────────▼───────────────────────────────┐
@@ -82,7 +82,7 @@ FinTrack utilizes a modern, serverless architecture designed for maximum code re
 We use Turborepo to manage our codebase. This allows us to orchestrate builds, cache outputs, and share code seamlessly between the Web and Mobile apps.
 
 ```
-fintrack/
+stashflow/
 ├── apps/
 │   ├── web/                      # Next.js 14 web application
 │   │   ├── app/
@@ -251,8 +251,8 @@ Sign Up → Email Verification → Profile Created → JWT Issued
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-username/fintrack.git
-cd fintrack
+git clone https://github.com/your-username/stashflow.git
+cd stashflow
 
 # Install dependencies
 pnpm install
@@ -307,14 +307,14 @@ This project is currently in private development. Branch and PR guidelines:
 
 ## 🚀 Quick Start: Automated Setup
 
-To guarantee a frictionless onboarding experience, FinTrack includes an automated bootstrap script (`setup.sh`). This script handles the entire monorepo initialization process.
+To guarantee a frictionless onboarding experience, StashFlow includes an automated bootstrap script (`setup.sh`). This script handles the entire monorepo initialization process.
 
 ### What the Script Does:
 1. Validates your **Node.js** installation.
 2. Checks for **pnpm** and installs the standalone binary if it is missing.
 3. Initializes the **Turborepo** workspace.
 4. Scaffolds the **Next.js 15** web app and **Expo SDK 54** mobile app.
-5. Generates the shared `@fintrack` internal packages (`core`, `ui`, `api`).
+5. Generates the shared `@stashflow` internal packages (`core`, `ui`, `api`).
 6. Installs and links all workspace dependencies.
 
 ### Installation Steps

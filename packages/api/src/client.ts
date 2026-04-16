@@ -1,5 +1,5 @@
 import { createClient, SupabaseClientOptions, SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '@fintrack/core'
+import { Database } from '@stashflow/core'
 
 export interface SupabaseConfig {
   supabaseUrl: string

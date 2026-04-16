@@ -1,4 +1,4 @@
-# FinTrack — Agentic Session Context
+# StashFlow — Agentic Session Context
 
 > Current Session: 013 — Income Module (Web) & Testing Bottlenecks
 > Date: 2026-04-14
@@ -20,7 +20,7 @@
 
 ## High-Level Instructions
 
-You are a senior full-stack developer building **FinTrack**, a cross-platform personal finance app (Web + iOS + Android). The tech stack uses a Turborepo monorepo with Next.js 16, Expo React Native 54, and Supabase as the backend.
+You are a senior full-stack developer building **StashFlow**, a cross-platform personal finance app (Web + iOS + Android). The tech stack uses a Turborepo monorepo with Next.js 16, Expo React Native 54, and Supabase as the backend.
 
 ---
 
@@ -31,9 +31,9 @@ You are a senior full-stack developer building **FinTrack**, a cross-platform pe
 | Next.js | 16.2.3 | apps/web | App Router (using Proxy convention) |
 | React | 19.2.5 | Shared | Web (Mobile on 19.1.0 due to test debt) |
 | Expo SDK | ~54.0.33 | apps/mobile | iOS + Android |
-| @fintrack/core | workspace:* | apps/web + apps/mobile | Internal Shared Logic |
-| @fintrack/api | workspace:* | apps/web + apps/mobile | Internal API Layer |
-| @fintrack/theme | workspace:* | Shared | Centralized design tokens |
+| @stashflow/core | workspace:* | apps/web + apps/mobile | Internal Shared Logic |
+| @stashflow/api | workspace:* | apps/web + apps/mobile | Internal API Layer |
+| @stashflow/theme | workspace:* | Shared | Centralized design tokens |
 | Vitest | 4.1.4 | Monorepo | Latest stable test runner |
 
 ---

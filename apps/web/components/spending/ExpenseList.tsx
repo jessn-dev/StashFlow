@@ -1,7 +1,7 @@
 'use client'
 
 import { removeExpense } from '@/app/dashboard/spending/actions'
-import { formatCurrency, Database } from '@fintrack/core'
+import { formatCurrency, Database } from '@stashflow/core'
 import { useState } from 'react'
 import { YStack, XStack, Text, Button, Spinner } from 'tamagui'
 import { Trash2 } from 'lucide-react-native'

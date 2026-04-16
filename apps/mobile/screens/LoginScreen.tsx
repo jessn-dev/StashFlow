@@ -48,7 +48,7 @@ export function LoginScreen() {
               <DollarSign color="white" size={16} />
             </YStack>
             <Heading size="$lg" color="$brandPrimary" fontWeight="700">
-              FinTrack
+              StashFlow
             </Heading>
           </XStack>
 

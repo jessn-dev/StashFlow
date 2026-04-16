@@ -1,7 +1,7 @@
--- Seed Data for FinTrack
+-- Seed Data for StashFlow
 -- -----------------------------------------------------------------------------
 -- Run with: pnpm supabase db reset
--- Test credentials: test@fintrack.com / password123
+-- Test credentials: test@stashflow.com / password123
 -- -----------------------------------------------------------------------------
 
 DO $$
@@ -36,7 +36,7 @@ VALUES (
   '00000000-0000-0000-0000-000000000000',   -- instance_id
   'authenticated',                          -- aud
   'authenticated',                          -- role
-  'test@fintrack.com',                      -- email
+  'test@stashflow.com',                      -- email
   crypt('password123', gen_salt('bf')),     -- encrypted_password
   now(),                                    -- email_confirmed_at
   now(),                                    -- recovery_sent_at
@@ -55,7 +55,7 @@ VALUES (
 INSERT INTO public.profiles (id, email, full_name, preferred_currency)
 VALUES (
   test_user_id,
-  'test@fintrack.com',
+  'test@stashflow.com',
   'Test User',
   'USD'
 ) ON CONFLICT (id) DO NOTHING;

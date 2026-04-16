@@ -143,7 +143,7 @@ export default function LandingPage() {
       >
         <XStack alignItems="center" gap={8}>
           <Circle size={8} backgroundColor="$brandAccent" />
-          <Heading size="$lg" color="$brandPrimary" fontWeight="700" fontFamily="$heading">FinTrack</Heading>
+          <Heading size="$lg" color="$brandPrimary" fontWeight="700" fontFamily="$heading">StashFlow</Heading>
         </XStack>
 
         <Link href="/login" style={{ textDecoration: 'none' }}>
@@ -187,7 +187,7 @@ export default function LandingPage() {
         </h1>
 
         <p className="hero-p" style={{ fontSize: 'clamp(16px, 2vw, 20px)', color: '#444444', opacity: 0.8, maxWidth: '42ch', lineHeight: 1.7, margin: 0, marginBottom: '48px' }}>
-          See every account, every expense, and every goal in one place. FinTrack makes it easy to understand your money and actually do something about it.
+          See every account, every expense, and every goal in one place. StashFlow makes it easy to understand your money and actually do something about it.
         </p>
 
         <div className="hero-cta" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
@@ -344,7 +344,7 @@ export default function LandingPage() {
               Watch your net worth grow, month by month.
             </Heading>
             <Text fontSize={16} color="$brandText" opacity={0.8} lineHeight={26}>
-              FinTrack shows you the full picture — what you own, what you owe, and how far you&apos;ve come. No spreadsheets required.
+              StashFlow shows you the full picture — what you own, what you owe, and how far you&apos;ve come. No spreadsheets required.
             </Text>
           </YStack>
           <XStack alignItems="baseline" gap={12}>
@@ -411,7 +411,7 @@ export default function LandingPage() {
           Your path to <Text color="$brandAccent" fontStyle="italic" fontWeight="300">financial freedom</Text> starts here.
         </Heading>
         <Text fontSize={16} color="$brandText" opacity={0.8} textAlign="center" maxWidth={600} marginBottom={48}>
-          Stop wondering where your money goes. Join FinTrack to securely manage your spending, crush your debt, and build your wealth.
+          Stop wondering where your money goes. Join StashFlow to securely manage your spending, crush your debt, and build your wealth.
         </Text>
         <Link href="/login" style={{ textDecoration: 'none' }}>
           <Button
@@ -447,7 +447,7 @@ export default function LandingPage() {
         $gtMd={{ flexDirection: 'row' }}
         gap={24}
       >
-        <Text fontSize={11} color="$brandText" opacity={0.5} fontFamily="$mono">© 2026 FinTrack Inc. All rights reserved.</Text>
+        <Text fontSize={11} color="$brandText" opacity={0.5} fontFamily="$mono">© 2026 StashFlow Inc. All rights reserved.</Text>
         <XStack gap={32}>
           <Link href="#" style={{ textDecoration: 'none' }}><Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} style={{ textTransform: 'uppercase' }} letterSpacing={1}>Privacy</Text></Link>
           <Link href="#" style={{ textDecoration: 'none' }}><Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} style={{ textTransform: 'uppercase' }} letterSpacing={1}>Terms</Text></Link>

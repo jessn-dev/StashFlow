@@ -12,9 +12,9 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@fintrack/api": "workspace:*",
-    "@fintrack/core": "workspace:*",
-    "@fintrack/theme": "workspace:*",
+    "@stashflow/api": "workspace:*",
+    "@stashflow/core": "workspace:*",
+    "@stashflow/theme": "workspace:*",
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.101.1",
     "@tamagui/config": "2.0.0-rc.40",

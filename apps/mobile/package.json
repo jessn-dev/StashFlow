@@ -11,9 +11,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@fintrack/api": "workspace:*",
-    "@fintrack/core": "workspace:*",
-    "@fintrack/theme": "workspace:*",
+    "@stashflow/api": "workspace:*",
+    "@stashflow/core": "workspace:*",
+    "@stashflow/theme": "workspace:*",
     "@supabase/supabase-js": "^2.101.1",
     "@tamagui/config": "2.0.0-rc.40",
     "@tamagui/core": "2.0.0-rc.40",

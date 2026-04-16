@@ -13,8 +13,8 @@ import { Plus } from 'lucide-react-native'
 import { Alert, SafeAreaView, RefreshControl, ActivityIndicator } from 'react-native'
 import { supabase } from '../utils/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { getDashboardSummary, getRecentTransactions } from '@fintrack/api'
-import { formatCurrency, DashboardSummary, Transaction } from '@fintrack/core'
+import { getDashboardSummary, getRecentTransactions } from '@stashflow/api'
+import { formatCurrency, DashboardSummary, Transaction } from '@stashflow/core'
 
 export function DashboardScreen() {
   const { session } = useAuth()
@@ -71,7 +71,7 @@ export function DashboardScreen() {
         <XStack alignItems="center" gap={8}>
           <Circle size={8} backgroundColor="$brandAccent" />
           <Heading size="$md" color="$brandPrimary" fontWeight="700">
-            FinTrack
+            StashFlow
           </Heading>
         </XStack>
         <Button 

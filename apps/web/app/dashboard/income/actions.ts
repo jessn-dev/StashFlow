@@ -1,10 +1,10 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
-import { createIncome, deleteIncome } from '@fintrack/api'
+import { createIncome, deleteIncome } from '@stashflow/api'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { Database } from '@fintrack/core'
+import { Database } from '@stashflow/core'
 
 type IncomeFrequency = Database['public']['Enums']['income_frequency']
 

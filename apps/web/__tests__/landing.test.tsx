@@ -33,7 +33,7 @@ Object.defineProperty(globalThis, 'IntersectionObserver', {
 })
 
 describe('Landing Page', () => {
-  it('renders the main FinTrack headline', () => {
+  it('renders the main StashFlow headline', () => {
     render(<LandingPage />)
 
     expect(screen.getByText(/Total/i)).toBeInTheDocument()

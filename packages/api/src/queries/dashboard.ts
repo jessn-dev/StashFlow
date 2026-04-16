@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
-import { Database, DashboardSummary, Transaction } from '@fintrack/core'
+import { Database, DashboardSummary, Transaction } from '@stashflow/core'
 
 /**
  * Fetches the user's financial summary for the dashboard.

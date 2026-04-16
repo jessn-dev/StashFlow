@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { Database } from '@fintrack/core'
+import { Database } from '@stashflow/core'
 
 export async function createClient() {
   // NEXT.JS 15 FIX: cookies() must be awaited

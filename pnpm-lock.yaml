@@ -20,13 +20,13 @@ importers:
 
   apps/mobile:
     dependencies:
-      '@fintrack/api':
+      '@stashflow/api':
         specifier: workspace:*
         version: link:../../packages/api
-      '@fintrack/core':
+      '@stashflow/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@fintrack/theme':
+      '@stashflow/theme':
         specifier: workspace:*
         version: link:../../packages/theme
       '@supabase/supabase-js':
@@ -117,13 +117,13 @@ importers:
 
   apps/web:
     dependencies:
-      '@fintrack/api':
+      '@stashflow/api':
         specifier: workspace:*
         version: link:../../packages/api
-      '@fintrack/core':
+      '@stashflow/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@fintrack/theme':
+      '@stashflow/theme':
         specifier: workspace:*
         version: link:../../packages/theme
       '@supabase/ssr':
@@ -212,7 +212,7 @@ importers:
         specifier: ^2.101.1
         version: 2.101.1
     devDependencies:
-      '@fintrack/core':
+      '@stashflow/core':
         specifier: workspace:*
         version: link:../core
       vitest:
@@ -225,20 +225,7 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4(@types/node@22.19.17)(happy-dom@20.9.0)(jsdom@29.0.1)(vite@8.0.5(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@22.19.17)(esbuild@0.27.7)(jiti@1.21.7)(terser@5.46.1)(yaml@2.8.3))
 
-  packages/theme:
-    dependencies:
-      '@tamagui/config':
-        specifier: 2.0.0-rc.40
-        version: 2.0.0-rc.40(react-dom@19.2.5(react@19.2.5))(react-native-reanimated@4.3.0(react-native-worklets@0.8.1(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(react-native@0.81.5(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.5)(react@19.2.5))(react@19.2.5))(react-native@0.81.5(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.5)(react@19.2.5))(react@19.2.5))(react-native@0.81.5(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.5)(react@19.2.5))(react@19.2.5)
-      '@tamagui/core':
-        specifier: 2.0.0-rc.40
-        version: 2.0.0-rc.40(react-dom@19.2.5(react@19.2.5))(react-native@0.81.5(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.5)(react@19.2.5))(react@19.2.5)
-      lucide-react-native:
-        specifier: ^1.8.0
-        version: 1.8.0(react-native-svg@15.15.4(react-native@0.81.5(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.5)(react@19.2.5))(react@19.2.5))(react-native@0.81.5(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.5)(react@19.2.5))(react@19.2.5)
-      tamagui:
-        specifier: 2.0.0-rc.40
-        version: 2.0.0-rc.40(react-dom@19.2.5(react@19.2.5))(react-native@0.81.5(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.5)(react@19.2.5))(react@19.2.5)
+  packages/theme: {}
 
   packages/ui: {}
 

@@ -118,6 +118,12 @@ export default function LandingPage() {
         @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         .animate-ticker { animation: ticker 30s linear infinite; }
         .reveal { transition: opacity 0.7s ease, transform 0.7s ease; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+        .hero-label { animation: fadeUp 0.7s ease forwards; }
+        .hero-h1 { animation: fadeUp 0.7s ease 0.1s both; }
+        .hero-p { animation: fadeUp 0.7s ease 0.2s both; }
+        .hero-cta { animation: fadeUp 0.7s ease 0.3s both; }
+        .ticker-band { animation: fadeUp 1s ease 0.5s both; }
       `}} />
 
       {/* Grid Background */}
@@ -140,51 +146,53 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex flex-col justify-center px-8 pt-32 pb-20 z-10 lg:px-24">
+      <section className="relative min-h-screen flex flex-col justify-center px-8 pt-32 pb-28 z-10 lg:px-24">
         <div className="absolute right-0 top-1/2 -translate-y-1/2 font-serif text-[30vw] font-black text-brand-primary/[0.03] pointer-events-none select-none leading-none">
           $
         </div>
 
-        <div className="text-sm font-mono tracking-[0.3em] uppercase text-brand-accent mb-8 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="hero-label text-sm font-mono tracking-[0.3em] uppercase text-brand-accent mb-8 flex items-center gap-4">
           <div className="w-10 h-[1px] bg-brand-accent"></div>
           Revolutionize Finance
         </div>
 
-        <h1 className="font-serif text-6xl md:text-[7rem] font-black leading-[0.95] text-brand-primary max-w-[14ch] animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
-          Smarter<br /><em className="italic text-brand-accent font-light">Tracking.</em><br />Total<br />Clarity.
+        <h1 className="hero-h1 font-serif text-6xl md:text-[7rem] font-black leading-[0.95] text-brand-primary max-w-[14ch]">
+          <span className="block">Smarter</span>
+          <em className="block italic text-brand-accent font-light">Tracking.</em>
+          <span className="block">Total</span>
+          <span className="block">Clarity.</span>
         </h1>
 
-        <p className="text-lg md:text-xl text-brand-text/80 max-w-[42ch] leading-relaxed mt-8 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
-          The financial intelligence layer that transforms raw data into decisive insight. Built for teams that can&apos;t afford ambiguity.
+        <p className="hero-p text-lg md:text-xl text-brand-text/80 max-w-[42ch] leading-relaxed mt-8">
+          The financial intelligence layer that transforms raw data into decisive insight. Built for individuals who can&apos;t afford ambiguity.
         </p>
 
-        <div className="flex items-center gap-8 mt-12 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300">
+        <div className="hero-cta flex items-center gap-8 mt-12">
           <Link href="/login" className="bg-brand-primary text-white text-sm font-bold tracking-widest uppercase px-10 py-4 hover:bg-brand-primary/90 transition-all hover:-translate-y-0.5">
             Start Tracking
           </Link>
           <button className="text-sm font-bold tracking-widest uppercase text-brand-text hover:text-brand-accent transition-colors flex items-center gap-2 group">
-            See the Demo <span className="group-hover:translate-x-1 transition-transform">→</span>
+            See the Demo <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
           </button>
         </div>
-
-        {/* Ticker */}
-        <div className="absolute bottom-8 left-0 right-0 overflow-hidden border-y border-brand-primary/10 py-3 animate-in fade-in duration-1000 delay-500 bg-white/50 backdrop-blur-sm">
-          <div className="flex gap-12 w-max animate-ticker text-xs font-mono tracking-wider text-brand-text/70">
-            {/* Repeated twice for smooth scrolling */}
-            {new Array('ticker-1', 'ticker-2').map((key) => (
-              <div key={key} className="flex gap-12">
-                <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">AAPL</span> $187.42 <span className="text-green-600">▲ 1.23%</span></span>
-                <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">MSFT</span> $412.85 <span className="text-green-600">▲ 0.87%</span></span>
-                <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">NVDA</span> $891.20 <span className="text-green-600">▲ 3.14%</span></span>
-                <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">TSLA</span> $178.60 <span className="text-red-500">▼ 0.55%</span></span>
-                <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">AMZN</span> $192.30 <span className="text-green-600">▲ 1.77%</span></span>
-                <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">GOOGL</span> $171.95 <span className="text-green-600">▲ 0.43%</span></span>
-                <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">BTC</span> $67,442 <span className="text-green-600">▲ 2.91%</span></span>
-              </div>
-            ))}
-          </div>
-        </div>
       </section>
+
+      {/* Ticker — full-width band outside hero */}
+      <div className="ticker-band relative z-10 w-full overflow-hidden border-y border-brand-primary/10 py-3 bg-white/50 backdrop-blur-sm">
+        <div className="flex gap-12 w-max animate-ticker text-xs font-mono tracking-wider text-brand-text/70">
+          {(['ticker-1', 'ticker-2'] as const).map((key) => (
+            <div key={key} className="flex gap-12">
+              <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">AAPL</span> $187.42 <span className="text-green-600">▲ 1.23%</span></span>
+              <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">MSFT</span> $412.85 <span className="text-green-600">▲ 0.87%</span></span>
+              <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">NVDA</span> $891.20 <span className="text-green-600">▲ 3.14%</span></span>
+              <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">TSLA</span> $178.60 <span className="text-red-500">▼ 0.55%</span></span>
+              <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">AMZN</span> $192.30 <span className="text-green-600">▲ 1.77%</span></span>
+              <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">GOOGL</span> $171.95 <span className="text-green-600">▲ 0.43%</span></span>
+              <span className="flex gap-2 items-center"><span className="text-brand-primary font-bold">BTC</span> $67,442 <span className="text-green-600">▲ 2.91%</span></span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Stats Band */}
       <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 border-y border-brand-primary/10 bg-white">
@@ -202,39 +210,53 @@ export default function LandingPage() {
         ))}
       </div>
 
-      {/* Features */}
-      <section className="relative z-10 bg-brand-bg pt-24">
+      {/* Core Capabilities */}
+      <section className="relative z-10 bg-brand-bg">
+        {/* Section Header */}
+        <div className="bg-white border-y border-brand-primary/10 px-10 py-16 md:px-16 md:py-20 grid grid-cols-1 md:grid-cols-2 gap-8 items-end reveal opacity-0 translate-y-6">
+          <div>
+            <div className="text-xs font-mono tracking-[0.3em] uppercase text-brand-accent mb-6">Core Capabilities</div>
+            <h2 className="font-serif text-4xl md:text-5xl font-bold text-brand-primary leading-tight">
+              Every edge.<br />Every signal.
+            </h2>
+          </div>
+          <p className="text-brand-text/70 leading-relaxed md:text-right md:max-w-[40ch] md:ml-auto">
+            Six pillars built for teams demanding precision where it counts most. No noise. No lag. No compromise.
+          </p>
+        </div>
+
+        {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 border-t border-brand-primary/10 bg-white">
           {[
             {
               id: '01',
-              title: 'Secure Access',
-              desc: 'Enterprise-grade authentication backed by Supabase. Your session is protected by secure, HTTP-only cookies to prevent token theft.'
+              title: 'Real-Time Pulse',
+              desc: 'Sub-10ms market data ingestion across 180+ exchanges. Every tick captured and indexed.'
             },
             {
               id: '02',
-              title: 'Unified Dashboard',
-              desc: 'Your central financial hub. Instantly see your net worth, recent transactions, and active accounts the moment you log in.'
+              title: 'Predictive Forecast',
+              desc: 'Proprietary models trained on market cycles. Probability-weighted scenarios, not gut feel.'
             },
             {
               id: '03',
-              title: 'Expense Tracking',
-              desc: 'Categorize and monitor your daily spending. Transform raw transaction data into clear insights about where your money goes.'
+              title: 'Portfolio Command',
+              desc: 'Consolidated view across equities, crypto, and alternatives. One dashboard, every exposure.'
             },
             {
               id: '04',
-              title: 'Loan Management',
-              desc: 'Keep track of active loans, interest rates, and payoff schedules to accelerate your journey to becoming debt-free.'
+              title: 'Risk Architecture',
+              desc: 'Dynamic VaR, stress testing, and tail-risk modeling with regulatory-grade reporting baked in.'
             },
             {
               id: '05',
-              title: 'Privacy First',
-              desc: 'Strict Row Level Security (RLS) database policies guarantee that your financial data is isolated and accessible exclusively by you.'
+              title: 'Alpha Intelligence',
+              desc: 'Sentiment analysis and alternative data signals surfaced automatically before consensus.'
             },
             {
               id: '06',
-              title: 'Cross-Platform',
-              desc: 'Manage your wealth anywhere. Seamlessly sync between this web platform and our upcoming native iOS and Android applications.'
+              title: 'Automation Engine',
+              desc: 'Rules-based workflows, smart alerts, and API-first architecture that fits into any stack.'
             },
           ].map((feat) => (
             <div key={feat.id} className="p-10 border-r border-b border-brand-primary/10 hover:bg-brand-bg transition-colors reveal opacity-0 translate-y-6">
@@ -244,22 +266,21 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-
       </section>
 
       {/* Chart Section */}
       <section className="relative z-10 grid grid-cols-1 md:grid-cols-2 min-h-[500px] border-y border-brand-primary/10 bg-white">
         <div className="p-12 lg:p-24 border-b md:border-b-0 md:border-r border-brand-primary/10 flex flex-col justify-center gap-8 reveal opacity-0 translate-y-6">
           <div className="inline-flex items-center gap-2 text-xs font-mono tracking-[0.2em] text-brand-accent uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse"></span> Wealth Trajectory
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse"></span> Live Performance
           </div>
           <div>
-            <h2 className="font-serif text-4xl font-bold text-brand-primary mb-4">Watch your net worth grow</h2>
-            <p className="text-brand-text/80 leading-relaxed">Visualize your financial journey. Track your assets, monitor your liabilities, and see your true net worth climb as you pay down debt.</p>
+            <h2 className="font-serif text-4xl font-bold text-brand-primary mb-4">Returns that speak for themselves</h2>
+            <p className="text-brand-text/80 leading-relaxed">Portfolios using FinTrack consistently outperform benchmark indices through disciplined, data-led rebalancing.</p>
           </div>
           <div className="flex items-baseline gap-3">
-            <span className="font-serif text-6xl font-bold text-brand-primary">$82.4k</span>
-            <span className="font-mono text-brand-accent">↑ +$37.4k this year</span>
+            <span className="font-serif text-6xl font-bold text-brand-primary">+34.2%</span>
+            <span className="font-mono text-brand-accent text-sm">↑ vs. 18.7% SPX</span>
           </div>
         </div>
         <div className="p-8 lg:p-16 flex flex-col justify-center reveal opacity-0 translate-y-6 bg-brand-bg/30">

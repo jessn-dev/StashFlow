@@ -9,5 +9,11 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.33.0"
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "@tamagui/font-inter": "2.0.0-rc.40",
+    "@tamagui/shorthands": "2.0.0-rc.40",
+    "@tamagui/themes": "2.0.0-rc.40",
+    "tamagui": "2.0.0-rc.40"
+  }
 }

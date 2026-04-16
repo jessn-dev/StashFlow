@@ -399,17 +399,11 @@ export default function LandingPage() {
           pointerEvents="none"
         />
         <Text fontSize={12} fontWeight="700" color="$brandAccent" style={{ textTransform: 'uppercase' }} letterSpacing={3} marginBottom={24}>Get Started Today</Text>
-        <Heading
-          style={{ fontSize: 'clamp(36px, 5vw, 60px)' }}
-          textAlign="center"
-          color="$brandPrimary"
-          fontWeight="900"
-          marginBottom={24}
-          maxWidth={800}
-          fontFamily="$heading"
-        >
-          Your path to <Text color="$brandAccent" fontStyle="italic" fontWeight="300">financial freedom</Text> starts here.
-        </Heading>
+        <h2 style={{ margin: 0, marginBottom: '24px', padding: 0, fontFamily: 'Georgia, serif', fontSize: 'clamp(36px, 5vw, 60px)', fontWeight: 900, color: '#0D3D3D', textAlign: 'center', maxWidth: '800px', lineHeight: 1.1 }}>
+          Your path to{' '}
+          <em style={{ fontStyle: 'italic', fontWeight: 300, color: '#1A7A7A' }}>financial freedom</em>
+          {' '}starts here.
+        </h2>
         <Text fontSize={16} color="$brandText" opacity={0.8} textAlign="center" maxWidth={600} marginBottom={48}>
           Stop wondering where your money goes. Join StashFlow to securely manage your spending, crush your debt, and build your wealth.
         </Text>

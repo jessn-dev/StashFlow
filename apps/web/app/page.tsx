@@ -167,58 +167,33 @@ export default function LandingPage() {
         </Link>
       </XStack>
 
-      {/* Hero Section */}
-      <YStack
-        tag="section"
-        position="relative"
-        minHeight="100vh"
-        justifyContent="center"
-        paddingHorizontal={32}
-        paddingTop={128}
-        paddingBottom={80}
-        zIndex={10}
-      >
+      {/* Hero Section — explicit CSS flex to guarantee centering on web */}
+      <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: 'clamp(32px, 6vw, 96px)', paddingRight: 'clamp(32px, 6vw, 96px)', paddingTop: '128px', paddingBottom: '80px', zIndex: 10 }}>
         {/* Background Decorative Text */}
-        <Text
-          position="absolute"
-          right={-100}
-          top="50%"
-          style={{ transform: 'translateY(-50%)', fontSize: '30vw', userSelect: 'none' }}
-          fontWeight="900"
-          color="$brandPrimary"
-          opacity={0.03}
-          pointerEvents="none"
-          fontFamily="$serif"
-        >
+        <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', fontSize: '30vw', fontWeight: 900, color: '#0D3D3D', opacity: 0.03, pointerEvents: 'none', userSelect: 'none', lineHeight: 1, fontFamily: 'Georgia, serif', overflow: 'hidden' }}>
           $
-        </Text>
+        </div>
 
-        <XStack alignItems="center" gap={16} marginBottom={32} className="hero-label">
-          <View width={40} height={1} backgroundColor="$brandAccent" />
-          <Text fontSize={12} color="$brandAccent" fontWeight="700" style={{ textTransform: 'uppercase' }} letterSpacing={4}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }} className="hero-label">
+          <div style={{ width: '40px', height: '1px', backgroundColor: '#1A7A7A' }} />
+          <span style={{ fontSize: '12px', color: '#1A7A7A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '4px', fontFamily: 'monospace' }}>
             Revolutionize Finance
-          </Text>
-        </XStack>
+          </span>
+        </div>
 
-        <YStack className="hero-h1" marginBottom={24}>
-          <Heading
-            style={{ fontSize: 'clamp(48px, 8vw, 96px)', lineHeight: 0.95 }}
-            fontWeight="900"
-            color="$brandPrimary"
-            fontFamily="$heading"
-          >
-            <Text tag="span" display="block">Smarter</Text>
-            <Text tag="span" display="block" color="$brandAccent" fontStyle="italic" fontWeight="300">Tracking.</Text>
-            <Text tag="span" display="block">Total</Text>
-            <Text tag="span" display="block">Clarity.</Text>
-          </Heading>
-        </YStack>
+        {/* Heading — native h1 with block spans so lines never collapse */}
+        <h1 className="hero-h1" style={{ margin: 0, marginBottom: '24px', padding: 0, fontFamily: 'Georgia, serif', fontSize: 'clamp(48px, 8vw, 96px)', lineHeight: 0.95, fontWeight: 900, color: '#0D3D3D' }}>
+          <span style={{ display: 'block' }}>Smarter</span>
+          <em style={{ display: 'block', fontStyle: 'italic', fontWeight: 300, color: '#1A7A7A' }}>Tracking.</em>
+          <span style={{ display: 'block' }}>Total</span>
+          <span style={{ display: 'block' }}>Clarity.</span>
+        </h1>
 
-        <Text fontSize={18} color="$brandText" opacity={0.8} maxWidth={450} lineHeight={28} marginBottom={48} className="hero-p">
+        <p className="hero-p" style={{ fontSize: 'clamp(16px, 2vw, 20px)', color: '#444444', opacity: 0.8, maxWidth: '42ch', lineHeight: 1.7, margin: 0, marginBottom: '48px' }}>
           The financial intelligence layer that transforms raw data into decisive insight. Built for individuals who can&apos;t afford ambiguity.
-        </Text>
+        </p>
 
-        <XStack gap={32} alignItems="center" className="hero-cta">
+        <div className="hero-cta" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
           <Link href="/login" style={{ textDecoration: 'none' }}>
             <Button
               size="$5"
@@ -235,21 +210,11 @@ export default function LandingPage() {
               Start Tracking
             </Button>
           </Link>
-          <XStack
-            tag="button"
-            padding={0}
-            backgroundColor="transparent"
-            borderWidth={0}
-            alignItems="center"
-            cursor="pointer"
-            hoverStyle={{ opacity: 0.7 }}
-          >
-            <Text fontSize={12} fontWeight="700" color="$brandPrimary" style={{ textTransform: 'uppercase' }} letterSpacing={1}>
-              See the Demo →
-            </Text>
-          </XStack>
-        </XStack>
-      </YStack>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#0D3D3D', textTransform: 'uppercase', letterSpacing: '1px', padding: 0 }}>
+            See the Demo →
+          </button>
+        </div>
+      </section>
 
       {/* Ticker — full-width band outside hero */}
       <div className="ticker-band" style={{ position: 'relative', zIndex: 10, width: '100%', overflow: 'hidden', borderTop: '1px solid rgba(13,61,61,0.1)', borderBottom: '1px solid rgba(13,61,61,0.1)', paddingTop: '12px', paddingBottom: '12px', backgroundColor: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(4px)' }}>

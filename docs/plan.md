@@ -1,77 +1,8 @@
 # StashFlow — Master Development Plan
 
-> Last updated: 2026-04-14
-> Active Branch: `feature/m6-income-web`
-> Status: Milestone 6 — Income Module (Web)
-
----
-
-## Working Rules (Non-Negotiable)
-
-These rules govern every step of this project. They do not change unless explicitly requested.
-
-1. **Plan before executing** — `plan.md` is always updated before any code is written or modified.
-2. **Approval before milestones** — Every new milestone must be approved before execution begins. No exceptions.
-3. **Requirements first** — A requirements document is iterated on until the problem is fully understood before any implementation starts.
-4. **Source analysis before changes** — Existing code structure, dependencies, and runtime details are always analyzed before modifying anything.
-5. **Tests before code** — A test suite is defined based on requirements before the implementation is written.
-6. **Execution plan per milestone** — Every milestone includes a detailed list of exactly which files and folders will be created or modified.
-7. **Latest stable versions** — All libraries, frameworks, and language runtimes must use the latest stable version that satisfies the project's compatibility requirements. No pinning to outdated versions without explicit justification. Version selections are documented in `agentic.md`.
-8. **Session context file** — At the end of every working session, `agentic.md` is created or updated. It serves as the AI session cheat sheet and must include: high-level instructions, confirmed dependency versions, architecture diagrams, errors encountered, error fixes applied, and exactly where the session ended.
-
----
-
-## Requirements Document
-
-### Problem Statement
-Users need a single cross-platform application (Web + iOS + Android) to:
-- Track daily spending by category
-- Log income (one-time and recurring)
-- Manage loans with auto-generated installment schedules
-- Monitor their debt-to-income (DTI) ratio in real time
-- Work across multiple currencies with live exchange rates
-
-### Target Users
-- Individuals managing personal finances
-- People with one or more active loans
-- Users dealing with multiple currencies (expats, freelancers, international workers)
-
-### Functional Requirements
-
-| ID | Requirement | Priority |
-|---|---|---|
-| FR-01 | User can sign up, log in, reset password | Critical |
-| FR-02 | User can log an expense with amount, currency, category, date | Critical |
-| FR-03 | User can log income with source, frequency, currency | Critical |
-| FR-04 | User can add a loan (name, principal, rate, duration, start date) | Critical |
-| FR-05 | System auto-generates full installment schedule on loan creation | Critical |
-| FR-06 | User can mark a loan installment as paid | Critical |
-| FR-07 | System calculates and displays DTI ratio in real time | Critical |
-| FR-08 | User can view spending breakdown by category | High |
-| FR-09 | User can convert amounts between currencies using live rates | High |
-| FR-10 | Dashboard shows balance, DTI, cash flow, upcoming bills | High |
-| FR-11 | Dark and light mode toggle | Medium |
-| FR-12 | Upcoming payment reminders (push notifications) | Medium |
-| FR-13 | CSV export of transactions | Low |
-| FR-14 | Budget limits per category | Low |
-
-### Non-Functional Requirements
-
-| ID | Requirement |
-|---|---|
-| NFR-01 | App must work on Web, iOS, and Android from a single codebase (shared logic) |
-| NFR-02 | All user data is isolated — no user can access another user's data (RLS) |
-| NFR-03 | Currency rates cached for 24h to avoid excessive external API calls |
-| NFR-04 | App must function on free-tier infrastructure until 50k MAUs |
-| NFR-05 | Auth tokens stored securely (httpOnly cookie on web, SecureStore on mobile) |
-| NFR-06 | TypeScript strict mode across all packages |
-| NFR-07 | All shared business logic lives in packages/core — never duplicated |
-
-### Out of Scope (Phase 1)
-- Bank/account linking (Plaid, Mono)
-- Premium subscription / paywall
-- Multi-user / family accounts
-- AI-powered financial advice
+> Last updated: 2026-04-16
+> Active Branch: `feature/m12-loan-engine`
+> Status: Milestone 12 — Global Loan Engine (Web + OCR)
 
 ---
 
@@ -84,95 +15,62 @@ M2  — Supabase Schema + RLS               ✅ Complete
 M3  — Auth Flow (Web + Mobile)             ✅ Complete
 M4a — Core Logic, API Layer & Seed Data    ✅ Complete
 M4b — Live Dashboards (Web & Mobile)       ✅ Complete
-M5  — Spending Module (Web)                ✅ Complete
-M6  — Income Module (Web)                  ✅ Complete
-M7  — Loans Module + Scheduler (Web)       🟡 In Progress
-M8  — DTI Module (Web)                     ⏳ Pending
-M9  — Currencies Module (Web)              ⏳ Pending
-M10 — Mobile App (all screens)             ⏳ Pending
-M11 — Edge Functions (3 functions)         ⏳ Pending
-M12 — Testing Suite (full coverage)        ⏳ Pending
-M13 — CI/CD + Deployment                   ⏳ Pending
+M5  — Spending Module (Web)                     ✅ Complete
+M6  — Income Module (Web)                       ✅ Complete
+M7  — Loans Module + Scheduler (Web)             ✅ Complete
+M8  — DTI Module (Web + Simulator)               ✅ Complete
+M9  — Currencies Module (Web + Sync)             ✅ Complete
+M10 — Advanced Budgeting & Cash Flow (Web)       ✅ Complete
+M11 — Edge Functions (Aggregation & Sync)        ✅ Complete
+M12 — Global Loan Engine (Web + OCR)             ⏳ Pending
+M13 — Mobile App (all screens)                   ⏳ Pending
+M14 — Testing Suite (full coverage)              ⏳ Pending
+M15 — CI/CD + Deployment                         ⏳ Pending
 ```
 
 ---
 
-## Milestone 0 — Requirements & Planning
-**Status: ✅ Complete**
-
----
-
-## Milestone 1 — Monorepo Scaffold
-**Status: ✅ Complete**
-
----
-
-## Milestone 2 — Supabase Schema + RLS
-**Status: ✅ Complete**
-
----
-
-## Milestone 3 — Auth Flow (Web + Mobile)
-**Status: ✅ Complete (Testing Foundation Established)**
-
----
-
-## Milestone 4a — Core Logic, API Layer & Seed Data
-**Status: ✅ Complete (Core Logic Verified)**
-
----
-
-## Milestone 4b — Live Dashboards (Web & Mobile)
-**Status: ✅ Complete**
-
----
-
-## Milestone 5 — Spending Module (Web)
+## Milestone 10 — Advanced Budgeting & Cash Flow
 **Status: ✅ Complete**
 
 ### Objective
-Enable users to manage their expenses via a dedicated web interface with real-time updates to the dashboard.
+Provide users with proactive financial planning tools, including historically suggested budgets, cumulative month-to-month rollovers, flexible rebalancing, 12-month cash flow projections, and integrated goal tracking.
 
 ### Delivered
-- **API Layer**: Full CRUD for expenses implemented in `@stashflow/api`.
-- **Expense Components**: Created `ExpenseForm`, `ExpenseList`, and `CategoryBreakdown` components.
-- **Spending Page**: Developed `/dashboard/spending` with Server Actions for real-time updates.
-- **UI Consistency**: Integration with `@stashflow/theme` and updated Dashboard UI labels.
-- **API Tests**: Verified expense query logic with unit tests.
-
-### Pending
-- [ ] **Unit Tests (Web Components)**: (Technical Debt) Resolve "Invalid hook call" in Vitest for components using React 19 hooks.
+- **Rollover Snapshot Logic**: Implemented `budget_periods` table to track cumulative over/under spending month-over-month.
+- **Cash Flow Projections**: Created `get-cash-flow` Edge Function providing 12-month visual outlooks based on recurring data.
+- **Integrated Goals**: Built a dedicated Goals module where savings/debt targets are treated as primary budget line items.
+- **UX Refinements**: Added 10-item pagination to all dashboard tables and optimized form layouts.
 
 ---
 
-## Milestone 6 — Income Module (Web)
-**Status: 🟡 In Progress**
+## Milestone 12 — Global Loan Engine (Web + OCR)
+**Status: ⏳ Pending**
 
 ### Objective
-Enable users to manage their income sources (one-time and recurring) via a dedicated web interface.
+Implement a multi-regional loan management system capable of handling complex amortization logic, processing loan documents via OCR/NLP, and managing lifecycle events.
 
 ### Requirements Addressed
-- FR-03: User can log income with source, frequency, currency.
+- Technical Specification: `Global_Loan_Management_Specification.pdf`
 
-### Source Analysis
-- `public.incomes` table exists with RLS enabled.
-- `income_frequency` enum exists in database ('one-time', 'weekly', 'monthly').
-- Shared `@stashflow/api` needs methods for CRUD operations on income.
-
-### Delivered
-- **API Layer**: Created `packages/api/src/queries/income.ts` with full CRUD operations.
-- **Income Components**: Developed `IncomeForm` and `IncomeList` using DaisyUI.
-- **Income Page**: Created `/dashboard/income` with Server Actions for real-time updates.
-- **Dashboard Integration**: Updated Dashboard summary cards and navigation to link to the Income module.
-- **API Tests**: Verified income query logic with unit tests.
-
-### Pending
-- [ ] **Unit Tests (Web Components)**: (Technical Debt) Resolve "Invalid hook call" in Vitest for components using React 19 hooks.
+### Execution Plan
+1. **Database Expansion**: Update `loans` table with interest types (Add-on, Fixed Principal, Interest-Only), day count conventions (30/360, Actual/365), and regional metadata.
+2. **Core Engine**: Refactor `@stashflow/core` amortization logic to support the new interest models and calendar rules.
+3. **Document Intelligence**: Implement `extract-loan-data` Edge Function for contract parsing.
+4. **Lifecycle Events**: Implement dynamic recalculations for pre-payments and broken period interest.
 
 ---
 
-## Milestones 7–13
-**Detailed execution plans will be written and submitted for approval before each milestone begins.**
+## Milestone 13 — Mobile App (Expo) Parity
+**Status: ⏳ Pending**
+
+### Objective
+Bring the iOS/Android application to full parity with the web experience, utilizing shared logic from `@stashflow/core` and `@stashflow/api`.
+
+---
+
+## Milestone 14 — Testing Suite (full coverage)
+**Status: ⏳ Pending (Tech Debt)**
 
 ---
 
@@ -181,5 +79,5 @@ Enable users to manage their income sources (one-time and recurring) via a dedic
 | Date | Change | Approved By |
 |---|---|---|
 | 2026-04-01 | Initial plan created, M0 complete | — |
-| 2026-04-08 | Completed unit tests for @stashflow/core, @stashflow/api, and Web Auth | — |
-| 2026-04-14 | M4b complete, Web upgraded to Next.js 16, M5 complete, M6 defined | — |
+| 2026-04-14 | M4b complete, Web upgraded to Next.js 16, M5-M7 complete | — |
+| 2026-04-16 | Completed M10 (Advanced Budgeting) and defined M12 (Global Loan Engine) | — |

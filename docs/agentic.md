@@ -1,5 +1,9 @@
 # StashFlow — Agentic Session Context
 
+> Current Session: 014 — Loans Module + Scheduler (Web)
+> Date: 2026-04-16
+> Status: Milestone 7 complete. Loans management implemented on Web including auto-generation of installment schedules, payment tracking, and detail views. API tests passing.
+
 > Current Session: 013 — Income Module (Web) & Testing Bottlenecks
 > Date: 2026-04-14
 > Status: Income Module implemented on Web (CRUD + UI). API tests passing. Web Component tests for Income deferred as technical debt.
@@ -62,7 +66,8 @@ You are a senior full-stack developer building **StashFlow**, a cross-platform p
 | M4b — Live Dashboards (Web & Mobile) | ✅ Complete |
 | M5 — Spending Module (Web) | ✅ Complete |
 | M6 — Income Module (Web) | ✅ Complete (Component Tests deferred as Tech Debt) |
-| M7 — Loans Module + Scheduler (Web) | ⏳ Pending |
+| M7 — Loans Module + Scheduler (Web) | ✅ Complete |
+| M8 — DTI Module (Web) | ⏳ Pending |
 
 ---
 
@@ -71,20 +76,20 @@ You are a senior full-stack developer building **StashFlow**, a cross-platform p
 | Debt Item | Priority | Context |
 |---|---|---|
 | Mobile Unit Tests | High | `DashboardScreen` and `LoginScreen` tests currently fail with transformation errors in Vitest 4 + React 19. |
-| Web Component Tests (React 19) | Medium | Tests for `ExpenseForm`, `IncomeForm`, and `DashboardUI` encounter "Invalid hook call" or `null` state errors despite standard fixes. |
+| Web Component Tests (React 19) | Medium | Tests for `ExpenseForm`, `IncomeForm`, `LoanForm`, and `DashboardUI` encounter "Invalid hook call" or `null` state errors despite standard fixes. |
 
 ---
 
 ## Where We Stopped
 
-**Session 013 (Current) ended after:**
-- Created `packages/api/src/queries/income.ts` with full CRUD.
-- Created `IncomeForm` and `IncomeList` components in `apps/web`.
-- Developed `/dashboard/income` page with Server Actions.
-- Integrated Income module into the Dashboard UI.
-- Verified API layer with unit tests.
+**Session 014 (Current) ended after:**
+- Expanded `@stashflow/api` with `createLoan`, `deleteLoan`, `getLoan`, `getLoanPayments`, and `togglePaymentStatus`.
+- Created `addLoanAction`, `removeLoanAction`, and `togglePaymentAction` in `apps/web`.
+- Developed `LoanForm` and `InstallmentList` components.
+- Integrated `LoanForm` into `/dashboard/loans` and created `/dashboard/loans/[id]` detail page.
+- Verified API layer with unit tests in `packages/api/src/queries/loans.test.ts`.
 - Documented further testing debt for Web components.
 
 **Next actions required:**
-1. **M7 Loans Module** — Implement the loans management module on Web (mirroring the CRUD logic + schedule display).
+1. **M8 DTI Module** — Implement the real-time DTI calculation and display on the Web.
 2. **Resolve Test Debt** — Fix the React 19 test environment issues.

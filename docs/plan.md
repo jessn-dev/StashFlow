@@ -71,11 +71,11 @@ Bring the iOS/Android application to full feature parity with the web experience
 ---
 
 ## Milestone 15 — CI/CD + Deployment
-**Status: ⏳ Pending**
+**Status: ⏳ Pending (CI Pipeline: ✅ Complete)**
 
 ### Execution Plan
-1. Setup GitHub Actions for testing, linting, and building web/mobile apps.
-2. Automate deployment of Supabase Edge Functions.
+1. Setup GitHub Actions for testing, linting, and building web/mobile apps. (Implemented: `ci.yml` runs tests and coverage on PRs)
+2. Automate deployment of Supabase Edge Functions. (Pending)
 
 ---
 

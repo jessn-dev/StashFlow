@@ -45,8 +45,8 @@ jobs:
           thresholds: '60 80'
 
       - name: Add Coverage PR Comment
-        uses: maroonich/pull-request-comment@v1.1.2
+        uses: thollander/actions-comment-pull-request@v3
         if: github.event_name == 'pull_request'
         with:
-          path: code-coverage-results.md
-          token: ${{ secrets.GITHUB_TOKEN }}
+          filePath: code-coverage-results.md
+

@@ -1,69 +1,64 @@
-# StashFlow — Security Protocol & Ledger
+# Security Policy
 
-> Last updated: 2026-04-01
-> Status: Active — Integrated into Development Lifecycle
+StashFlow is committed to ensuring the security and privacy of our users' financial data. We appreciate the work of security researchers in making the internet a safer place and encourage responsible disclosure of vulnerabilities found within our platform.
 
-## 🛡️ Core Security Principles
+## 1. Reporting a Vulnerability
 
-StashFlow handles sensitive financial data. Our security posture relies heavily on the Supabase architecture, meaning security must be enforced at the database and edge computing layers, never just on the client.
+If you discover a security vulnerability in StashFlow, please **do not open a public GitHub issue**. Instead, report it privately to our security team.
 
-1. **Zero-Trust Client:** The frontend (Web/Mobile) is inherently untrusted. It cannot dictate *whose* data it is operating on.
-2. **Row Level Security (RLS) is Mandatory:** No table is ever created without an active RLS policy.
-3. **Principle of Least Privilege at the Edge:** Edge functions must execute with the permissions of the invoking user, not as a system admin, unless specifically designed for a backend-only cron job.
+*   **Reporting Method**: Email us at [jessengolab.dev@gmail.com](mailto:jessengolab.dev@gmail.com)
+*   **Preferred Language**: English
+*   **Essential Information**:
+    *   A detailed description of the vulnerability.
+    *   Step-by-step instructions to reproduce the issue.
+    *   Potential impact of the vulnerability.
+    *   Any suggested remediation or fix.
 
----
+## 2. Response Timeline
 
-## 🚨 Active Remediation Plan (Phase 1)
+We take every report seriously and aim to maintain the following response times:
 
-These vulnerabilities were identified during the M0 Planning Phase and must be resolved before their respective milestones are considered complete.
+*   **Initial Acknowledgment**: Within 48 hours of receipt.
+*   **Status Update**: We will provide a status update every 5 business days during the triage and resolution phase.
+*   **Patching**: We aim to resolve critical vulnerabilities within 30 days of confirmation.
 
-### 1. IDOR (Insecure Direct Object Reference) Prevention
-* **Risk:** Malicious users swapping `userId` payloads to view/edit other users' financial data.
-* **Resolution:** * Strip all `userId` parameters from `@stashflow/api` payload definitions.
-  * The Supabase client automatically attaches the user's JWT.
-  * Database RLS policies strictly enforce `user_id = auth.uid()` for all CRUD operations.
-* **Status:** ⏳ Pending Implementation (Target: M2 & M5)
+## 3. Disclosure Policy
 
-### 2. Edge Function Privilege Escalation
-* **Risk:** User-invoked Edge Functions (`generate-loan-schedule`, `calculate-dti`) bypassing RLS by using the `SERVICE_ROLE_KEY`.
-* **Resolution:** * Explicitly forbid the use of `SUPABASE_SERVICE_ROLE_KEY` in user-facing Edge Functions.
-  * Initialize the Supabase client inside Deno using the `Authorization: Bearer <token>` header passed from the frontend.
-* **Status:** ⏳ Pending Implementation (Target: M13)
+We follow the principles of **Coordinated Vulnerability Disclosure**. We ask that you:
 
-### 3. Unvalidated Cron Abuse
-* **Risk:** Publicly accessible `sync-exchange-rates` endpoint being spammed, exhausting the free Frankfurter API tier.
-* **Resolution:** * Generate a `CRON_SECRET` stored in Supabase Edge Secrets.
-  * The function must reject any request lacking `Authorization: Bearer <CRON_SECRET>` with a `403 Forbidden`.
-  * Configure `pg_cron` to include this header in its automated HTTP call.
-* **Status:** ⏳ Pending Implementation (Target: M13)
+*   Do not share findings publicly until a fix is available and has been released.
+*   Allow us a reasonable amount of time to resolve the issue before disclosure.
+*   Keep all communications regarding the vulnerability confidential.
 
----
+## 4. Supported Versions
 
-## ✅ Pre-Commit Security Checklist
+Only the following versions of StashFlow currently receive security updates:
 
-Before finalizing any feature or milestone, the following checks must be verified:
+| Version | Status |
+|---|---|
+| Main (v1.x) | Supported |
+| Develop | Experimental (Use with caution) |
 
-- [ ] **Database:** Does the new table have RLS enabled?
-- [ ] **Database:** Do the RLS policies strictly map to `auth.uid()`?
-- [ ] **API:** Does the payload rely on the auth token for identity rather than a passed ID parameter?
-- [ ] **Edge Functions:** Is the client initialized with the user's Auth Header instead of the Service Role key (unless explicitly required for a system task)?
-- [ ] **Dependencies:** Have we verified that newly added packages do not have known high-severity CVEs?
+## 5. Scope
 
----
+### In-Scope
+*   Authentication and Authorization bypasses.
+*   Data leakage or unauthorized access to other users' financial data.
+*   Remote Code Execution (RCE).
+*   Cross-Site Scripting (XSS) or Injection vulnerabilities.
 
-# StashFlow — Security Protocol & Ledger
+### Out-of-Scope
+*   Denial of Service (DoS) attacks.
+*   Social engineering or Phishing attacks.
+*   Issues requiring physical access to a user's unlocked device.
+*   Vulnerabilities in 3rd party services (Supabase, Vercel, Expo) unless they are caused by our misconfiguration.
 
-## 🚨 Active Remediation Progress
-### 1. IDOR Prevention
-* **Status:** ✅ Integrated. RLS policies are active on 5 core tables. Web Auth now uses `getUser()` server-side to prevent IDOR via JWT.
+## 6. The "No-No" List
 
-### 2. Auth Token Exposure 
-* **Risk:** Storing JWTs in `localStorage` on Web makes them vulnerable to XSS.
-* **Resolution:** Implemented `@supabase/ssr` to store tokens in `httpOnly` cookies. Tokens are inaccessible to client-side JS.
-* **Status:** ✅ Complete (Web) / ⏳ Pending (Mobile via SecureStore).
+While we encourage testing, we strictly prohibit actions that:
+*   Degrade the performance or availability of our services for other users.
+*   Involve the theft or modification of real user data (please use test accounts).
+*   Violate any local, national, or international laws.
+*   Involve the use of automated scanners that generate high-volume traffic.
 
-## 📝 Incident & Update Log
-
-| Date | Event / Update | Notes |
-|---|---|---|
-| 2026-04-01 | Document created | Identified IDOR, Privilege Escalation, and Cron vulnerabilities during M0 architecture review. |
+Thank you for helping us keep StashFlow secure!

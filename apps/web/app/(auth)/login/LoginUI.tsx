@@ -18,13 +18,6 @@ function GoogleIcon() {
   )
 }
 
-function FacebookIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2">
-      <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.273h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
-    </svg>
-  )
-}
 
 function AppleIcon() {
   return (
@@ -40,9 +33,8 @@ interface LoginUIProps {
 }
 
 const SOCIAL_PROVIDERS = [
-  { provider: 'google',   label: 'Continue with Google',   Icon: GoogleIcon },
-  { provider: 'facebook', label: 'Continue with Facebook', Icon: FacebookIcon },
-  { provider: 'apple',    label: 'Continue with Apple',    Icon: AppleIcon },
+  { provider: 'google', label: 'Continue with Google', Icon: GoogleIcon },
+  { provider: 'apple',  label: 'Continue with Apple',  Icon: AppleIcon },
 ] as const
 
 export default function LoginUI({ initialMode = 'login', message }: LoginUIProps) {
@@ -51,7 +43,7 @@ export default function LoginUI({ initialMode = 'login', message }: LoginUIProps
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
 
-  async function handleOAuth(provider: 'google' | 'facebook' | 'apple') {
+  async function handleOAuth(provider: 'google' | 'apple') {
     const supabase = createClient()
     await supabase.auth.signInWithOAuth({
       provider,
@@ -65,24 +57,48 @@ export default function LoginUI({ initialMode = 'login', message }: LoginUIProps
   return (
     <YStack
       minHeight="100vh"
-      backgroundColor="$brandWhite"
+      backgroundColor="$brandBg"
       alignItems="center"
       justifyContent="center"
       paddingHorizontal="$5"
       paddingVertical="$8"
+      position="relative"
+      overflow="hidden"
     >
-      <YStack width="100%" maxWidth={480} gap="$4">
+      {/* Background Decorative Text from Landing Page */}
+      <div style={{ position: 'absolute', right: '-5%', top: '50%', transform: 'translateY(-50%)', fontSize: '30vw', fontWeight: 900, color: '#0D3D3D', opacity: 0.03, pointerEvents: 'none', userSelect: 'none', lineHeight: 1, fontFamily: 'Georgia, serif', zIndex: 1 }}>
+        $
+      </div>
 
-        {/* ── Title ─────────────────────────────────────────────────────── */}
-        <Text
-          fontSize={32}
-          fontWeight="700"
-          color="$brandText"
-          textAlign="center"
-          fontFamily="$heading"
-        >
-          {title}
-        </Text>
+      <YStack 
+        width="100%" 
+        maxWidth={480} 
+        gap="$6" 
+        backgroundColor="$brandWhite" 
+        padding="$8" 
+        borderRadius={20} 
+        shadowColor="rgba(0,0,0,0.1)" 
+        shadowRadius={20} 
+        zIndex={10}
+        borderWidth={1}
+        borderColor="rgba(13,61,61,0.05)"
+      >
+        <YStack gap="$2" alignItems="center">
+          <XStack alignItems="center" gap={8} marginBottom="$2">
+            <YStack width={10} height={10} borderRadius={9999} backgroundColor="$brandAccent" />
+            <Text fontSize={18} fontWeight="700" color="$brandPrimary" letterSpacing={0.5}>StashFlow</Text>
+          </XStack>
+          <Text
+            fontSize={32}
+            fontWeight="900"
+            color="$brandPrimary"
+            textAlign="center"
+            fontFamily="$heading"
+            lineHeight={34}
+          >
+            {title}
+          </Text>
+        </YStack>
 
         {/* ── Subtitle / mode toggle ─────────────────────────────────────── */}
         {mode !== 'forgot' ? (
@@ -134,18 +150,16 @@ export default function LoginUI({ initialMode = 'login', message }: LoginUIProps
                 <Button
                   key={provider}
                   onPress={() => handleOAuth(provider)}
-                  borderRadius={999}
+                  borderRadius={10}
                   borderWidth={1}
-                  borderColor="$gray5"
+                  borderColor="rgba(13,61,61,0.1)"
                   backgroundColor="$brandWhite"
-                  color="$brandText"
                   size="$5"
-                  fontWeight="500"
-                  hoverStyle={{ backgroundColor: '$gray2' }}
+                  hoverStyle={{ backgroundColor: 'rgba(13,61,61,0.03)' }}
                   pressStyle={{ scale: 0.98 }}
                   icon={<Icon />}
                 >
-                  {label}
+                  <Text color="$brandText" fontWeight="600">{label}</Text>
                 </Button>
               ))}
             </YStack>
@@ -221,16 +235,13 @@ export default function LoginUI({ initialMode = 'login', message }: LoginUIProps
                 <XStack
                   alignItems="center"
                   gap="$2"
-                  tag="label"
-                  htmlFor="remember"
-                  cursor="pointer"
                 >
                   <input
                     id="remember"
                     type="checkbox"
                     checked={rememberMe}
                     onChange={e => setRememberMe(e.target.checked)}
-                    style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#111827' }}
+                    style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#0D3D3D' }}
                   />
                   <Text fontSize={14} color="$brandText">Remember me</Text>
                 </XStack>
@@ -267,23 +278,23 @@ export default function LoginUI({ initialMode = 'login', message }: LoginUIProps
           {/* Submit */}
           <Button
             type="submit"
-            borderRadius={999}
-            backgroundColor="$gray8"
-            color="white"
+            borderRadius={10}
+            backgroundColor="$brandPrimary"
             size="$5"
-            fontWeight="600"
             disabled={loading}
             opacity={loading ? 0.7 : 1}
             icon={loading ? <Spinner color="white" size="small" /> : undefined}
-            hoverStyle={{ backgroundColor: '$gray9' }}
+            hoverStyle={{ backgroundColor: '$brandSecondary' }}
             pressStyle={{ scale: 0.98 }}
             marginTop="$1"
           >
-            {loading
-              ? 'Please wait…'
-              : mode === 'login' ? 'Log in'
-              : mode === 'signup' ? 'Sign up'
-              : 'Send reset link'}
+            <Text color="white" fontWeight="700" textTransform="uppercase" letterSpacing={1}>
+              {loading
+                ? 'Please wait…'
+                : mode === 'login' ? 'Log in'
+                : mode === 'signup' ? 'Sign up'
+                : 'Send reset link'}
+            </Text>
           </Button>
         </form>
 

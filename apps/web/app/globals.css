@@ -1,6 +1,29 @@
-html,
-body {
-  height: 100%;
+:root {
+  --sf-bg-page: #F0F2F5;
+  --sf-bg-card: #FFFFFF;
+  --sf-text: #111827;
+  --sf-date-color: rgba(13, 61, 61, 0.5);
+  --sf-thead-bg: rgba(13, 61, 61, 0.02);
+  --sf-thead-color: rgba(13, 61, 61, 0.4);
+  --sf-border: rgba(13, 61, 61, 0.07);
+  --sf-border-subtle: rgba(13, 61, 61, 0.05);
+  --sf-hover: rgba(13, 61, 61, 0.018);
+}
+
+[data-theme="dark"] {
+  --sf-bg-page: #0d1117;
+  --sf-bg-card: #1c2333;
+  --sf-text: #e6edf3;
+  --sf-date-color: rgba(255, 255, 255, 0.45);
+  --sf-thead-bg: rgba(255, 255, 255, 0.03);
+  --sf-thead-color: rgba(255, 255, 255, 0.4);
+  --sf-border: rgba(255, 255, 255, 0.08);
+  --sf-border-subtle: rgba(255, 255, 255, 0.06);
+  --sf-hover: rgba(255, 255, 255, 0.04);
+}
+
+html {
+  font-family: var(--font-google-sans), system-ui, sans-serif;
 }
 
 body {
@@ -15,4 +38,16 @@ input:-webkit-autofill:focus,
 input:-webkit-autofill:active{
   -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
   -webkit-text-fill-color: #444444 !important;
+}
+
+/* Force center date input text */
+input[type="date"] {
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  margin-left: -20px; /* Offset the icon to help center the text */
 }

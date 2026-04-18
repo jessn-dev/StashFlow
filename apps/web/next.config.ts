@@ -4,6 +4,7 @@ import webpack from "webpack";
 import { withTamagui } from '@tamagui/next-plugin';
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['tesseract.js', 'pdf-parse', 'pdfjs-dist'],
   transpilePackages: [
     "react-native-svg",
     "lucide-react-native",
@@ -46,4 +47,5 @@ export default withTamagui({
   config: './tamagui.config.ts',
   components: ['tamagui'],
   appDir: true,
+  disableExtraction: process.env.NODE_ENV === 'development',
 })(nextConfig);

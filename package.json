@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint"
@@ -16,10 +17,10 @@
   "private": "true",
   "devDependencies": {
     "@types/node": "^22",
+    "@vitest/coverage-v8": "^4.1.4",
     "turbo": "^2.9.3",
     "typescript": "^5.9.2"
   },
-  "dependencies": {},
   "pnpm": {
     "overrides": {
       "react": "19.2.5",

@@ -44,23 +44,35 @@ export async function deleteExpense(supabase: SupabaseClient<Database>, id: stri
   return true
 }
 
+import { fetchRateMap, convertCurrency } from './exchange-rates'
+import { getProfile } from './profile'
+
 /**
- * Fetch expenses grouped by category for the current user
+ * Fetch expenses grouped by category for the current user, converted to preferred currency.
  */
 export async function getExpensesByCategory(supabase: SupabaseClient<Database>) {
-  const { data, error } = await supabase
-    .from('expenses')
-    .select('category, amount')
+  const [
+    { data: expenses, error },
+    profile,
+    rates
+  ] = await Promise.all([
+    supabase.from('expenses').select('category, amount, currency'),
+    getProfile(supabase),
+    fetchRateMap(supabase)
+  ])
 
   if (error) throw error
 
+  const targetCurrency = profile.preferred_currency || 'USD'
   const totals: Record<string, number> = {}
-  data.forEach((item) => {
-    totals[item.category] = (totals[item.category] || 0) + Number(item.amount)
+
+  expenses?.forEach((item) => {
+    const convertedAmount = convertCurrency(Number(item.amount), item.currency, targetCurrency, rates)
+    totals[item.category] = (totals[item.category] || 0) + convertedAmount
   })
 
   return Object.entries(totals).map(([category, amount]) => ({
     category,
-    amount
+    amount: Number(amount.toFixed(2))
   }))
 }

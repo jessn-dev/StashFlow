@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { addIncome } from '@/app/dashboard/income/actions'
 import { Database } from '@stashflow/core'
 import { YStack, XStack, Text, Input, TextArea, Button, Label, Spinner } from 'tamagui'
@@ -16,15 +17,16 @@ export default function IncomeForm() {
   async function handleSubmit(formData: FormData) {
     setLoading(true)
     setMessage(null)
-    
+
     const result = await addIncome(formData)
-    
+
     if (result.error) {
       setMessage({ type: 'error', text: result.error })
     } else {
       setMessage({ type: 'success', text: 'Income added successfully!' })
       const form = document.getElementById('income-form') as HTMLFormElement
       form?.reset()
+      router.refresh()
     }
     setLoading(false)
   }
@@ -69,6 +71,8 @@ export default function IncomeForm() {
                 <option value="EUR">EUR (€)</option>
                 <option value="GBP">GBP (£)</option>
                 <option value="JPY">JPY (¥)</option>
+                <option value="PHP">PHP (₱)</option>
+                <option value="SGD">SGD ($)</option>
               </select>
             </YStack>
           </XStack>
@@ -144,7 +148,6 @@ export default function IncomeForm() {
           )}
 
           <Button 
-            theme="active"
             disabled={loading}
             onPress={(e) => {
               // Workaround for Tamagui Button in form: it doesn't always submit automatically
@@ -153,13 +156,15 @@ export default function IncomeForm() {
             }}
             borderRadius={0}
             backgroundColor="$brandPrimary"
-            color="$brandWhite"
-            fontWeight="700"
-            letterSpacing={1}
-            textTransform="uppercase"
             pressStyle={{ opacity: 0.8 }}
           >
-            {loading ? <Spinner color="$brandWhite" /> : 'Add Income'}
+            {loading ? (
+              <Spinner color="$brandWhite" />
+            ) : (
+              <Text color="$brandWhite" fontWeight="700" letterSpacing={1} textTransform="uppercase">
+                Add Income
+              </Text>
+            )}
           </Button>
         </YStack>
       </form>

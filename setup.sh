@@ -289,8 +289,8 @@ cmd_db_env() {
   local api_url
   local anon_key
   
-  api_url=$(echo "$status_output" | grep "API URL" | awk '{print $NF}')
-  anon_key=$(echo "$status_output" | grep "anon key" | awk '{print $NF}')
+  api_url=$(echo "$status_output" | grep -Ei "Project URL|API URL" | awk -F'│' '{print $NF}' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  anon_key=$(echo "$status_output" | grep -Ei "anon key|anon" | awk -F'│' '{print $NF}' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
   if [[ -z "$api_url" || -z "$anon_key" ]]; then
     error "Could not extract Supabase URL or Anon Key. Ensure Supabase is running."

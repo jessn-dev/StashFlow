@@ -49,7 +49,7 @@ export default function ResetPasswordPage() {
           </YStack>
 
           {/* Form */}
-          <form>
+          <form action={resetPassword}>
             <YStack gap={16}>
               {/* Password */}
               <YStack gap={6}>
@@ -91,32 +91,15 @@ export default function ResetPasswordPage() {
               )}
 
               <Button
-                theme="active"
                 borderRadius={0}
                 backgroundColor="$brandPrimary"
-                color="$brandWhite"
-                fontWeight="700"
-                textTransform="uppercase"
-                letterSpacing={1}
                 marginTop={8}
                 onPress={(e) => {
                   const form = (e.target as any).closest('form')
                   if (form) form.requestSubmit()
                 }}
               >
-                <button
-                  type="submit"
-                  formAction={resetPassword}
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    opacity: 0,
-                    width: '100%',
-                    height: '100%',
-                    cursor: 'pointer',
-                  }}
-                />
-                Update Password
+                <Text color="$brandWhite" fontWeight="700" textTransform="uppercase" letterSpacing={1}>Reset Password</Text>
               </Button>
             </YStack>
           </form>

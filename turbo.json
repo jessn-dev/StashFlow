@@ -12,6 +12,13 @@
     "lint": {
       "dependsOn": ["^lint"]
     },
+    "test": {
+    },
+    "test:coverage": {
+      "outputs": ["coverage/**"]
+    },
+    "test:integration": {
+    },
     "clean": {
       "cache": false
     }

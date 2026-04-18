@@ -1,12 +1,29 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Chart from 'chart.js/auto'
 import { YStack, XStack, Text, Heading, Button, Circle, View } from 'tamagui'
+import { createClient } from '@/utils/supabase/client'
 
 export default function LandingPage() {
   const chartRef = useRef<HTMLCanvasElement>(null)
+  const [stats, setStats] = useState({ total: '...', newThisMonth: '...' })
+  const [totalCount, setTotalCount] = useState(0)
+
+  // Fetch real platform stats
+  useEffect(() => {
+    const sb = createClient()
+    sb.functions.invoke('get-platform-stats').then(({ data }) => {
+      if (data) {
+        setTotalCount(data.total)
+        setStats({
+          total: data.total >= 1000 ? `${(data.total / 1000).toFixed(1)}k` : String(data.total),
+          newThisMonth: String(data.newThisMonth)
+        })
+      }
+    })
+  }, [])
 
   // Scroll Reveal Logic
   useEffect(() => {
@@ -153,13 +170,9 @@ export default function LandingPage() {
             borderWidth={1}
             borderColor="$brandPrimary"
             backgroundColor="transparent"
-            color="$brandPrimary"
-            fontWeight="700"
-            style={{ textTransform: 'uppercase' }}
-            letterSpacing={1}
             hoverStyle={{ backgroundColor: '$brandPrimary', color: 'white' }}
           >
-            Sign In
+            <Text color="inherit" fontWeight="700" textTransform="uppercase" letterSpacing={1}>Sign In</Text>
           </Button>
         </Link>
       </XStack>
@@ -196,20 +209,19 @@ export default function LandingPage() {
               size="$5"
               borderRadius={0}
               backgroundColor="$brandPrimary"
-              color="$brandWhite"
-              fontWeight="700"
-              style={{ textTransform: 'uppercase' }}
-              letterSpacing={1.5}
               paddingHorizontal={40}
               hoverStyle={{ backgroundColor: '$brandAccent' }}
               pressStyle={{ scale: 0.98 }}
             >
-              Start Tracking
+              <Text color="$brandWhite" fontWeight="700" textTransform="uppercase" letterSpacing={1.5}>Start Tracking</Text>
             </Button>
           </Link>
+          {/* Backlog: Restore Demo button once video/tour is ready */}
+          {/* 
           <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#0D3D3D', textTransform: 'uppercase', letterSpacing: '1px', padding: 0 }}>
             See the Demo →
           </button>
+          */}
         </div>
       </section>
 
@@ -224,22 +236,22 @@ export default function LandingPage() {
         position="relative"
       >
         {[
-          { num: 'Free',  label: 'To Get Started',      sub: 'No credit card required' },
-          { num: '🔒',    label: 'Bank-Level Security',  sub: 'Encrypted & never sold' },
-          { num: '4.8k',  label: 'People Signed Up',     sub: '↑ 340 new this month' },
-          { num: 'Any',   label: 'Device, Anytime',      sub: 'Web · iOS · Android soon' },
-        ].map((stat, i) => (
+          { num: 'Free',  label: 'To Get Started',      sub: 'No credit card required', show: true },
+          { num: '🔒',    label: 'Bank-Level Security',  sub: 'Encrypted & never sold', show: true },
+          { num: stats.total, label: 'People Signed Up',  sub: `↑ ${stats.newThisMonth} new this month`, show: totalCount >= 100 },
+          { num: 'Any',   label: 'Device, Anytime',      sub: 'Web · iOS · Android soon', show: true },
+        ].filter(s => s.show).map((stat, i, arr) => (
           <YStack
-            key={i}
+            key={stat.label}
             flex={1}
             minWidth={200}
             padding={48}
-            borderRightWidth={i === 3 ? 0 : 1}
+            borderRightWidth={i === arr.length - 1 ? 0 : 1}
             borderColor="rgba(13,61,61,0.1)"
             className="reveal"
           >
             <Text fontSize={48} fontWeight="900" color="$brandPrimary" fontFamily="$serif">{stat.num}</Text>
-            <Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} style={{ textTransform: 'uppercase' }} letterSpacing={1.5} marginTop={12}>{stat.label}</Text>
+            <Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} textTransform="uppercase" letterSpacing={1.5} marginTop={12}>{stat.label}</Text>
             <Text fontSize={11} color="$brandAccent" marginTop={8} fontFamily="$mono">{stat.sub}</Text>
           </YStack>
         ))}
@@ -261,7 +273,7 @@ export default function LandingPage() {
           className="reveal"
         >
           <YStack flex={1}>
-            <Text fontSize={12} color="$brandAccent" fontWeight="700" style={{ textTransform: 'uppercase' }} letterSpacing={4} marginBottom={24}>
+            <Text fontSize={12} color="$brandAccent" fontWeight="700" textTransform="uppercase" letterSpacing={4} marginBottom={24}>
               What You Can Do
             </Text>
             <Heading
@@ -335,7 +347,7 @@ export default function LandingPage() {
         >
           <XStack alignItems="center" gap={8}>
             <Circle size={6} backgroundColor="$brandAccent" />
-            <Text fontSize={12} color="$brandAccent" fontWeight="700" style={{ textTransform: 'uppercase' }} letterSpacing={2}>
+            <Text fontSize={12} color="$brandAccent" fontWeight="700" textTransform="uppercase" letterSpacing={2}>
               Your Progress Over Time
             </Text>
           </XStack>
@@ -367,11 +379,11 @@ export default function LandingPage() {
           <XStack justifyContent="center" gap={24} marginTop={24}>
             <XStack alignItems="center" gap={8}>
               <Circle size={10} backgroundColor="$brandAccent" />
-              <Text fontSize={11} color="$brandText" opacity={0.7} style={{ textTransform: 'uppercase' }} letterSpacing={1}>Net Worth</Text>
+              <Text fontSize={11} color="$brandText" opacity={0.7} textTransform="uppercase" letterSpacing={1}>Net Worth</Text>
             </XStack>
             <XStack alignItems="center" gap={8}>
               <View width={10} height={10} borderRadius={999} borderWidth={1} borderColor="$brandText" borderStyle="dashed" />
-              <Text fontSize={11} color="$brandText" opacity={0.7} style={{ textTransform: 'uppercase' }} letterSpacing={1}>Liabilities</Text>
+              <Text fontSize={11} color="$brandText" opacity={0.7} textTransform="uppercase" letterSpacing={1}>Liabilities</Text>
             </XStack>
           </XStack>
         </YStack>
@@ -398,7 +410,7 @@ export default function LandingPage() {
           style={{ filter: 'blur(80px)' }}
           pointerEvents="none"
         />
-        <Text fontSize={12} fontWeight="700" color="$brandAccent" style={{ textTransform: 'uppercase' }} letterSpacing={3} marginBottom={24}>Get Started Today</Text>
+        <Text fontSize={12} fontWeight="700" color="$brandAccent" textTransform="uppercase" letterSpacing={3} marginBottom={24}>Get Started Today</Text>
         <h2 style={{ margin: 0, marginBottom: '24px', padding: 0, fontFamily: 'Georgia, serif', fontSize: 'clamp(36px, 5vw, 60px)', fontWeight: 900, color: '#0D3D3D', textAlign: 'center', maxWidth: '800px', lineHeight: 1.1 }}>
           Your path to{' '}
           <em style={{ fontStyle: 'italic', fontWeight: 300, color: '#1A7A7A' }}>financial freedom</em>
@@ -412,17 +424,15 @@ export default function LandingPage() {
             size="$5"
             borderRadius={0}
             backgroundColor="$brandPrimary"
-            color="$brandWhite"
-            fontWeight="700"
-            style={{ textTransform: 'uppercase' }}
-            letterSpacing={1.5}
             paddingHorizontal={48}
             hoverStyle={{ backgroundColor: '$brandAccent' }}
             shadowColor="black"
             shadowOpacity={0.1}
             shadowRadius={20}
           >
-            Create Your Free Account
+            <Text color="$brandWhite" fontWeight="700" textTransform="uppercase" letterSpacing={1.5}>
+              Create Your Free Account
+            </Text>
           </Button>
         </Link>
       </YStack>
@@ -443,9 +453,9 @@ export default function LandingPage() {
       >
         <Text fontSize={11} color="$brandText" opacity={0.5} fontFamily="$mono">© 2026 StashFlow Inc. All rights reserved.</Text>
         <XStack gap={32}>
-          <Link href="#" style={{ textDecoration: 'none' }}><Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} style={{ textTransform: 'uppercase' }} letterSpacing={1}>Privacy</Text></Link>
-          <Link href="#" style={{ textDecoration: 'none' }}><Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} style={{ textTransform: 'uppercase' }} letterSpacing={1}>Terms</Text></Link>
-          <Link href="#" style={{ textDecoration: 'none' }}><Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} style={{ textTransform: 'uppercase' }} letterSpacing={1}>Security</Text></Link>
+          <Link href="#" style={{ textDecoration: 'none' }}><Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} textTransform="uppercase" letterSpacing={1}>Privacy</Text></Link>
+          <Link href="#" style={{ textDecoration: 'none' }}><Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} textTransform="uppercase" letterSpacing={1}>Terms</Text></Link>
+          <Link href="#" style={{ textDecoration: 'none' }}><Text fontSize={11} fontWeight="700" color="$brandText" opacity={0.6} textTransform="uppercase" letterSpacing={1}>Security</Text></Link>
         </XStack>
       </XStack>
 

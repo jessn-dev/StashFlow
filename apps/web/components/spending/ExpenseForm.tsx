@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { addExpense } from '@/app/dashboard/spending/actions'
 import { Database } from '@stashflow/core'
 import { XStack, YStack, Text, Input, Button, Label, TextArea, Spinner } from 'tamagui'
@@ -13,6 +14,7 @@ const CATEGORIES: ExpenseCategory[] = [
 ]
 
 export default function ExpenseForm() {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -26,6 +28,7 @@ export default function ExpenseForm() {
       setMessage({ type: 'success', text: 'Expense added successfully!' })
       const form = document.getElementById('expense-form') as HTMLFormElement
       form?.reset()
+      router.refresh()
     }
     setLoading(false)
   }
@@ -86,6 +89,8 @@ export default function ExpenseForm() {
                 <option value="EUR">EUR (€)</option>
                 <option value="GBP">GBP (£)</option>
                 <option value="JPY">JPY (¥)</option>
+                <option value="PHP">PHP (₱)</option>
+                <option value="SGD">SGD ($)</option>
               </select>
             </YStack>
           </XStack>
@@ -185,7 +190,6 @@ export default function ExpenseForm() {
 
           {/* Submit */}
           <Button
-            theme="active"
             disabled={loading}
             onPress={(e) => {
               const form = (e.target as any).closest('form')
@@ -193,13 +197,20 @@ export default function ExpenseForm() {
             }}
             borderRadius={0}
             backgroundColor="$brandPrimary"
-            color="$brandWhite"
-            fontWeight="700"
-            letterSpacing={1}
-            textTransform="uppercase"
             pressStyle={{ opacity: 0.8 }}
           >
-            {loading ? <Spinner color="$brandWhite" /> : 'Add Expense'}
+            {loading ? (
+              <Spinner color="$brandWhite" />
+            ) : (
+              <Text
+                color="$brandWhite"
+                fontWeight="700"
+                letterSpacing={1}
+                textTransform="uppercase"
+              >
+                Add Expense
+              </Text>
+            )}
           </Button>
 
         </YStack>

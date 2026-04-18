@@ -20,6 +20,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // tamagui.config.ts
 var tamagui_config_exports = {};
 __export(tamagui_config_exports, {
+  darkTheme: () => darkTheme,
   default: () => tamagui_config_default,
   tamaguiConfig: () => tamaguiConfig,
   theme: () => theme
@@ -81,48 +82,8 @@ Expected a subset of: ${expected.join(", ")}
   return tamaguiConfig2;
 };
 
-// ../../node_modules/@tamagui/font-inter/dist/esm/index.mjs
+// ../../node_modules/tamagui/dist/esm/index.mjs
 var import_core2 = require("@tamagui/core");
-var createInterFont = /* @__PURE__ */ __name((font = {}, {
-  sizeLineHeight = /* @__PURE__ */ __name((size2) => size2 + 10, "sizeLineHeight"),
-  sizeSize = /* @__PURE__ */ __name((size2) => size2 * 1, "sizeSize")
-} = {}) => {
-  const size2 = Object.fromEntries(Object.entries({
-    ...defaultSizes,
-    ...font.size
-  }).map(([k, v]) => [k, sizeSize(+v)]));
-  return (0, import_core2.createFont)({
-    family: import_core2.isWeb ? 'Inter, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' : "Inter",
-    lineHeight: Object.fromEntries(Object.entries(size2).map(([k, v]) => [k, sizeLineHeight((0, import_core2.getVariableValue)(v))])),
-    weight: {
-      4: "300"
-    },
-    letterSpacing: {
-      4: 0
-    },
-    ...font,
-    size: size2
-  });
-}, "createInterFont");
-var defaultSizes = {
-  1: 11,
-  2: 12,
-  3: 13,
-  4: 14,
-  true: 14,
-  5: 16,
-  6: 18,
-  7: 20,
-  8: 23,
-  9: 30,
-  10: 46,
-  11: 55,
-  12: 62,
-  13: 72,
-  14: 92,
-  15: 114,
-  16: 134
-};
 
 // ../../node_modules/@tamagui/shorthands/dist/esm/index.mjs
 var shorthands = {
@@ -2604,20 +2565,157 @@ var tokens = (0, import_web.createTokens)({
 });
 
 // tamagui.config.ts
-var headingFont = createInterFont();
-var bodyFont = createInterFont();
-var monoFont = createInterFont({ family: "monospace" });
+var headingFont = (0, import_core2.createFont)({
+  family: "var(--font-google-sans)",
+  size: {
+    1: 12,
+    2: 14,
+    3: 16,
+    4: 18,
+    5: 22,
+    6: 26,
+    7: 32,
+    8: 40,
+    9: 52,
+    10: 66
+  },
+  lineHeight: {
+    1: 16,
+    2: 20,
+    3: 24,
+    4: 26,
+    5: 30,
+    6: 34,
+    7: 40
+  },
+  weight: {
+    1: "100",
+    2: "200",
+    3: "300",
+    4: "400",
+    5: "500",
+    6: "600",
+    7: "700",
+    8: "800",
+    9: "900"
+  },
+  letterSpacing: {
+    4: 0,
+    7: -0.5
+  }
+});
+var bodyFont = (0, import_core2.createFont)({
+  family: "var(--font-google-sans)",
+  size: {
+    1: 13,
+    2: 15,
+    3: 17,
+    4: 19,
+    5: 21,
+    6: 24,
+    7: 30
+  },
+  lineHeight: {
+    1: 18,
+    2: 22,
+    3: 26,
+    4: 28,
+    5: 32
+  },
+  weight: {
+    1: "100",
+    2: "200",
+    3: "300",
+    4: "400",
+    5: "500",
+    6: "600",
+    7: "700",
+    8: "800",
+    9: "900"
+  },
+  letterSpacing: {
+    4: 0,
+    7: -0.2
+  }
+});
+var monoFont = (0, import_core2.createFont)({
+  family: "var(--font-mono)",
+  size: {
+    1: 11,
+    2: 13,
+    3: 15,
+    4: 17
+  },
+  lineHeight: {
+    1: 16,
+    2: 20,
+    3: 24
+  }
+});
+var serifFont = (0, import_core2.createFont)({
+  family: "Georgia, serif",
+  size: {
+    1: 12,
+    2: 14,
+    3: 16,
+    4: 18,
+    5: 22,
+    6: 26,
+    7: 32,
+    8: 40,
+    9: 52,
+    10: 66
+  },
+  lineHeight: {
+    1: 16,
+    2: 20,
+    3: 24,
+    4: 26,
+    5: 30,
+    6: 34,
+    7: 40
+  },
+  weight: {
+    1: "100",
+    2: "200",
+    3: "300",
+    4: "400",
+    5: "500",
+    6: "600",
+    7: "700",
+    8: "800",
+    9: "900"
+  },
+  letterSpacing: { 4: 0 }
+});
 var theme = {
   brandPrimary: "#0D3D3D",
   brandSecondary: "#1A7A7A",
   brandAccent: "#1A7A7A",
-  brandBg: "#EFEFEF",
+  brandBg: "#F0F2F5",
   brandWhite: "#FFFFFF",
   brandText: "#111827",
   brandTextSub: "#6B7280",
-  // Standard Tamagui compatibility
+  // Standard Tamagui compatibility tokens
   background: "#FFFFFF",
-  color: "#111827"
+  color: "#111827",
+  borderColor: "rgba(13,61,61,0.1)",
+  outlineColor: "rgba(13,61,61,0.2)",
+  shadowColor: "rgba(0,0,0,0.1)"
+};
+var darkTheme = {
+  brandPrimary: "#1A7A7A",
+  brandSecondary: "#4ECDC4",
+  brandAccent: "#4ECDC4",
+  brandBg: "#0d1117",
+  brandWhite: "#1c2333",
+  brandText: "#e6edf3",
+  brandTextSub: "#8b949e",
+  background: "#0d1117",
+  color: "#e6edf3",
+  borderColor: "rgba(255,255,255,0.1)",
+  outlineColor: "rgba(255,255,255,0.2)",
+  shadowColor: "rgba(0,0,0,0.4)"
 };
 var tamaguiConfig = createTamagui({
   media: {
@@ -2643,7 +2741,7 @@ var tamaguiConfig = createTamagui({
     },
     dark: {
       ...themes.dark,
-      ...theme
+      ...darkTheme
     }
   },
   tokens,
@@ -2651,12 +2749,14 @@ var tamaguiConfig = createTamagui({
   fonts: {
     heading: headingFont,
     body: bodyFont,
-    mono: monoFont
+    mono: monoFont,
+    serif: serifFont
   }
 });
 var tamagui_config_default = tamaguiConfig;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  darkTheme,
   tamaguiConfig,
   theme
 });

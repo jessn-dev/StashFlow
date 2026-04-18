@@ -13,6 +13,16 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov', 'html'],
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 70,
+        statements: 70,
+      },
+    },
     server: {
       deps: {
         inline: ['@stashflow/core', '@stashflow/api', '@stashflow/theme', 'react', 'react-dom']

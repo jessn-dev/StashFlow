@@ -112,10 +112,11 @@ enabled = true
 file_size_limit = "50MiB"
 
 # Uncomment to configure local storage buckets
-# [storage.buckets.images]
-# public = false
-# file_size_limit = "50MiB"
-# allowed_mime_types = ["image/png", "image/jpeg"]
+[storage.buckets.user_documents]
+public = false
+file_size_limit = "5MB"
+allowed_mime_types = ["application/pdf", "image/jpeg", "image/png"]
+
 # objects_path = "./images"
 
 # Allow connections via S3 compatible clients
@@ -151,9 +152,9 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://127.0.0.1:3000"
+site_url = "http://localhost:3000"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+additional_redirect_urls = ["http://localhost:3000/**", "http://127.0.0.1:3000/**", "stashflow://auth-callback"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).
@@ -302,10 +303,23 @@ max_frequency = "5s"
 # Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
-[auth.external.apple]
+[auth.external.google]
+enabled = true
+client_id = "env(GOOGLE_CLIENT_ID)"
+secret = "env(GOOGLE_CLIENT_SECRET)"
+# If enabled, the nonce check will be skipped. Required for local sign in with Google auth.
+skip_nonce_check = false
+# If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
+email_optional = false
+
+[auth.external.facebook]
 enabled = false
-client_id = ""
-# DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
+client_id = "env(FACEBOOK_CLIENT_ID)"
+secret = "env(FACEBOOK_CLIENT_SECRET)"
+
+[auth.external.apple]
+enabled = true
+client_id = "env(APPLE_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
 # Overrides the default auth redirectUrl.
 redirect_uri = ""
@@ -394,3 +408,57 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # declarative_schema_path = "./declarative"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+
+# [functions.calculate-dti]
+# enabled = true
+# verify_jwt = true
+
+# [functions.get-dashboard]
+# enabled = true
+# verify_jwt = true
+
+[functions.get-cash-flow]
+enabled = true
+verify_jwt = true
+import_map = "./functions/get-cash-flow/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/get-cash-flow/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/get-cash-flow/*.html" ]
+
+[functions.extract-loan-data]
+enabled = true
+verify_jwt = false
+import_map = "./functions/extract-loan-data/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/extract-loan-data/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/extract-loan-data/*.html" ]
+
+[functions.upload-document]
+enabled = true
+verify_jwt = true
+import_map = "./functions/upload-document/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/upload-document/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/upload-document/*.html" ]
+
+[functions.sync-market-data]
+enabled = true
+verify_jwt = false
+import_map = "./functions/sync-market-data/deno.json"
+entrypoint = "./functions/sync-market-data/index.ts"
+
+[functions.get-platform-stats]
+enabled = true
+verify_jwt = false
+import_map = "./functions/get-platform-stats/deno.json"
+entrypoint = "./functions/get-platform-stats/index.ts"

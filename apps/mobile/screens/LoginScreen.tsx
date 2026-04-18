@@ -38,6 +38,18 @@ export function LoginScreen() {
     setLoading(false)
   }
 
+  async function handleOAuth(provider: 'google' | 'apple') {
+    setLoading(true)
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: 'stashflow://auth-callback',
+      },
+    })
+    if (error) Alert.alert('OAuth Error', error.message)
+    setLoading(false)
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
@@ -129,10 +141,22 @@ export function LoginScreen() {
 
           {/* OAuth Placeholders */}
           <YStack gap={12}>
-            <Button variant="outline" borderColor="#E2E8F0" backgroundColor="white">
+            <Button 
+              variant="outline" 
+              borderColor="#E2E8F0" 
+              backgroundColor="white"
+              disabled={loading}
+              onPress={() => handleOAuth('google')}
+            >
               <Text color="$brandText" fontSize={14} fontWeight="500">Continue with Google</Text>
             </Button>
-            <Button variant="outline" borderColor="#E2E8F0" backgroundColor="white">
+            <Button 
+              variant="outline" 
+              borderColor="#E2E8F0" 
+              backgroundColor="white"
+              disabled={loading}
+              onPress={() => handleOAuth('apple')}
+            >
               <Text color="$brandText" fontSize={14} fontWeight="500">Continue with Apple</Text>
             </Button>
           </YStack>

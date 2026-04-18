@@ -2,6 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { getExpenses, createExpense, deleteExpense, getExpensesByCategory } from './expenses'
 import { SupabaseClient } from '@supabase/supabase-js'
 
+vi.mock('./profile', () => ({
+  getProfile: vi.fn().mockResolvedValue({ preferred_currency: 'USD' }),
+}))
+
+vi.mock('./exchange-rates', () => ({
+  fetchRateMap: vi.fn().mockResolvedValue({}),
+  convertCurrency: vi.fn((amount: number) => amount),
+}))
+
 describe('expenses queries', () => {
   const mockSupabase = {
     from: vi.fn(() => mockSupabase),

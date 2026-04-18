@@ -61,5 +61,36 @@ describe('income queries', () => {
       const result = await deleteIncome(mockSupabase, '456')
       expect(result).toBe(true)
     })
+
+    it('throws when deleteIncome errors', async () => {
+      vi.mocked(mockSupabase.from).mockReturnValue({
+        delete: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: new Error('delete error') })
+        })
+      } as any)
+      await expect(deleteIncome(mockSupabase, '123')).rejects.toThrow('delete error')
+    })
+  })
+
+  describe('error paths', () => {
+    it('throws when getIncomes errors', async () => {
+      vi.mocked(mockSupabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({ data: null, error: new Error('db error') })
+        })
+      } as any)
+      await expect(getIncomes(mockSupabase)).rejects.toThrow('db error')
+    })
+
+    it('throws when createIncome errors', async () => {
+      vi.mocked(mockSupabase.from).mockReturnValue({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: null, error: new Error('insert error') })
+          })
+        })
+      } as any)
+      await expect(createIncome(mockSupabase, {} as any)).rejects.toThrow('insert error')
+    })
   })
 })

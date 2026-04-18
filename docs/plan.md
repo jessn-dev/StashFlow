@@ -26,9 +26,10 @@ M12 — Global Loan Engine (Web + OCR)             ✅ Complete (Core Logic)
 M13 — Mobile App (all screens)                   ⏳ Pending
 M14 — Testing Suite (full coverage)              ⏳ Pending (Core ✅)
 M15 — CI/CD + Deployment                         ⏳ Pending
-M16 — Compliance & Documentation                 ⏳ Pending
+M16 — Privacy by Design & Transparency           ⏳ Pending
 M17 — Advanced Intelligence & Contingency        ✅ Complete
 M18 — Integrated Testing (Cypress)               ⏳ Pending
+M19 — Universal Statement Importer               ⏳ Pending
 ```
 
 ---
@@ -78,17 +79,19 @@ Bring the iOS/Android application to full feature parity with the web experience
 
 ---
 
-## Milestone 16 — Compliance & Documentation
+## Milestone 16 — Privacy by Design & Transparency
 **Status: ⏳ Pending**
 
 ### Objective
-Ensure the application meets legal and security standards for handling financial data prior to production release.
+Provide clear, standard disclosures regarding how user financial data is handled, ensuring trust without requiring bespoke legal contracts.
 
 ### Execution Plan
-1. **Legal Documentation**: Draft comprehensive Privacy Policy and Terms & Conditions tailored for financial data.
-2. **Security Documentation**: Create a public-facing security whitepaper detailing data encryption, OAuth flows, and Supabase RLS policies.
-3. **Web Integration**: Implement `/privacy` and `/terms` routes in the Next.js application.
-4. **Mobile Integration**: Add Privacy Policy and Terms & Conditions screens to the Expo app (accessible via settings).
+1. **Standard Disclosures**: Adapt an Open Source privacy policy template that explicitly states:
+    * All data is stored in the user's private Supabase instance.
+    * No data is sold or shared with 3rd party financial aggregators.
+    * Use of FRED® and Exchange Rate APIs is read-only and anonymous.
+2. **Web Integration**: Implement `/privacy` and `/terms` routes in the Next.js application using static markdown.
+3. **Mobile Integration**: Add a "Legal & Privacy" section to the Expo app settings.
 
 ---
 
@@ -124,6 +127,32 @@ Implement a robust End-to-End (E2E) integration testing suite using Cypress to v
 
 ---
 
+## Milestone 19 — Universal Statement Importer
+**Status: ⏳ Pending**
+
+### Objective
+Enable effortless account aggregation via local file processing (CSV/JSON/PDF), bypassing the need for expensive and invasive 3rd-party banking APIs.
+
+### Execution Plan
+1. **Importer Logic**: Build high-performance CSV/JSON parsers for major international and local banks.
+2. **AI Categorization**: Reuse LLM logic from Milestone 12 to automatically categorize imported transactions.
+3. **Audit Pipeline**: Cross-reference imported statements against existing manual entries to prevent duplicates.
+
+---
+
+## Decision Records (Rationale)
+### DR-001: Pivot from Paid Bank Linking (Aggregation)
+*   **Context**: Direct bank linking (Plaid/Salt Edge) requires expensive recurring contracts and complex multi-region legal compliance.
+*   **Decision**: Replaced with **Milestone 19: Universal Statement Importer**. 
+*   **Solution**: Build high-performance CSV/JSON parsers for major banks. This achieves aggregation on a free-tier budget while maintaining absolute privacy.
+
+### DR-002: Simplified Legal Approach
+*   **Context**: Professional legal drafting is a barrier for an MVP using free resources.
+*   **Decision**: Focus on "Privacy by Design" transparency.
+*   **Solution**: Use standardized templates that reflect the technical reality: your data stays in your Supabase.
+
+---
+
 ## Technical Audit & Backlog Items
 *   **Edge Functions**: `get-dashboard`, `get-cash-flow`, and `calculate-dti` are currently bypassed by direct frontend queries. These need full backend implementation for production security.
 *   **Automated Exchange Rates**: The `sync-exchange-rates` function requires a scheduled Cron Job.
@@ -131,7 +160,7 @@ Implement a robust End-to-End (E2E) integration testing suite using Cypress to v
 *   **OAuth Verification**: End-to-end testing required on physical devices for Google/Apple sign-in.
 *   **Error Handling**: React Error Boundaries need to be implemented across the dashboard to prevent cascading UI failures.
 *   **Restore Demo Button**: Add the 'See the Demo' video or interactive tour to the landing page.
-*   **Market Intel Automation**: Implement a scheduled Cron job (Supabase/GitHub) for the `sync-market-data` Edge Function.
+*   **Market Intel Automation**: Implement a scheduled Cron job (Supabase/GitHub) for the `sync_market_data` Edge Function.
 
 ---
 
@@ -145,3 +174,4 @@ Implement a robust End-to-End (E2E) integration testing suite using Cypress to v
 | 2026-04-17 | Added M16 (Compliance), updated Mobile App scope, and documented audit findings | — |
 | 2026-04-17 | Completed M17 (Advanced Intelligence & Contingency) | — |
 | 2026-04-17 | Completed M12 (Core Logic) and reached 94%+ coverage for core utilities (M14) | — |
+| 2026-04-17 | Pivoted M16 to standard disclosures and replaced paid bank linking with M19 (Universal Importer) | — |

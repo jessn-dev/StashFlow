@@ -37,12 +37,12 @@ StashFlow helps users take absolute control of their finances with pro-grade too
 ### Phase 2 — Mobile & Refinement (⏳ Active)
 - [ ] **Mobile App Parity** — Build dedicated screens for Loans, Spending, and Budgets in Expo.
 - [ ] **E2E Testing** — Implement Milestone 18: Integrated Testing with Cypress.
-- [ ] **Compliance** — Milestone 16: Draft and integrate Privacy, Terms, and Security whitepapers.
+- [ ] **Privacy by Design** — Milestone 16: Adapt open-source standard disclosures and transparency docs.
 - [ ] **Production Edge Logic** — Move heavy aggregations to secure Deno Edge Functions.
 
 ### Phase 3 — Scale & Intelligence (🔮 Future)
-- [ ] **ReceiptOps** — Automated invoice auditing and CSV reconciliation.
-- [ ] **Bank Linking** — Multi-region account aggregation.
+- [ ] **Universal Statement Importer** — Effortless aggregation via CSV/JSON statement parsing (Free-tier friendly).
+- [ ] **ReceiptOps** — Automated invoice auditing and AI reconciliation.
 - [ ] **Push Notifications** — Predictive alerts for budget breaches and payments.
 
 ---

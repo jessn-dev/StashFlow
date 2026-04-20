@@ -237,7 +237,8 @@ export default function LandingPage() {
       >
         {[
           { num: 'Free',  label: 'To Get Started',      sub: 'No credit card required', show: true },
-          { num: '🔒',    label: 'Bank-Level Security',  sub: 'Encrypted & never sold', show: true },
+          { num: '🔒',    label: 'Bank-Level Security',  sub: 'Encrypted & never sold', 
+            show: true },
           { num: stats.total, label: 'People Signed Up',  sub: `↑ ${stats.newThisMonth} new this month`, show: totalCount >= 100 },
           { num: 'Any',   label: 'Device, Anytime',      sub: 'Web · iOS · Android soon', show: true },
         ].filter(s => s.show).map((stat, i, arr) => (

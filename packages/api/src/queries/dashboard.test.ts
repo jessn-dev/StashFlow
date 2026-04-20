@@ -39,6 +39,9 @@ function mkChain(rows: any[]) {
 function makeSupabase(tableData: Record<string, any[]> = {}) {
   return {
     from: (table: string) => mkChain(tableData[table] ?? []),
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+    }
   } as unknown as SupabaseClient
 }
 

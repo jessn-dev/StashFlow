@@ -95,7 +95,7 @@ We maintain high standards for financial logic integrity. We use **Vitest** for 
 
 ## 4. Monorepo Architecture
 
-*   **`apps/web`**: Next.js 15 application using Tamagui for high-fidelity UI.
+*   **`apps/web`**: Next.js 16 application using Tamagui for high-fidelity UI.
 *   **`apps/mobile`**: Expo React Native application sharing 80% of logic with web.
 *   **`packages/core`**: The "Financial Brain". Pure TypeScript logic for amortization, DTI, and currency math.
 *   **`packages/api`**: Data access layer. Handles Supabase client initialization and complex query aggregations.

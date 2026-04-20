@@ -8,7 +8,7 @@ StashFlow follows a **Serverless Monorepo** architecture. We use Turborepo to ma
 ### 1.1 Components
 *   **The Shared Core**: Centralized financial math and design tokens.
 *   **API Gateway (Supabase)**: Provides Auth, PostgreSQL, Real-time sync, and Edge Functions.
-*   **Universal Client**: Web and Mobile frontends sharing 80% of their business logic.
+*   **Universal Client**: Web (Next.js 16) and Mobile frontends sharing 80% of their business logic.
 
 ---
 

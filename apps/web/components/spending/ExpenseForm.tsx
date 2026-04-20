@@ -58,8 +58,9 @@ export default function ExpenseForm() {
           {/* Amount + Currency */}
           <XStack gap={16} flexWrap="wrap">
             <YStack flex={1} minWidth={200}>
-              <Label {...labelProps}>Amount</Label>
+              <Label htmlFor="amount" {...labelProps}>Amount</Label>
               <Input
+                id="amount"
                 name="amount"
                 inputMode="decimal"
                 placeholder="0.00"
@@ -70,8 +71,9 @@ export default function ExpenseForm() {
               />
             </YStack>
             <YStack flex={1} minWidth={200}>
-              <Label {...labelProps}>Currency</Label>
+              <Label htmlFor="currency" {...labelProps}>Currency</Label>
               <select 
+                id="currency"
                 name="currency" 
                 defaultValue="USD" 
                 style={{
@@ -97,8 +99,9 @@ export default function ExpenseForm() {
 
           {/* Category */}
           <YStack>
-            <Label {...labelProps}>Category</Label>
+            <Label htmlFor="category" {...labelProps}>Category</Label>
             <select 
+              id="category"
               name="category" 
               required 
               style={{
@@ -121,8 +124,9 @@ export default function ExpenseForm() {
 
           {/* Description */}
           <YStack>
-            <Label {...labelProps}>Description</Label>
+            <Label htmlFor="description" {...labelProps}>Description</Label>
             <Input
+              id="description"
               name="description"
               placeholder="e.g. Weekly Groceries"
               borderRadius={0}
@@ -134,8 +138,9 @@ export default function ExpenseForm() {
 
           {/* Date */}
           <YStack>
-            <Label {...labelProps}>Date</Label>
+            <Label htmlFor="date" {...labelProps}>Date</Label>
             <Input
+              id="date"
               type="date"
               name="date"
               defaultValue={new Date().toISOString().split('T')[0]}
@@ -161,8 +166,9 @@ export default function ExpenseForm() {
 
           {/* Notes */}
           <YStack>
-            <Label {...labelProps}>Notes (Optional)</Label>
+            <Label htmlFor="notes" {...labelProps}>Notes (Optional)</Label>
             <TextArea
+              id="notes"
               name="notes"
               placeholder="Add any extra details..."
               height={80}
@@ -189,15 +195,17 @@ export default function ExpenseForm() {
           )}
 
           {/* Submit */}
-          <Button
+          <button
+            type="submit"
             disabled={loading}
-            onPress={(e) => {
-              const form = (e.target as any).closest('form')
-              if (form) form.requestSubmit()
+            style={{
+              borderRadius: 0,
+              backgroundColor: '#0D3D3D',
+              border: 'none',
+              padding: '12px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1,
             }}
-            borderRadius={0}
-            backgroundColor="$brandPrimary"
-            pressStyle={{ opacity: 0.8 }}
           >
             {loading ? (
               <Spinner color="$brandWhite" />
@@ -211,7 +219,7 @@ export default function ExpenseForm() {
                 Add Expense
               </Text>
             )}
-          </Button>
+          </button>
 
         </YStack>
       </form>

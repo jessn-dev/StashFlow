@@ -46,19 +46,19 @@ describe('Spending Module Components', () => {
     })
 
     it('shows error message on failure', async () => {
-      vi.mocked(addExpense).mockResolvedValue({ error: 'Failed to create' })
+      vi.mocked(addExpense).mockResolvedValue({ error: 'Submission failed' })
       
       await act(async () => {
         render(<ExpenseForm />)
       })
       
-      const submitButton = screen.getByRole('button', { name: /Add Expense/i })
+      const form = document.getElementById('expense-form') as HTMLFormElement
       
       await act(async () => {
-        fireEvent.click(submitButton)
+        fireEvent.submit(form)
       })
 
-      expect(await screen.findByText(/Failed to create/i)).toBeInTheDocument()
+      expect(await screen.findByText(/Submission failed/i)).toBeInTheDocument()
     })
   })
 

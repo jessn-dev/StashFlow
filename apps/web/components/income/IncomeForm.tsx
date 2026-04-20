@@ -11,6 +11,7 @@ type IncomeFrequency = Database['public']['Enums']['income_frequency']
 const FREQUENCIES: IncomeFrequency[] = ['one-time', 'weekly', 'monthly']
 
 export default function IncomeForm() {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
@@ -39,8 +40,9 @@ export default function IncomeForm() {
         <YStack gap={16}>
           <XStack gap={16} flexWrap="wrap">
             <YStack flex={1} minWidth={200}>
-              <Label fontSize={12} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5} marginBottom={4}>Amount</Label>
+              <Label htmlFor="amount" fontSize={12} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5} marginBottom={4}>Amount</Label>
               <Input 
+                id="amount"
                 name="amount" 
                 inputMode="decimal"
                 placeholder="0.00" 
@@ -52,8 +54,9 @@ export default function IncomeForm() {
             </YStack>
 
             <YStack flex={1} minWidth={200}>
-              <Label fontSize={12} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5} marginBottom={4}>Currency</Label>
+              <Label htmlFor="currency" fontSize={12} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5} marginBottom={4}>Currency</Label>
               <select 
+                id="currency"
                 name="currency" 
                 defaultValue="USD"
                 style={{
@@ -79,8 +82,9 @@ export default function IncomeForm() {
 
           <XStack gap={16} flexWrap="wrap">
             <YStack flex={1} minWidth={200}>
-              <Label fontSize={12} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5} marginBottom={4}>Source</Label>
+              <Label htmlFor="source" fontSize={12} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5} marginBottom={4}>Source</Label>
               <Input 
+                id="source"
                 type="text" 
                 name="source" 
                 placeholder="e.g. Monthly Salary" 
@@ -92,8 +96,9 @@ export default function IncomeForm() {
             </YStack>
 
             <YStack flex={1} minWidth={200}>
-              <Label fontSize={12} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5} marginBottom={4}>Frequency</Label>
+              <Label htmlFor="frequency" fontSize={12} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5} marginBottom={4}>Frequency</Label>
               <select 
+                id="frequency"
                 name="frequency" 
                 required
                 style={{
@@ -115,8 +120,9 @@ export default function IncomeForm() {
           </XStack>
 
           <YStack>
-            <Label fontSize={12} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5} marginBottom={4}>Date</Label>
+            <Label htmlFor="date" fontSize={12} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5} marginBottom={4}>Date</Label>
             <Input 
+              id="date"
               type="date" 
               name="date" 
               defaultValue={new Date().toISOString().split('T')[0]}
@@ -128,8 +134,9 @@ export default function IncomeForm() {
           </YStack>
 
           <YStack>
-            <Label fontSize={12} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5} marginBottom={4}>Notes (Optional)</Label>
+            <Label htmlFor="notes" fontSize={12} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5} marginBottom={4}>Notes (Optional)</Label>
             <TextArea 
+              id="notes"
               name="notes" 
               placeholder="Add any extra details..."
               height={96}
@@ -147,16 +154,17 @@ export default function IncomeForm() {
             </YStack>
           )}
 
-          <Button 
+          <button 
+            type="submit"
             disabled={loading}
-            onPress={(e) => {
-              // Workaround for Tamagui Button in form: it doesn't always submit automatically
-              const form = (e.target as any).closest('form')
-              if (form) form.requestSubmit()
+            style={{
+              borderRadius: 0,
+              backgroundColor: '#0D3D3D',
+              border: 'none',
+              padding: '12px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1,
             }}
-            borderRadius={0}
-            backgroundColor="$brandPrimary"
-            pressStyle={{ opacity: 0.8 }}
           >
             {loading ? (
               <Spinner color="$brandWhite" />
@@ -165,7 +173,7 @@ export default function IncomeForm() {
                 Add Income
               </Text>
             )}
-          </Button>
+          </button>
         </YStack>
       </form>
     </YStack>

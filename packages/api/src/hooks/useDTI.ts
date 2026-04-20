@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '../types'
-import { getDTIRatio, DTIResult } from '@stashflow/api'
+import { Database } from '@stashflow/core'
+import { getDTIRatio, DTIResult } from '../queries/dti'
 
 export function useDTI(supabase: SupabaseClient<Database>) {
   const [data, setData] = useState<DTIResult | null>(null)

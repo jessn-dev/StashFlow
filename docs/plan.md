@@ -14,7 +14,7 @@ M1  — Monorepo Scaffold                    ✅ Complete
 M2  — Supabase Schema + RLS               ✅ Complete
 M3  — Auth Flow (Web + Mobile)             ✅ Complete
 M4a — Core Logic, API Layer & Seed Data    ✅ Complete
-M4b — Live Dashboards (Web & Mobile)       ✅ Complete
+M4b — Live Dashboards (Web & Mobile)       ✅ Complete (Next.js 16)
 M5  — Spending Module (Web)                     ✅ Complete
 M6  — Income Module (Web)                       ✅ Complete
 M7  — Loans Module + Scheduler (Web)             ✅ Complete
@@ -23,13 +23,14 @@ M9  — Currencies Module (Web + Sync)             ✅ Complete
 M10 — Advanced Budgeting & Cash Flow (Web)       ✅ Complete
 M11 — Edge Functions (Aggregation & Sync)        ✅ Complete (Pending Prod Logic)
 M12 — Global Loan Engine (Web + OCR)             ✅ Complete (Core Logic)
-M13 — Mobile App (all screens)                   ⏳ Pending
+M13 — Mobile App (all screens)                   ✅ Complete
 M14 — Testing Suite (full coverage)              ⏳ Pending (Core ✅)
 M15 — CI/CD + Deployment                         ⏳ Pending
 M16 — Privacy by Design & Transparency           ⏳ Pending
 M17 — Advanced Intelligence & Contingency        ✅ Complete
 M18 — Integrated Testing (Cypress)               ⏳ Pending
 M19 — Universal Statement Importer               ⏳ Pending
+M20 — User Onboarding & Interactive Tutorials    ⏳ In Progress
 ```
 
 ---
@@ -48,16 +49,16 @@ Implement a multi-regional loan management system capable of handling complex am
 ---
 
 ## Milestone 13 — Mobile App (Expo) Parity
-**Status: ⏳ Pending**
+**Status: ✅ Complete**
 
 ### Objective
 Bring the iOS/Android application to full feature parity with the web experience, utilizing shared logic from `@stashflow/core` and `@stashflow/api`.
 
 ### Execution Plan
 1. **Navigation Framework**: Bottom tab navigator implemented.
-2. **Loans Module**: Build mobile screens for active loans and detailed repayment schedules.
-3. **Spending & Income**: Implement mobile-optimized forms and historical lists.
-4. **Goals & Budgets**: Create screens for tracking savings targets and category limits.
+2. **Loans Module**: Build mobile screens for active loans and detailed repayment schedules. (Implemented)
+3. **Spending & Income**: Implement mobile-optimized forms and historical lists. (Implemented)
+4. **Goals & Budgets**: Create screens for tracking savings targets and category limits. (Implemented)
 
 ---
 
@@ -104,10 +105,14 @@ Leverage external macroeconomic data and internal high-volatility logic to provi
 ### Execution Plan
 1. **Market Intelligence**:
     * Integrate FRED API (Federal Reserve Economic Data) to track local inflation and sector trends. (Implemented)
-    * Build an analysis engine to cross-reference user spending categories against sector inflation. (Implemented)
+    * Build an analysis engine to cross-reference user spending against sector inflation. (Implemented)
+    * **AI Resilience**: Implemented a multi-provider fallback system (Gemini -> Groq/Llama3) in the `macro-financial-advisor` function to ensure 24/7 availability of regional insights. (Implemented)
 2. **Contingency Protocol**:
     * Implement a "One-Click" survival mode that pauses discretionary goals and recalculates the budget for bare-metal essentials. (Implemented)
-    * Build a "Liquid Runway" forecast display for high-volatility periods. (Implemented)
+3. **Elite Dashboard V7**:
+    * Re-architected the dashboard into a "Financial Assistant" model focusing on closed-loop UX (See -> Understand -> Fix).
+    * Implemented the Smart Budget Drawer with guided AI fixes, interactive sliders, and real-time impact summary.
+    * Re-designed the Spending Breakdown with multi-segment donut charts and category comparison bars for rapid scanning. (Implemented)
 
 ---
 
@@ -137,6 +142,19 @@ Enable effortless account aggregation via local file processing (CSV/JSON/PDF), 
 1. **Importer Logic**: Build high-performance CSV/JSON parsers for major international and local banks.
 2. **AI Categorization**: Reuse LLM logic from Milestone 12 to automatically categorize imported transactions.
 3. **Audit Pipeline**: Cross-reference imported statements against existing manual entries to prevent duplicates.
+
+---
+
+## Milestone 20 — User Onboarding & Interactive Tutorials
+**Status: ⏳ In Progress**
+
+### Objective
+Create a seamless entry experience for new users, guiding them through the application's unique AI-driven features.
+
+### Execution Plan
+1. **Interactive Tour**: Implement a "first-run" guided tour of the redesigned dashboard (Summary Strip, Cash Flow, Spending Breakdown).
+2. **Setup Wizard**: Create a step-by-step wizard to help users establish their initial budgets and financial goals. (In Progress: `BudgetSetupWizard.tsx` implemented)
+3. **Contextual Help**: Add tooltips and an interactive "Help Center" drawer for complex metrics like DTI and Macro Multipliers.
 
 ---
 
@@ -175,3 +193,5 @@ Enable effortless account aggregation via local file processing (CSV/JSON/PDF), 
 | 2026-04-17 | Completed M17 (Advanced Intelligence & Contingency) | — |
 | 2026-04-17 | Completed M12 (Core Logic) and reached 94%+ coverage for core utilities (M14) | — |
 | 2026-04-17 | Pivoted M16 to standard disclosures and replaced paid bank linking with M19 (Universal Importer) | — |
+| 2026-04-19 | Finalized Elite Dashboard (V1-V7) with high-fidelity charts, smart budget drawer, and actionable AI insights | — |
+| 2026-04-19 | Implemented AI Resilience fallback (Gemini -> Groq) and defined M20 (User Onboarding) | — |

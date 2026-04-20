@@ -46,19 +46,19 @@ describe('Income Module Components', () => {
     })
 
     it('shows error message on failure', async () => {
-      vi.mocked(addIncome).mockResolvedValue({ error: 'Failed to create' })
+      vi.mocked(addIncome).mockResolvedValue({ error: 'Submission failed' })
       
       await act(async () => {
         render(<IncomeForm />)
       })
       
-      const submitButton = screen.getByRole('button', { name: /Add Income/i })
+      const form = document.getElementById('income-form') as HTMLFormElement
       
       await act(async () => {
-        fireEvent.click(submitButton)
+        fireEvent.submit(form)
       })
 
-      expect(await screen.findByText(/Failed to create/i)).toBeInTheDocument()
+      expect(await screen.findByText(/Submission failed/i)).toBeInTheDocument()
     })
   })
 })

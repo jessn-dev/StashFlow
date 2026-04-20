@@ -4,7 +4,7 @@
 
 ![Status](https://img.shields.io/badge/status-active%20development-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Stack](https://img.shields.io/badge/stack-Next.js%2015%20%7C%20Expo%2054%20%7C%20Supabase-blue)
+![Stack](https://img.shields.io/badge/stack-Next.js%2016%20%7C%20Expo%2054%20%7C%20Supabase-blue)
 ![Coverage](https://img.shields.io/badge/coverage-94%25-brightgreen)
 
 ---
@@ -26,7 +26,7 @@ StashFlow helps users take absolute control of their finances with pro-grade too
 
 ### Phase 1 — MVP (✅ Core Logic Complete)
 - [x] Architecture design & API definitions
-- [x] Monorepo scaffold (Turborepo + Next.js 15 + Expo 54)
+- [x] Monorepo scaffold (Turborepo + Next.js 16 + Expo 54)
 - [x] Supabase schema, RLS policies, and automated triggers
 - [x] Auth flow (Email/Password + Google/Apple OAuth)
 - [x] Live Dashboards (Real-time sync & revalidation)
@@ -35,10 +35,12 @@ StashFlow helps users take absolute control of their finances with pro-grade too
 - [x] Market Intel & Contingency Protocol
 
 ### Phase 2 — Mobile & Refinement (⏳ Active)
+- [x] **Elite Financial Assistant** — Redesigned dashboard with actionable AI insights and closed-loop UX.
+- [x] **AI Resilience** — Multi-provider fallback architecture (Gemini + Groq).
+- [ ] **User Onboarding** — Milestone 20: Interactive tours and tutorials for new users.
 - [ ] **Mobile App Parity** — Build dedicated screens for Loans, Spending, and Budgets in Expo.
 - [ ] **E2E Testing** — Implement Milestone 18: Integrated Testing with Cypress.
 - [ ] **Privacy by Design** — Milestone 16: Adapt open-source standard disclosures and transparency docs.
-- [ ] **Production Edge Logic** — Move heavy aggregations to secure Deno Edge Functions.
 
 ### Phase 3 — Scale & Intelligence (🔮 Future)
 - [ ] **Universal Statement Importer** — Effortless aggregation via CSV/JSON statement parsing (Free-tier friendly).
@@ -51,7 +53,7 @@ StashFlow helps users take absolute control of their finances with pro-grade too
 
 | Layer | Technology | Notes |
 |---|---|---|
-| **Web App** | Next.js 15 (App Router) | High-contrast UI with Tamagui |
+| **Web App** | Next.js 16 (App Router) | High-contrast UI with Tamagui |
 | **Mobile App** | React Native + Expo 54 | Shared logic from core/api packages |
 | **Backend** | Supabase | PostgreSQL, Auth, Edge Functions, RLS |
 | **Business Logic** | `@stashflow/core` | 94.4% Branch Coverage via Vitest |

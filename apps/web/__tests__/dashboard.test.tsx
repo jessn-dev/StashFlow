@@ -1,4 +1,4 @@
-import { render, screen, act } from '@testing-library/react'
+import { render, screen, act, fireEvent } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 import DashboardUI from '@/components/dashboard/DashboardUI'
 import { DashboardPayload } from '@stashflow/api'
@@ -52,8 +52,10 @@ const mockPayload: DashboardPayload = {
     { month: 'Apr', income: 5000, expense: 1200 },
   ],
   categoryBreakdown: [
-    { category: 'housing', amount: 1200 },
+    { category: 'housing', amount: 1200, vsLastMonth: null },
   ],
+  subscriptions: [],
+  habitTrend: { isImproving: false, score: 0, message: 'Keep tracking...' },
   goals: [],
   contingency: {
     active: false,
@@ -96,9 +98,9 @@ describe('DashboardUI', () => {
       render(<DashboardUI payload={mockPayload} userEmail="test@example.com" />)
     })
 
-    expect(screen.getByText('Transaction History')).toBeInTheDocument()
-    expect(screen.getByText('Monthly Rent')).toBeInTheDocument()
-    expect(screen.getByText('Monthly Salary')).toBeInTheDocument()
+    expect(screen.getByText('Transactions')).toBeInTheDocument()
+    expect(screen.getAllByText('Monthly Rent').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Monthly Salary').length).toBeGreaterThan(0)
   })
 
   it('renders empty state when no transactions are present', async () => {
@@ -111,7 +113,7 @@ describe('DashboardUI', () => {
       render(<DashboardUI payload={emptyPayload} userEmail="test@example.com" />)
     })
 
-    expect(screen.getByText('No transactions yet.')).toBeInTheDocument()
+    expect(screen.getByText(/No matches found/i)).toBeInTheDocument()
   })
 
   it('renders the financial health card with DTI data', async () => {
@@ -119,7 +121,13 @@ describe('DashboardUI', () => {
       render(<DashboardUI payload={mockPayload} userEmail="test@example.com" />)
     })
 
-    expect(screen.getByText('Debt-to-Income Ratio')).toBeInTheDocument()
-    expect(screen.getByText('24%')).toBeInTheDocument()
+    // Click the DTI Ratio sidebar button to switch view
+    const dtiButton = screen.getByRole('button', { name: /DTI Ratio/i })
+    await act(async () => {
+      fireEvent.click(dtiButton)
+    })
+
+    expect(screen.getAllByText(/DTI Ratio/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/24/).length).toBeGreaterThan(0)
   })
 })

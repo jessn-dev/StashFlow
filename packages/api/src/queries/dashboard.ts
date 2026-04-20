@@ -1,6 +1,8 @@
 import { SupabaseClient } from '@supabase/supabase-js'
-import { Database, DashboardSummary, Transaction, calculateDTIRatio } from '@stashflow/core'
+import { Database, DashboardSummary, Transaction, calculateDTIRatio, BudgetRecommendation } from '@stashflow/core'
 import { fetchRateMap, convertCurrency, RateMap } from './exchange-rates'
+import { getSmartBudgetRecommendation } from './budgets'
+import { detectSubscriptions } from './expenses'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function toMonthly(amount: number, frequency: string): number {
@@ -69,7 +71,15 @@ export interface DashboardPayload {
   categoryBreakdown: {
     category: string
     amount: number
+    vsLastMonth: number | null
   }[]
+  budgetRecommendation?: BudgetRecommendation
+  subscriptions: any[]
+  habitTrend?: {
+    isImproving: boolean
+    score: number
+    message: string
+  }
   goals: {
     id: string
     name: string
@@ -120,13 +130,14 @@ export async function getDashboardPayload(
     { data: categoryMeta },
     { data: rawTrends    },
     rates,
+    budgetRec,
   ] = await Promise.all([
     supabase.from('incomes').select('amount, frequency, date, currency'),
     supabase.from('loans')
       .select('principal, installment_amount, currency, name')
       .eq('status', 'active'),
     supabase.from('expenses').select('amount, category, currency').gte('date', thisMonthStart),
-    supabase.from('expenses').select('amount, currency').gte('date', lastMonthStart).lte('date', lastMonthEnd),
+    supabase.from('expenses').select('amount, category, currency').gte('date', lastMonthStart).lte('date', lastMonthEnd),
     supabase.from('incomes').select('*').order('date', { ascending: false }).limit(10),
     supabase.from('expenses').select('*').order('date', { ascending: false }).limit(10),
     supabase.from('expenses').select('amount, date, currency').gte('date', sixMonthsAgoStart),
@@ -134,6 +145,7 @@ export async function getDashboardPayload(
     supabase.from('category_metadata').select('category, is_essential'),
     supabase.from('market_trends').select('*').order('period', { ascending: false }),
     fetchRateMap(supabase).catch((): RateMap => ({})),
+    getSmartBudgetRecommendation(supabase).catch(() => undefined),
   ])
 
   // ── Goals (optional table — may not exist yet) ───────────────────────────────
@@ -211,15 +223,61 @@ export async function getDashboardPayload(
     .reduce((s, l) => s + conv(l.installment_amount, l.currency), 0)
   const frontEndRatio = monthlyIncome > 0 ? (housingDebt / monthlyIncome) * 100 : 0
 
-  // ── Category breakdown (this month) ─────────────────────────────────────────
+  // ── 6-month trend (MOVE UP TO FIX REFERENCE ERROR) ───────────────────────────
+  const trend: DashboardPayload['trend'] = []
+  for (let i = 5; i >= 0; i--) {
+    const d     = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const ym    = ymStr(d)
+    const label = d.toLocaleString('en-US', { month: 'short' })
+    const incomeSum  = allInc.filter(r => monthKey(r.date) === ym).reduce((s, r) => s + conv(r.amount, r.currency), 0)
+    const expenseSum = (trendExp ?? []).filter(r => monthKey(r.date) === ym).reduce((s, r) => s + conv(r.amount, r.currency ?? null), 0)
+    trend.push({ month: label, income: incomeSum, expense: expenseSum })
+  }
+
+  // ── Category breakdown (this month + vs last month) ─────────────────────────
   const catMap: Record<string, number> = {}
   ;(thisMonthExp ?? []).forEach(e => {
     const cat = e.category ?? 'other'
     catMap[cat] = (catMap[cat] ?? 0) + conv(e.amount, e.currency ?? null)
   })
+  const lastCatMap: Record<string, number> = {}
+  ;(lastMonthExp ?? []).forEach((e: any) => {
+    const cat = e.category ?? 'other'
+    lastCatMap[cat] = (lastCatMap[cat] ?? 0) + conv(e.amount, e.currency ?? null)
+  })
   const categoryBreakdown = Object.entries(catMap)
-    .map(([category, amount]) => ({ category, amount }))
+    .map(([category, amount]) => {
+      const prev = lastCatMap[category] ?? 0
+      const vsLastMonth = prev > 0 ? Math.round(((amount - prev) / prev) * 100) : null
+      return { category, amount, vsLastMonth }
+    })
     .sort((a, b) => b.amount - a.amount)
+
+  // ── Subscription Detection ──────────────────────────────────────────────────
+  const subscriptions = detectSubscriptions(recentExp ?? [])
+
+  // ── Habit Trend Analysis ────────────────────────────────────────────────────
+  let isImproving = false
+  let improvementScore = 0
+  if (trend.length >= 3) {
+    const latest = trend[trend.length - 1].expense
+    const mid = trend[trend.length - 2].expense
+    const old = trend[trend.length - 3].expense
+    
+    // Improvement means latest < mid < old
+    if (latest < mid && mid < old && old > 0) {
+      isImproving = true
+      improvementScore = Math.round(((old - latest) / old) * 100)
+    }
+  }
+
+  const habitTrend = {
+    isImproving,
+    score: improvementScore,
+    message: isImproving 
+      ? `Great job! Your monthly spending has decreased by ${improvementScore}% over the last 3 months.`
+      : "Keep tracking your expenses to unlock habit insights."
+  }
 
   // ── Recent transactions ──────────────────────────────────────────────────────
   const recentTransactions: Transaction[] = [
@@ -238,17 +296,6 @@ export async function getDashboardPayload(
   ]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 10)
-
-  // ── 6-month trend ────────────────────────────────────────────────────────────
-  const trend: DashboardPayload['trend'] = []
-  for (let i = 5; i >= 0; i--) {
-    const d     = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const ym    = ymStr(d)
-    const label = d.toLocaleString('en-US', { month: 'short' })
-    const incomeSum  = allInc.filter(r => monthKey(r.date) === ym).reduce((s, r) => s + conv(r.amount, r.currency), 0)
-    const expenseSum = (trendExp ?? []).filter(r => monthKey(r.date) === ym).reduce((s, r) => s + conv(r.amount, r.currency ?? null), 0)
-    trend.push({ month: label, income: incomeSum, expense: expenseSum })
-  }
 
   // ── Goals ────────────────────────────────────────────────────────────────────
   const goals: DashboardPayload['goals'] = goalsData.map(g => ({
@@ -293,6 +340,7 @@ export async function getDashboardPayload(
       marketTrends.push({
         name: latest.series_name,
         category: latest.category,
+        currency: latest.currency || 'USD',
         inflationRate: parseFloat(inflation.toFixed(2)),
         status: inflation > 0.1 ? 'up' : inflation < -0.1 ? 'down' : 'stable'
       })
@@ -339,6 +387,9 @@ export async function getDashboardPayload(
     recentTransactions,
     trend,
     categoryBreakdown,
+    budgetRecommendation: budgetRec,
+    subscriptions,
+    habitTrend,
     goals,
     profile: {
       full_name:               profile?.full_name ?? null,

@@ -71,9 +71,19 @@ describe('Auth Server Actions', () => {
       expect(redirect).toHaveBeenCalledWith('/dashboard')
     })
 
-    it('should redirect with verification message if no session', async () => {
+    it('should redirect with validation error if no credentials', async () => {
+      const formData = new FormData()
+      await signup(formData)
+
+      expect(redirect).toHaveBeenCalledWith(expect.stringContaining('Please%20enter%20both%20email%20and%20password.'))
+    })
+
+    it('should redirect with verification message on success with no immediate session', async () => {
       mockSupabase.auth.signUp.mockResolvedValue({ data: { session: null }, error: null })
       const formData = new FormData()
+      formData.append('email', 'new@example.com')
+      formData.append('password', 'password123')
+
       await signup(formData)
 
       expect(redirect).toHaveBeenCalledWith(expect.stringContaining('check%20your%20email'))

@@ -1,6 +1,6 @@
 export * from './types'
 export type { Database } from './types/database.types'
 export * from './utils/dti'
-export * from './hooks/useDTI'
 export * from './utils/loans'
 export * from './utils/currency'
+export * from './utils/budget-recommender'

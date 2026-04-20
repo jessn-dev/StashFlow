@@ -76,3 +76,57 @@ export async function getExpensesByCategory(supabase: SupabaseClient<Database>) 
     amount: Number(amount.toFixed(2))
   }))
 }
+
+/**
+ * Intelligent Detection of Recurring Subscriptions
+ */
+export function detectSubscriptions(transactions: any[]) {
+  const recurringMap: Record<string, any[]> = {}
+  
+  // Group by exact description (normalized)
+  transactions.forEach(tx => {
+    if (tx.type !== 'expense') return
+    const key = tx.description?.toLowerCase().trim() || 'unknown'
+    if (!recurringMap[key]) recurringMap[key] = []
+    recurringMap[key].push(tx)
+  })
+
+  const detections: any[] = []
+
+  Object.entries(recurringMap).forEach(([name, items]) => {
+    if (items.length < 2) return // Need at least 2 occurrences
+
+    // Sort by date
+    const sorted = [...items].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    
+    // Check for consistent intervals (approx 28-32 days)
+    let consistent = true
+    let lastDate = new Date(sorted[0].date)
+    
+    for (let i = 1; i < sorted.length; i++) {
+      const currentDate = new Date(sorted[i].date)
+      const diffDays = Math.ceil(Math.abs(currentDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
+      
+      // If gap is too small (< 25) or too large (> 35), not a standard monthly sub
+      if (diffDays < 25 || diffDays > 35) {
+        consistent = false
+        break
+      }
+      lastDate = currentDate
+    }
+
+    if (consistent) {
+      detections.push({
+        name: items[0].description,
+        amount: items[0].amount,
+        currency: items[0].currency,
+        category: items[0].category,
+        frequency: 'monthly',
+        count: items.length,
+        lastDate: sorted[sorted.length - 1].date
+      })
+    }
+  })
+
+  return detections
+}

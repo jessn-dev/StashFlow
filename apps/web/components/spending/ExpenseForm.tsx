@@ -13,7 +13,7 @@ const CATEGORIES: ExpenseCategory[] = [
   'entertainment', 'education', 'personal', 'other',
 ]
 
-export default function ExpenseForm() {
+export default function ExpenseForm({ onSuccess }: { onSuccess?: () => void }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -28,6 +28,7 @@ export default function ExpenseForm() {
       setMessage({ type: 'success', text: 'Expense added successfully!' })
       const form = document.getElementById('expense-form') as HTMLFormElement
       form?.reset()
+      onSuccess?.()
       router.refresh()
     }
     setLoading(false)

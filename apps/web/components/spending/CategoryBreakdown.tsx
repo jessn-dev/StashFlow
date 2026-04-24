@@ -10,9 +10,11 @@ interface CategoryData {
 
 interface CategoryBreakdownProps {
   data: CategoryData[]
+  activeCategory?: string | null
+  onSelect?: (category: string) => void
 }
 
-export default function CategoryBreakdown({ data }: CategoryBreakdownProps) {
+export default function CategoryBreakdown({ data, activeCategory, onSelect }: CategoryBreakdownProps) {
   const total = data.reduce((sum, item) => sum + item.amount, 0)
   const sortedData = [...data].sort((a, b) => b.amount - a.amount)
 
@@ -32,10 +34,11 @@ export default function CategoryBreakdown({ data }: CategoryBreakdownProps) {
       <YStack gap={24}>
         {sortedData.map((item) => {
           const percentage = (item.amount / total) * 100
+          const isActive = activeCategory === item.category
           return (
-            <YStack key={item.category} gap={8}>
+            <YStack key={item.category} gap={8} cursor="pointer" onPress={() => onSelect?.(item.category)}>
               <XStack justifyContent="space-between" alignItems="flex-end">
-                <Text fontSize={11} fontWeight="700" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.2}>
+                <Text fontSize={11} fontWeight="700" color={isActive ? '$brandAccent' : '$brandPrimary'} textTransform="uppercase" letterSpacing={1.2}>
                   {item.category}
                 </Text>
                 <Text fontSize={12} fontFamily="$mono" color="$brandText" opacity={0.7}>
@@ -44,9 +47,10 @@ export default function CategoryBreakdown({ data }: CategoryBreakdownProps) {
               </XStack>
               <YStack width="100%" backgroundColor="$brandBg" height={8} overflow="hidden">
                 <YStack 
-                  backgroundColor="$brandAccent" 
+                  backgroundColor={isActive ? '$brandAccent' : '$brandPrimary'} 
                   height="100%" 
                   width={`${percentage}%`}
+                  opacity={isActive ? 1 : 0.6}
                   {...({ style: { transition: 'width 0.5s ease-in-out' } } as any)}
                 />
               </YStack>

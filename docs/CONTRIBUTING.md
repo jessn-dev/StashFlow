@@ -42,7 +42,7 @@ When `pnpm db:start` finishes, your terminal will print out your local Supabase 
 NEXT_PUBLIC_SUPABASE_URL=[http://127.0.0.1:54321](http://127.0.0.1:54321)
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_printed_anon_key_here
 ```
-2. Create a .env file in the Mobile App (apps/mobile/.env):
+2. (Future) Create a .env file in the Mobile App (apps/mobile/.env):
 ```
 EXPO_PUBLIC_SUPABASE_URL=[http://127.0.0.1:54321](http://127.0.0.1:54321)
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your_printed_anon_key_here
@@ -54,7 +54,7 @@ With the database running and environment variables set, spin up the development
 pnpm dev
 ```
 * Web App: http://localhost:3000
-* Mobile App: http://localhost:8081 (Metro Bundler)
+* (Future) Mobile App: http://localhost:8081 (Metro Bundler)
 * Local Supabase Studio: http://localhost:54323 (Use this to view your local database UI)
 ## 🔄 5. Database Update Protocol (Migrations)
 Never make permanent schema changes via the Supabase Studio UI. All changes must be codified in migration files so the rest of the team can pull them.
@@ -66,4 +66,4 @@ Never make permanent schema changes via the Supabase Studio UI. All changes must
 | Sync Types       |           pnpm db:types           |                            Generates strict TypeScript interfaces from the DB schema into @stashflow/core. |
 | New Migration    | npx supabase migration new <name> |                                                    Creates a new timestamped SQL file for schema changes. |
 
-*Note: Always run pnpm db:types after modifying the database schema or pulling a new migration to ensure the web and mobile apps maintain type safety.*
+*Note: Always run pnpm db:types after modifying the database schema or pulling a new migration to ensure the web app maintains type safety (and the mobile app for future compatibility).*

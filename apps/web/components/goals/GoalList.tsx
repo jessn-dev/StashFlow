@@ -10,9 +10,10 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal'
 
 interface GoalListProps {
   goals: Goal[]
+  onRefresh?: () => void
 }
 
-export default function GoalList({ goals }: GoalListProps) {
+export default function GoalList({ goals, onRefresh }: GoalListProps) {
   const router = useRouter()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
@@ -23,6 +24,7 @@ export default function GoalList({ goals }: GoalListProps) {
     await removeGoalAction(confirmingDeleteId)
     setDeletingId(null)
     setConfirmingDeleteId(null)
+    onRefresh?.()
     router.refresh()
   }
 

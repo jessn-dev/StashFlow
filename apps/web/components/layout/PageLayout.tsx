@@ -46,7 +46,7 @@ export default function PageLayout({ title, userEmail, children, backTo }: PageL
               </Text>
             </Link>
           )}
-          <Heading size="$2xl" color="$brandPrimary" fontWeight="700">{title}</Heading>
+          <Heading fontSize={32} color="$brandPrimary" fontWeight="700">{title}</Heading>
         </YStack>
 
         {children}

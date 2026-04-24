@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 --webpack",
-    "predev": "rm -rf .tamagui",
+    "predev": "rm -rf .tamagui && mkdir -p .tamagui",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
@@ -26,6 +26,7 @@
     "react": "19.2.5",
     "react-dom": "19.2.5",
     "react-native-svg": "^15.15.4",
+    "recharts": "^3.8.1",
     "tamagui": "2.0.0-rc.40",
     "tesseract.js": "^7.0.0",
     "xlsx": "^0.18.5"

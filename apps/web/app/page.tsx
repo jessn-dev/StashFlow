@@ -143,7 +143,7 @@ export default function LandingPage() {
 
       {/* Navigation */}
       <XStack
-        tag="nav"
+        
         position="fixed"
         top={0}
         left={0}
@@ -160,7 +160,7 @@ export default function LandingPage() {
       >
         <XStack alignItems="center" gap={8}>
           <Circle size={8} backgroundColor="$brandAccent" />
-          <Heading size="$lg" color="$brandPrimary" fontWeight="700" fontFamily="$heading">StashFlow</Heading>
+          <Heading fontSize={24} color="$brandPrimary" fontWeight="700" fontFamily="$heading">StashFlow</Heading>
         </XStack>
 
         <Link href="/login" style={{ textDecoration: 'none' }}>
@@ -170,7 +170,7 @@ export default function LandingPage() {
             borderWidth={1}
             borderColor="$brandPrimary"
             backgroundColor="transparent"
-            hoverStyle={{ backgroundColor: '$brandPrimary', color: 'white' }}
+            hoverStyle={{ backgroundColor: '$brandPrimary' }}
           >
             <Text color="inherit" fontWeight="700" textTransform="uppercase" letterSpacing={1}>Sign In</Text>
           </Button>
@@ -259,7 +259,7 @@ export default function LandingPage() {
       </XStack>
 
       {/* Core Capabilities */}
-      <YStack tag="section" backgroundColor="$brandBg" zIndex={10}>
+      <YStack  backgroundColor="$brandBg" zIndex={10}>
         {/* Section Header */}
         <XStack
           backgroundColor="$brandWhite"
@@ -292,12 +292,13 @@ export default function LandingPage() {
         </XStack>
 
         {/* Feature Cards */}
-        <View
-          display="grid"
-          gridTemplateColumns="repeat(auto-fit, minmax(300px, 1fr))"
-          backgroundColor="$brandWhite"
-          borderBottomWidth={1}
-          borderColor="rgba(13,61,61,0.1)"
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            backgroundColor: 'white',
+            borderBottom: '1px solid rgba(13,61,61,0.1)'
+          }}
         >
           {[
             { id: '01', title: 'Expense Tracking',   desc: 'Every purchase, subscription, and bill — automatically categorized so you always know where your money went.' },
@@ -317,16 +318,16 @@ export default function LandingPage() {
               className="reveal"
             >
               <Text fontSize={12} color="$brandAccent" opacity={0.7} fontFamily="$mono" letterSpacing={2} marginBottom={24}>{feat.id}</Text>
-              <Heading size="$md" color="$brandPrimary" fontWeight="700" marginBottom={12} fontFamily="$heading">{feat.title}</Heading>
+              <Heading fontSize={18} color="$brandPrimary" fontWeight="700" marginBottom={12} fontFamily="$heading">{feat.title}</Heading>
               <Text fontSize={14} color="$brandText" opacity={0.8} lineHeight={22}>{feat.desc}</Text>
             </YStack>
           ))}
-        </View>
+        </div>
       </YStack>
 
       {/* Chart Section */}
       <XStack
-        tag="section"
+        
         backgroundColor="$brandWhite"
         borderTopWidth={1}
         borderBottomWidth={1}
@@ -353,7 +354,7 @@ export default function LandingPage() {
             </Text>
           </XStack>
           <YStack>
-            <Heading size="$2xl" color="$brandPrimary" fontWeight="700" marginBottom={16} fontFamily="$heading">
+            <Heading fontSize={48} color="$brandPrimary" fontWeight="700" marginBottom={16} fontFamily="$heading">
               Watch your net worth grow, month by month.
             </Heading>
             <Text fontSize={16} color="$brandText" opacity={0.8} lineHeight={26}>
@@ -392,7 +393,7 @@ export default function LandingPage() {
 
       {/* CTA Section */}
       <YStack
-        tag="section"
+        
         paddingVertical={128}
         paddingHorizontal={32}
         alignItems="center"
@@ -440,7 +441,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <XStack
-        tag="footer"
+        
         padding={48}
         backgroundColor="$brandWhite"
         borderTopWidth={1}

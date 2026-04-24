@@ -111,6 +111,7 @@ cmd_help() {
   echo ""
   echo -e "  ${CYAN}Maintenance${RESET}"
   echo -e "    clean                      Remove .next, dist, .turbo build caches"
+  echo -e "    docker:clean               Force remove all Docker images, containers, and volumes"
   echo ""
 }
 
@@ -262,6 +263,18 @@ cmd_clean() {
   success "Workspace clean. Run ./setup.sh install to rebuild."
 }
 
+cmd_docker_clean() {
+  warn "This will REMOVE all Docker containers, images, and volumes on your system."
+  read -p "   Are you absolutely sure? [y/N] " confirm
+  if [[ $confirm == [yY] ]]; then
+    info "Pruning Docker system..."
+    docker system prune -a --volumes -f
+    success "Docker environment purged."
+  else
+    info "Cleanup cancelled."
+  fi
+}
+
 # ── Dispatcher ────────────────────────────────────────────────────────────────
 
 case "$1" in
@@ -278,5 +291,7 @@ case "$1" in
   db:types)     cmd_db_types ;;
   test)         cmd_test "$2" ;;
   clean)        cmd_clean ;;
+  docker:clean) cmd_docker_clean ;;
   help|*)       cmd_help ;;
 esac
+let's also test it with a the supabase version 2.92.1

@@ -16,11 +16,10 @@ export default function DTISimulator({ currentMonthlyIncome, currentMonthlyDebt,
 
   const simulation = useMemo(() => {
     return simulateDTI({
-      monthlyIncome: currentMonthlyIncome,
+      monthlyIncome: currentMonthlyIncome + (Number(addIncome) || 0),
       monthlyDebt: currentMonthlyDebt,
       currency: currency,
-      addLoanMonthly: Number(addLoan) || 0,
-      addIncomeMonthly: Number(addIncome) || 0,
+      newLoanMonthly: Number(addLoan) || 0,
       payOffLoanMonthly: Number(payOff) || 0,
     })
   }, [currentMonthlyIncome, currentMonthlyDebt, currency, addLoan, addIncome, payOff])
@@ -31,7 +30,7 @@ export default function DTISimulator({ currentMonthlyIncome, currentMonthlyDebt,
       ? `${simulation.diffPpt.toFixed(1)} percentage points`
       : 'No change'
 
-  const changeColor = simulation.diffPpt > 0 ? '#DC2626' : simulation.diffPpt < 0 ? '#059669' : '$brandTextSub'
+  const changeColor = simulation.diffPpt > 0 ? '#DC2626' : simulation.diffPpt < 0 ? '#059669' : '#64748B'
 
   return (
     <YStack backgroundColor="$brandWhite" padding={28} borderRadius={14} gap={24} borderWidth={1} borderColor="rgba(13,61,61,0.08)" shadowColor="black" shadowOpacity={0.04} shadowRadius={10}>
@@ -89,7 +88,7 @@ export default function DTISimulator({ currentMonthlyIncome, currentMonthlyDebt,
           <Text fontSize={13} fontWeight="600" color="$brandTextSub">Projected DTI Ratio</Text>
           <XStack gap={10} alignItems="center">
              <Text fontSize={24} fontWeight="700" color={simulation.newColor}>{simulation.projected.toFixed(1)}%</Text>
-             <YStack paddingHorizontal={8} paddingVertical={2} borderRadius={4} backgroundColor={changeColor + '10'}>
+             <YStack paddingHorizontal={8} paddingVertical={2} borderRadius={4} backgroundColor={changeColor === '#64748B' ? 'transparent' : changeColor + '10'}>
                <Text fontSize={11} fontWeight="700" color={changeColor}>{changeText}</Text>
              </YStack>
           </XStack>

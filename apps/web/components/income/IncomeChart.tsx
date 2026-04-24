@@ -45,7 +45,7 @@ export default function IncomeChart({ data = [], currency }: IncomeChartProps) {
       height={320}
     >
       <XStack justifyContent="space-between" alignItems="center">
-        <Heading size="$xs" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5}>Income Trend</Heading>
+        <Heading fontSize={12} color="$brandPrimary" textTransform="uppercase" letterSpacing={1}>Income Trajectory</Heading>
         <Text fontSize={11} color="$brandTextSub" fontWeight="600">Last 12 Months ({currency})</Text>
       </XStack>
 

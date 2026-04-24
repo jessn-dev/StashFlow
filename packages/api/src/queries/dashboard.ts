@@ -21,6 +21,7 @@ function monthKey(dateStr: string) {
 
 // ── Type ──────────────────────────────────────────────────────────────────────
 export interface DashboardPayload {
+  isNewUser: boolean
   summary: DashboardSummary & {
     currency: string
     thisMonth: {
@@ -121,6 +122,7 @@ export async function getDashboardPayload(
   const [
     { data: allIncomes   },
     { data: activeLoans  },
+    { data: pendingPayments },
     { data: thisMonthExp },  // includes category for breakdown
     { data: lastMonthExp },
     { data: recentInc    },
@@ -134,8 +136,9 @@ export async function getDashboardPayload(
   ] = await Promise.all([
     supabase.from('incomes').select('amount, frequency, date, currency'),
     supabase.from('loans')
-      .select('principal, installment_amount, currency, name')
+      .select('id, principal, installment_amount, currency, name')
       .eq('status', 'active'),
+    supabase.from('loan_payments').select('loan_id, amount_paid, status').eq('status', 'pending'),
     supabase.from('expenses').select('amount, category, currency').gte('date', thisMonthStart),
     supabase.from('expenses').select('amount, category, currency').gte('date', lastMonthStart).lte('date', lastMonthEnd),
     supabase.from('incomes').select('*').order('date', { ascending: false }).limit(10),
@@ -194,7 +197,14 @@ export async function getDashboardPayload(
 
   // Redefine Assets as the sum of current progress in goals (what you actually HAVE/SAVED)
   const totalAssets      = goalsData.reduce((s, g) => s + conv(g.current_amount, (g as any).currency || 'USD'), 0)
-  const totalLiabilities = actLoan.reduce((s, r) => s + conv(r.principal, r.currency), 0)
+  
+  // FIXED: totalLiabilities should be the sum of remaining payments, not original principal
+  let totalLiabilities = 0
+  actLoan.forEach(loan => {
+    const loanPending = (pendingPayments ?? []).filter(p => p.loan_id === loan.id)
+    totalLiabilities += loanPending.reduce((s, p) => s + conv(p.amount_paid || loan.installment_amount, loan.currency), 0)
+  })
+
   const netWorth         = totalAssets - totalLiabilities
 
   const thisMonthIncomeAmt  = allInc
@@ -223,7 +233,7 @@ export async function getDashboardPayload(
     .reduce((s, l) => s + conv(l.installment_amount, l.currency), 0)
   const frontEndRatio = monthlyIncome > 0 ? (housingDebt / monthlyIncome) * 100 : 0
 
-  // ── 6-month trend (MOVE UP TO FIX REFERENCE ERROR) ───────────────────────────
+  // ── 6-month trend ───────────────────────────
   const trend: DashboardPayload['trend'] = []
   for (let i = 5; i >= 0; i--) {
     const d     = new Date(now.getFullYear(), now.getMonth() - i, 1)
@@ -343,12 +353,13 @@ export async function getDashboardPayload(
         currency: latest.currency || 'USD',
         inflationRate: parseFloat(inflation.toFixed(2)),
         status: inflation > 0.1 ? 'up' : inflation < -0.1 ? 'down' : 'stable'
-      })
+      } as any)
     }
   })
 
   // ── Return ───────────────────────────────────────────────────────────────────
   return {
+    isNewUser: !profile?.preferred_currency,
     summary: {
       netWorth,
       totalAssets,
@@ -400,7 +411,7 @@ export async function getDashboardPayload(
       rollover_start_month:    profile?.rollover_start_month ?? null,
       contingency_mode_active: !!(profile as any)?.contingency_mode_active,
     },
-  }
+  } as any
 }
 
 // ── Legacy helpers ────────────────────────────────────────────────────────────

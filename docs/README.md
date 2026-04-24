@@ -34,16 +34,16 @@ StashFlow helps users take absolute control of their finances with pro-grade too
 - [x] Multi-currency support (Auto-converting Net Worth & Transactions)
 - [x] Market Intel & Contingency Protocol
 
-### Phase 2 — Mobile & Refinement (⏳ Active)
+### Phase 2 — Intelligence & Onboarding (⏳ Active)
 - [x] **Elite Financial Assistant** — Redesigned dashboard with actionable AI insights and closed-loop UX.
 - [x] **AI Resilience** — Multi-provider fallback architecture (Gemini + Groq).
-- [ ] **User Onboarding** — Milestone 20: Interactive tours and tutorials for new users.
-- [ ] **Mobile App Parity** — Build dedicated screens for Loans, Spending, and Budgets in Expo.
-- [ ] **E2E Testing** — Implement Milestone 18: Integrated Testing with Cypress.
-- [ ] **Privacy by Design** — Milestone 16: Adapt open-source standard disclosures and transparency docs.
+- [ ] **User Onboarding** — Milestone 19: Interactive tours and tutorials for new users.
+- [ ] **E2E Testing** — Milestone 17: Integrated Testing with Cypress.
+- [ ] **Privacy by Design** — Milestone 15: Adapt open-source standard disclosures and transparency docs.
 
-### Phase 3 — Scale & Intelligence (🔮 Future)
-- [ ] **Universal Statement Importer** — Effortless aggregation via CSV/JSON statement parsing (Free-tier friendly).
+### Phase 3 — Scale & Universal Access (🔮 Future)
+- [ ] **Mobile App Parity** — Milestone 20: Build dedicated screens for Loans, Spending, and Budgets in Expo.
+- [ ] **Universal Statement Importer** — Milestone 18: Effortless aggregation via CSV/JSON statement parsing.
 - [ ] **ReceiptOps** — Automated invoice auditing and AI reconciliation.
 - [ ] **Push Notifications** — Predictive alerts for budget breaches and payments.
 
@@ -54,7 +54,7 @@ StashFlow helps users take absolute control of their finances with pro-grade too
 | Layer | Technology | Notes |
 |---|---|---|
 | **Web App** | Next.js 16 (App Router) | High-contrast UI with Tamagui |
-| **Mobile App** | React Native + Expo 54 | Shared logic from core/api packages |
+| **Mobile App (Future)** | React Native + Expo 54 | Shared logic from core/api packages |
 | **Backend** | Supabase | PostgreSQL, Auth, Edge Functions, RLS |
 | **Business Logic** | `@stashflow/core` | 94.4% Branch Coverage via Vitest |
 | **Data Logic** | `@stashflow/api` | Chainable mocks & 70%+ Integration coverage |
@@ -74,7 +74,7 @@ We maintain high standards for financial data integrity.
 
 ---
 
-## 📱 Mobile Local Development
+## 📱 (Future) Mobile Local Development
 
 When developing the mobile app locally, use your machine's **Local Network IP** in `apps/mobile/.env` to allow devices/emulators to reach the local Supabase instance.
 

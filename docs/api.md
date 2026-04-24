@@ -1,121 +1,64 @@
 # StashFlow API Specification
 
-> **Architecture Note:** StashFlow utilizes Supabase. Standard CRUD operations are handled via the Supabase JS client directly against the database with Row Level Security (RLS) enforced. Complex logic (Amortization, DTI, Dashboard Aggregation) is routed through Supabase Edge Functions.
+> **Architecture Note:** StashFlow uses a **Service-Oriented API** (`@stashflow/api`). Logic is decoupled into internal core packages and orchestrated by domain services. Standard CRUD operations are verified server-side via Supabase RLS.
 
 ## 1. 🔐 Auth API
 Handled entirely by Supabase Auth. No custom backend routes required.
 
 | Action | Method | Notes |
 |---|---|---|
-| Sign Up | `supabase.auth.signUp()` | Sends verification email |
-| Sign In | `supabase.auth.signInWithPassword()` | Returns JWT session |
-| Sign Out | `supabase.auth.signOut()` | Clears local session |
-| Reset Password | `supabase.auth.resetPasswordForEmail()` | Sends recovery link |
-| Session | `supabase.auth.getSession()` | Checks current auth state |
+| Sign In | `supabase.auth.signInWithPassword` | Returns JWT in httpOnly cookie |
+| Sign Up | `supabase.auth.signUp` | Triggers profile creation via DB trigger |
+| Sign Out | `supabase.auth.signOut` | Clears cookies |
 
 ---
 
-## 2. 👤 User Profile
+## 2. 📊 Dashboard API (`DashboardService`)
+Unified entry point for the main UI. Implements a **Partial Success** model.
 
-```typescript
-// Fetch Profile
-getProfile() → { id, email, full_name, preferred_currency, created_at }
+### Get Unified Payload
+`getDashboardPayload()` → `DashboardPayload`
 
-// Update Profile
-updateProfile(payload: { full_name?: string, preferred_currency?: string }) → Profile
-```
-## 3. 📥 Income
-```
-// List Income
-listIncome(filters?: { from?: Date, to?: Date, frequency?: "one-time" | "monthly" | "weekly" }) → Income[]
+**Structure:**
+*   `summary`: High-level Net Worth, Assets, and Monthly Flow.
+*   `dti`: Strategy-aware Debt-to-Income assessment (Regionalized).
+*   `trend`: 6-month historical Actuals vs. 12-month Projections.
+*   `marketTrends`: Live signals derived from FRED API (Cached).
+*   `recentTransactions`: Merged list of latest incomes and expenses.
+*   `budgetRecommendation`: AI-driven smart allocations.
 
-// Create Income
-createIncome(payload: { amount: number, currency: string, source: string, frequency: string, date: string, notes?: string }) → Income
+---
 
-// Update / Delete
-updateIncome(id: string, payload: Partial<Income>) → Income
-deleteIncome(id: string) → { success: true }
+## 3. 💸 Financial Records (`FinancialService`)
+Domain-driven service for managing core records.
 
-// Summary (Aggregated monthly total)
-getIncomeSummary(month: string) → { 
-  total_local: number, 
-  total_converted: number, 
-  by_source: { source: string, amount: number }[] 
-}
-```
-## 4. 💳 Expenses / Spending
-```
-// List Expenses (Paginated)
-listExpenses(filters?: { from?: Date, to?: Date, category?: ExpenseCategory, limit?: number, offset?: number }) → { data: Expense[], count: number }
+### Loans
+*   `getLoans()`: Fetches active and completed loans.
+*   `createLoan(data)`: Validates input, generates an amortization schedule via `@stashflow/math`, and inserts loan + payments.
+*   `deleteLoan(id)`: Removes loan and all associated pending payments.
 
-// Create Expense
-createExpense(payload: { amount: number, currency: string, category: ExpenseCategory, description: string, date: string, is_recurring: boolean, notes?: string }) → Expense
+### Spending & Income
+*   `getExpenses(limit)`: Fetched latest transactions.
+*   `addExpense(data)`: Appends a new expense record with auto-user-id injection.
 
-// Update / Delete
-updateExpense(id: string, payload: Partial<Expense>) → Expense
-deleteExpense(id: string) → { success: true }
+---
 
-// Summary
-getExpenseSummary(month: string) → { 
-  total: number, 
-  by_category: { category: string, amount: number, percentage: number, count: number }[], 
-  vs_last_month: number 
-}
-```
-## 5. 🏦 Loans & Installments
-```
-// List / Get Loans
-listLoans(filters?: { status?: "active" | "completed" | "defaulted" }) → Loan[]
-getLoan(id: string) → { loan: Loan, schedule: LoanPayment[], progress: { paid_count: number, remaining: number, paid_amount: number, percent_done: number } }
+## 4. 🧠 Intelligence Services (Edge Functions)
 
-// Create Loan (⚡ Edge Function: generate-loan-schedule)
-createLoan(payload: { name: string, principal: number, currency: string, interest_rate: number, duration_months: number, start_date: string, installment_amount: number }) → { loan: Loan, schedule: LoanPayment[], summary: object }
+### Macro Financial Advisor
+`POST /functions/v1/macro-financial-advisor`
+*   **Purpose**: Returns regional economic strategy and multipliers.
+*   **Fallback**: Gemini → Groq → Claude → Heuristic.
+*   **Caching**: Persistent cache in `ai_insights_cache`.
 
-// Update / Delete
-updateLoan(id: string, payload: Partial<Loan>) → Loan
-deleteLoan(id: string) → { success: true }
+### Universal Document Analysis
+`POST /functions/v1/analyze-financial-document`
+*   **Purpose**: Extracts data from Payslips, Loans, Bills, etc.
+*   **Formats**: PDF, JPG (up to 10MB), HEIC, CSV, XLSX, DOCX.
 
-// Payments
-listPayments(loanId: string) → LoanPayment[]
-markPaymentPaid(loanId: string, paymentId: string, payload: { amount_paid: number, paid_date: string }) → LoanPayment
-getUpcomingPayments() → UpcomingPayment[]
-```
-## 6. 📊 DTI Ratio
-```
-// Get DTI Ratio (⚡ Edge Function: calculate-dti)
-getDTIRatio(month?: string) → { 
-  ratio: number, 
-  status: "healthy" | "moderate" | "high_risk", 
-  gross_income: number, 
-  total_debt: number, 
-  breakdown: object[], 
-  trend: object[], 
-  recommendation: string 
-}
+---
 
-// Simulate DTI (What-If Calculator)
-simulateDTI(payload: { add_loan?: object, add_income?: object, pay_off_loan?: object }) → { current_dti: number, projected_dti: number, change: number, new_status: string }
-```
-## 7. 💱 Currency / Exchange Rates
-```
-// Get Cached Rates
-getRates(payload: { base: string, targets: string[] }) → { base: string, rates: Record<string, number>, fetched_at: string, is_cached: boolean }
-
-// Convert
-convertAmount(payload: { amount: number, from: string, to: string }) → { original: number, converted: number, rate: number }
-
-// Supported List
-getSupportedCurrencies() → { code: string, name: string, symbol: string }[]
-```
-## 8. 📊 Dashboard Aggregation
-```
-// Get Dashboard Payload (⚡ Edge Function: getDashboard)
-getDashboard() → { 
-  summary: object, 
-  cash_flow: object[], 
-  spending_by_category: object[], 
-  upcoming_payments: object[], 
-  recent_transactions: object[], 
-  loan_summary: object 
-}
-```
+## 5. 🛠️ Regional Extensions
+All regional calculations rely on the **Regional Strategy Pattern**.
+*   **Interface**: `packages/core/src/regional/interface.ts`
+*   **Registration**: To add a country, register a new strategy class in the `regionalRegistry`.

@@ -45,7 +45,7 @@ export default function SpendingChart({ data = [], currency }: SpendingChartProp
       height={320}
     >
       <XStack justifyContent="space-between" alignItems="center">
-        <Heading size="$xs" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5}>Spending Trend</Heading>
+        <Heading fontSize={12} color="$brandPrimary" textTransform="uppercase" letterSpacing={1}>Spending Velocity</Heading>
         <Text fontSize={11} color="$brandTextSub" fontWeight="600">Last 12 Months ({currency})</Text>
       </XStack>
 

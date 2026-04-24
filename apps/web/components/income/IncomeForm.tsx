@@ -10,7 +10,7 @@ type IncomeFrequency = Database['public']['Enums']['income_frequency']
 
 const FREQUENCIES: IncomeFrequency[] = ['one-time', 'weekly', 'monthly']
 
-export default function IncomeForm() {
+export default function IncomeForm({ onSuccess }: { onSuccess?: () => void }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -27,6 +27,7 @@ export default function IncomeForm() {
       setMessage({ type: 'success', text: 'Income added successfully!' })
       const form = document.getElementById('income-form') as HTMLFormElement
       form?.reset()
+      onSuccess?.()
       router.refresh()
     }
     setLoading(false)

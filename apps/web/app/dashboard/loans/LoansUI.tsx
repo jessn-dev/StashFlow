@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import LoanForm from '@/components/loans/LoanForm'
 import InstallmentList from '@/components/loans/InstallmentList'
 import { YStack, XStack, Text, Heading, Button, Spinner } from 'tamagui'
-import { Loan, LoanPayment, formatCurrency } from '@stashflow/core'
-import { convertCurrency, getLoanPayments } from '@stashflow/api'
+import { Loan, LoanPayment, formatCurrency, convertToBase } from '@stashflow/core'
+import { getLoanPayments } from '@stashflow/api'
 import { createClient } from '@/utils/supabase/client'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react-native'
 import { removeLoanAction } from './actions'
@@ -24,7 +24,7 @@ export default function LoansUI({ loans: initialLoans, totalActiveDebt, preferre
   const router = useRouter()
   const fmt = (amount: number, loanCurrency: string) => {
     if (loanCurrency === preferredCurrency) return formatCurrency(amount, preferredCurrency)
-    const converted = convertCurrency(amount, loanCurrency, preferredCurrency, rates)
+    const converted = convertToBase(amount, loanCurrency, preferredCurrency, rates)
     return formatCurrency(converted, preferredCurrency)
   }
 
@@ -42,6 +42,16 @@ export default function LoansUI({ loans: initialLoans, totalActiveDebt, preferre
     if (statusFilter === 'all') return true
     return l.status === statusFilter
   })
+
+  // Calculate local total debt to ensure UI updates immediately on deletion
+  const localTotalDebt = loans
+    .filter(l => l.status === 'active')
+    .reduce((sum, loan) => {
+      const converted = loan.currency === preferredCurrency 
+        ? Number(loan.principal) 
+        : convertToBase(Number(loan.principal), loan.currency, preferredCurrency, rates)
+      return sum + converted
+    }, 0)
 
   const totalPages = Math.ceil(filteredLoans.length / pageSize)
   const paginatedLoans = filteredLoans.slice((page - 1) * pageSize, page * pageSize)
@@ -206,11 +216,11 @@ export default function LoansUI({ loans: initialLoans, totalActiveDebt, preferre
         {/* Right Column: Summary + Form */}
         <YStack flex={1} minWidth={320} gap={24}>
           <YStack backgroundColor="$brandWhite" padding={24} borderRadius={12} borderWidth={1} borderColor="rgba(13,61,61,0.1)" gap={16}>
-             <Heading size="$sm" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5}>Debt Overview</Heading>
+             <Heading fontSize={18} color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5}>Debt Overview</Heading>
              <YStack gap={12}>
                <YStack>
                  <Text fontSize={11} fontWeight="700" color="$brandTextSub" textTransform="uppercase" letterSpacing={1}>Total Active Debt</Text>
-                 <Text fontSize={24} fontWeight="900" color="#DC2626">{formatCurrency(totalActiveDebt, preferredCurrency)}</Text>
+                 <Text fontSize={24} fontWeight="900" color="#DC2626">{formatCurrency(localTotalDebt, preferredCurrency)}</Text>
                </YStack>
              </YStack>
           </YStack>

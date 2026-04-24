@@ -5,9 +5,11 @@ import LandingPage from '@/app/page' // <-- Updated absolute import
 // 1. Mock Chart.js to prevent canvas errors in the terminal
 vi.mock('chart.js/auto', () => {
   return {
-    default: vi.fn().mockImplementation(() => ({
-      destroy: vi.fn(),
-    })),
+    default: vi.fn().mockImplementation(function() {
+      return {
+        destroy: vi.fn(),
+      }
+    }),
   }
 })
 

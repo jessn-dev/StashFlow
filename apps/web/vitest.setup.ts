@@ -17,6 +17,36 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
+// Mock Canvas getContext to avoid Chart.js warnings
+if (typeof window !== 'undefined') {
+  HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
+    fillRect: vi.fn(),
+    clearRect: vi.fn(),
+    getImageData: vi.fn(),
+    putImageData: vi.fn(),
+    createImageData: vi.fn(),
+    setTransform: vi.fn(),
+    drawImage: vi.fn(),
+    save: vi.fn(),
+    fillText: vi.fn(),
+    restore: vi.fn(),
+    beginPath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    closePath: vi.fn(),
+    stroke: vi.fn(),
+    translate: vi.fn(),
+    scale: vi.fn(),
+    rotate: vi.fn(),
+    arc: vi.fn(),
+    fill: vi.fn(),
+    measureText: vi.fn().mockReturnValue({ width: 0 }),
+    transform: vi.fn(),
+    rect: vi.fn(),
+    clip: vi.fn(),
+  }) as any
+}
+
 // Mock Next.js navigation
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -45,6 +75,7 @@ vi.mock('@supabase/ssr', () => ({
     eq: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
+    then: vi.fn((resolve) => Promise.resolve({ data: [], error: null }).then(resolve)),
   })),
 }))
 
@@ -52,56 +83,39 @@ vi.mock('@supabase/ssr', () => ({
 vi.mock('tamagui', () => {
   const mockComponent = (name: string, tag: string = 'div') => {
     const Component = ({ children, ...props }: any) => {
-      // Filter out Tamagui-specific props that React doesn't like on DOM elements
+      // Filter out ALL Tamagui-specific props that React doesn't like on DOM elements
       const cleanProps: any = { 'data-testid': name }
+      
+      const problematicProps = new Set([
+        'hoverStyle', 'pressStyle', 'inputMode', 'onPress', 'chromeless', 'animation', 
+        'numberOfLines', 'textAlign', 'onChangeText', 'borderTopWidth', 'paddingHorizontal', 
+        'paddingVertical', 'marginHorizontal', 'marginVertical', 'paddingBottom', 'paddingTop', 
+        'borderBottomWidth', 'borderColor', 'flexShrink', 'borderRadius', 'backgroundColor', 
+        'alignItems', 'justifyContent', 'textTransform', 'flexWrap', 'minWidth', 'minHeight', 
+        'maxWidth', 'maxHeight', 'shadowColor', 'shadowOpacity', 'shadowRadius', 'shadowOffset', 
+        'borderWidth', 'borderTransparent', 'Icon', 'circular', 'iconAfter', 'icon', 'size',
+        'gap', 'flexDirection', 'fontWeight', 'lineHeight', 'letterSpacing', 'fontFamily',
+        'zIndex', 'pointerEvents', 'paddingVertical', 'paddingHorizontal', 'marginTop', 'marginBottom',
+        'marginLeft', 'marginRight', 'padding', 'margin', 'flex', 'fullscreen', 'x', 'y', 'scale',
+        'opacity', 'enterStyle', 'exitStyle', 'tag', 'as', 'col', 'focusStyle', 'placeholderTextColor',
+        'keyboardType', 'borderStyle', 'overflow', 'overflowX', 'overflowY', 'cursor', 'whiteSpace'
+      ])
+
       Object.keys(props).forEach(key => {
-        if (!key.startsWith('$') && !['hoverStyle', 'pressStyle', 'inputMode', 'onPress', 'chromeless', 'animation', 'numberOfLines', 'textAlign', 'onChangeText', 'borderTopWidth', 'paddingHorizontal', 'paddingVertical', 'marginHorizontal', 'marginVertical', 'paddingBottom', 'paddingTop', 'borderBottomWidth', 'borderColor', 'flexShrink', 'borderRadius', 'backgroundColor', 'alignItems', 'justifyContent', 'textTransform', 'flexWrap', 'minWidth', 'minHeight', 'maxWidth', 'maxHeight', 'shadowColor', 'shadowOpacity', 'shadowRadius', 'shadowOffset', 'borderWidth'].includes(key)) {
+        if (!key.startsWith('$') && !problematicProps.has(key)) {
            cleanProps[key] = props[key]
         }
       })
 
-      // React uses lowercase for some attributes on DOM elements
-      const lowerKeyMap: Record<string, string> = {
-        'borderRadius': 'borderradius',
-        'backgroundColor': 'backgroundcolor',
-        'alignItems': 'alignitems',
-        'justifyContent': 'justifycontent',
-        'paddingHorizontal': 'paddinghorizontal',
-        'textTransform': 'texttransform',
-        'paddingBottom': 'paddingbottom',
-        'paddingVertical': 'paddingvertical',
-        'marginVertical': 'marginvertical',
-        'marginHorizontal': 'marginhorizontal',
-        'paddingTop': 'paddingtop',
-        'borderBottomWidth': 'borderbottomwidth',
-        'borderColor': 'bordercolor',
-        'flexShrink': 'flexshrink',
-        'borderWidth': 'borderwidth',
-        'shadowColor': 'shadowcolor',
-        'shadowOpacity': 'shadowopacity',
-        'shadowRadius': 'shadowradius',
-        'shadowOffset': 'shadowoffset',
-        'minWidth': 'minwidth',
-        'minHeight': 'minheight',
-        'maxWidth': 'maxwidth',
-        'maxHeight': 'maxheight',
-        'flexWrap': 'flexwrap',
-        'numberOfLines': 'numberoflines',
-        'textAlign': 'textalign',
-        'borderTopWidth': 'bordertopwidth',
+      // Map onChangeText to onChange for React compatibility
+      if (props.onChangeText && !cleanProps.onChange) {
+        cleanProps.onChange = (e: any) => props.onChangeText(e.target.value)
       }
-
-      Object.keys(props).forEach(key => {
-        if (lowerKeyMap[key]) {
-          cleanProps[lowerKeyMap[key]] = String(props[key])
-        }
-      })
 
       // Avoid adding children to void elements (like input)
       const isVoid = ['input', 'br', 'hr', 'img'].includes(tag.toLowerCase())
       
       // If component has a 'value' prop but no children, render value as child (unless void)
-      // Only do this if children is not already provided
       let content = children
       if (content === undefined && !isVoid) {
         if (props.value !== undefined) content = String(props.value)
@@ -201,11 +215,9 @@ vi.mock('lucide-react-native', () => {
     MoreHorizontal: mockIcon('MoreHorizontal'),
     Heart: mockIcon('Heart'),
     LayoutGrid: mockIcon('LayoutGrid'),
-    CheckCircle2: mockIcon('CheckCircle2'),
     CalendarDays: mockIcon('CalendarDays'),
     Trophy: mockIcon('Target'),
     History: mockIcon('History'),
-    TrendingDown: mockIcon('TrendingDown'),
     Clock: mockIcon('Clock'),
     ChevronUp: mockIcon('ChevronUp'),
     Activity: mockIcon('Activity'),

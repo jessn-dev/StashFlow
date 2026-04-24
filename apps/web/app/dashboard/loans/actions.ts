@@ -1,22 +1,17 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
-import { createLoan, deleteLoan, togglePaymentStatus, markAllPaid } from '@stashflow/api'
+import { addLoan, removeLoan } from '@/modules/loans'
+import { FinancialService } from '@stashflow/api'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { 
-  Database, 
   LoanInterestType, 
   LoanInterestBasis, 
   LoanCommercialCategory 
 } from '@stashflow/core'
 
 export async function addLoanAction(formData: FormData) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
   const loanData = {
     name: formData.get('name') as string,
     principal: Number(formData.get('principal')),
@@ -33,7 +28,7 @@ export async function addLoanAction(formData: FormData) {
   }
 
   try {
-    await createLoan(supabase, loanData)
+    await addLoan(loanData)
   } catch (error) {
     console.error('Failed to add loan:', error)
     return { error: 'Failed to create loan' }
@@ -45,12 +40,8 @@ export async function addLoanAction(formData: FormData) {
 }
 
 export async function removeLoanAction(id: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
   try {
-    await deleteLoan(supabase, id)
+    await removeLoan(id)
   } catch (error) {
     return { error: 'Failed to delete loan' }
   }
@@ -62,9 +53,8 @@ export async function removeLoanAction(id: string) {
 
 export async function togglePaymentAction(paymentId: string, currentStatus: string, loanId: string) {
   const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  // Using legacy queries for specific atomic updates until FinancialService is fully expanded
+  const { togglePaymentStatus } = await import('@stashflow/api')
 
   try {
     await togglePaymentStatus(supabase, paymentId, currentStatus, loanId)
@@ -81,9 +71,7 @@ export async function togglePaymentAction(paymentId: string, currentStatus: stri
 
 export async function markAllPaidAction(loanId: string) {
   const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { markAllPaid } = await import('@stashflow/api')
 
   try {
     await markAllPaid(supabase, loanId)

@@ -1,10 +1,11 @@
 'use client'
 
+import React, { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { XStack, YStack, Text, Input, Button, Circle, Spinner } from 'tamagui'
 import { resetPassword } from '../login/actions'
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const searchParams = useSearchParams()
   const message = searchParams.get('message')
 
@@ -150,5 +151,13 @@ export default function ResetPasswordPage() {
         </YStack>
       </YStack>
     </YStack>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<YStack fullscreen alignItems="center" justifyContent="center"><Spinner size="large" color="$brandPrimary" /></YStack>}>
+      <ResetPasswordContent />
+    </Suspense>
   )
 }

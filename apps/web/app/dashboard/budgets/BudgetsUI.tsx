@@ -9,7 +9,7 @@ import { updateBudgetSettingsAction } from './actions'
 interface BudgetsUIProps {
   periods: BudgetPeriod[]
   profile: Profile
-  onEnable: () => void
+  onEnable?: () => void
   userEmail: string
 }
 
@@ -18,7 +18,7 @@ export default function BudgetsUI({ periods, profile, onEnable, userEmail }: Bud
 
   async function handleEnable() {
     await updateBudgetSettingsAction({ budgeting_enabled: true })
-    onEnable()
+    onEnable?.()
   }
 
   return (
@@ -27,7 +27,7 @@ export default function BudgetsUI({ periods, profile, onEnable, userEmail }: Bud
         periods.length > 0 ? (
           <BudgetProgress periods={periods} currency={profile.preferred_currency || 'USD'} />
         ) : (
-          <BudgetSetupWizard onSuccess={onEnable} />
+          <BudgetSetupWizard onSuccess={() => onEnable?.()} />
         )
       ) : (
         <YStack padding={64} alignItems="center" gap={16} backgroundColor="rgba(13,61,61,0.02)" borderRadius={12} borderStyle="dashed" borderWidth={1} borderColor="rgba(13,61,61,0.1)">

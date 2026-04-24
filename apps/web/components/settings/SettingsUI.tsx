@@ -12,7 +12,7 @@ interface SettingsUIProps {
 }
 
 export default function SettingsUI({ profile }: SettingsUIProps) {
-  const [isContingencyActive, setIsContingencyActive] = useState(profile.contingency_mode_active || false)
+  const [isContingencyActive, setIsContingencyActive] = useState((profile as any).contingency_mode_active || false)
   const [loading, setLoading] = useState(false)
 
   const handleContingencyToggle = async (val: boolean) => {
@@ -52,7 +52,7 @@ export default function SettingsUI({ profile }: SettingsUIProps) {
               onCheckedChange={handleContingencyToggle}
               backgroundColor={isContingencyActive ? '#DC2626' : '$gray5'}
             >
-              <Switch.Thumb animation="quick" />
+              <Switch.Thumb />
             </Switch>
           </XStack>
         </XStack>

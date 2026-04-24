@@ -20,9 +20,9 @@ We prioritize the **correctness of logic** and **stability of critical paths** o
 ## 3. Implementation Standards
 
 ### 3.1 Unit Testing (The 90% Zone)
-*   Found in: `@stashflow/core/src/utils`
-*   Standard: Use parameterized tests (`it.each`) to test dozens of financial edge cases (e.g., 0% interest, massive principal, 1-month term).
-*   Rule: No logic-heavy utility should be exported without a corresponding `.test.ts` file.
+*   Found in: `@stashflow/core/src/math`, `regional/`, `analysis/`
+*   Standard: Use parameterized tests (`it.each`) and **Sad Path Testing** (negative inputs, nulls, invalid dates) to verify financial logic.
+*   Rule: No logic-heavy domain module should be exported without corresponding unit tests.
 
 ### 3.2 Integrated Testing (Cypress)
 *   Standard: Verify **End-to-End User Journeys**.
@@ -32,7 +32,8 @@ We prioritize the **correctness of logic** and **stability of critical paths** o
     *   **Data Integrity**: Ensuring that logging an expense correctly updates the Budget progress bars and the DTI ratio.
     *   **High-Risk Gatekeeping**: Verifying that the `ConfirmationModal` correctly intercepts destructive actions.
 
-### 3.3 Mobile UI Testing
+### 3.3 (Future) Mobile UI Testing
+*   **Status**: Milestone 20 (Future).
 *   Standard: Focus on **User Intent**.
 *   Tools: `@testing-library/react-native` (Mobile).
 *   Critical Paths:

@@ -43,13 +43,11 @@ describe('updateProfile', () => {
   it('updates and returns the profile', async () => {
     const updated = { ...mockProfile, full_name: 'New Name' }
     const supabase = {
-      auth: makeAuth(mockUser),
+      auth: makeAuth({ ...mockUser, email: 'test@example.com' }),
       from: vi.fn().mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: updated, error: null }),
-            }),
+        upsert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: updated, error: null }),
           }),
         }),
       }),

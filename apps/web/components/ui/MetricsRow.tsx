@@ -7,9 +7,10 @@ export interface Metric {
   value: string
   trend?: string
   trendPositive?: boolean
+  sub?: string
 }
 
-function MetricCard({ label, value, trend, trendPositive }: Metric) {
+function MetricCard({ label, value, trend, trendPositive, sub }: Metric) {
   return (
     <YStack
       flex={1}
@@ -28,6 +29,9 @@ function MetricCard({ label, value, trend, trendPositive }: Metric) {
       <Text fontSize={22} fontWeight="700" color="$brandPrimary">
         {value}
       </Text>
+      {sub && (
+        <Text fontSize={11} color="$brandTextSub" fontWeight="600">{sub}</Text>
+      )}
       {trend && (
         <Text
           fontSize={12}

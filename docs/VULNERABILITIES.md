@@ -7,7 +7,7 @@
 
 StashFlow handles sensitive financial data. Our security posture relies heavily on the Supabase architecture, meaning security must be enforced at the database and edge computing layers, never just on the client.
 
-1. **Zero-Trust Client:** The frontend (Web/Mobile) is inherently untrusted. It cannot dictate *whose* data it is operating on.
+1. **Zero-Trust Client:** The frontend (Web and future Mobile) is inherently untrusted. It cannot dictate *whose* data it is operating on.
 2. **Row Level Security (RLS) is Mandatory:** No table is ever created without an active RLS policy.
 3. **Principle of Least Privilege at the Edge:** Edge functions must execute with the permissions of the invoking user, not as a system admin, unless specifically designed for a backend-only cron job.
 
@@ -60,7 +60,7 @@ Before finalizing any feature or milestone, the following checks must be verifie
 ### 2. Auth Token Exposure 
 * **Risk:** Storing JWTs in `localStorage` on Web makes them vulnerable to XSS.
 * **Resolution:** Implemented `@supabase/ssr` to store tokens in `httpOnly` cookies. Tokens are inaccessible to client-side JS.
-* **Status:** ✅ Complete (Web) / ⏳ Pending (Mobile via SecureStore).
+* **Status:** ✅ Complete (Web) / ⏳ Pending (Future Mobile via SecureStore).
 
 ## 📝 Incident & Update Log
 

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { getDashboardPayload } from '@stashflow/api'
+import { fetchDashboardData } from '@/modules/dashboard'
 import DashboardUI from '@/components/dashboard/DashboardUI'
 
 export default async function DashboardPage() {
@@ -9,8 +9,8 @@ export default async function DashboardPage() {
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user) redirect('/login')
 
-  // Fetch unified dashboard data from Edge Function
-  const payload = await getDashboardPayload(supabase)
+  // Fetch unified dashboard data using modular architecture
+  const payload = await fetchDashboardData()
 
   return (
     <DashboardUI 

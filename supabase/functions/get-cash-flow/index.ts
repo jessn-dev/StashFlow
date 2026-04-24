@@ -20,11 +20,9 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     )
 
-    // 1. Get User
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
     if (userError || !user) throw new Error('Unauthorized')
 
-    // 2. Fetch required data
     const [
       { data: profile },
       { data: incomes },
@@ -51,16 +49,14 @@ Deno.serve(async (req) => {
       return val
     }
 
-    // 3. Projections for 12 months
     const projections = []
     const now = new Date()
 
     for (let i = 0; i < 12; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() + i, 1)
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i, 1))
       const period = d.toISOString().slice(0, 7)
-      const monthName = d.toLocaleString('default', { month: 'short', year: '2-digit' })
+      const monthName = d.toLocaleString('default', { month: 'short', year: '2-digit', timeZone: 'UTC' })
 
-      // Recurring Income
       let monthlyIncome = 0
       incomes?.forEach((inc: any) => {
         const amt = convertToBase(inc.amount, inc.currency)
@@ -68,18 +64,21 @@ Deno.serve(async (req) => {
         else if (inc.frequency === 'weekly') monthlyIncome += amt * (52 / 12)
       })
 
-      // Recurring Expenses
+      const categories: Record<string, number> = {}
       let monthlyExpenses = 0
       expenses?.forEach((exp: any) => {
-        monthlyExpenses += convertToBase(exp.amount, exp.currency)
+        const amt = convertToBase(exp.amount, exp.currency)
+        monthlyExpenses += amt
+        categories[exp.category] = (categories[exp.category] || 0) + amt
       })
 
-      // Loan Installments due in this month
       let monthlyDebt = 0
       loans?.forEach((loan: any) => {
         const dueThisMonth = loan.loan_payments?.filter((p: any) => p.due_date.startsWith(period))
         if (dueThisMonth && dueThisMonth.length > 0) {
-          monthlyDebt += convertToBase(loan.installment_amount, loan.currency)
+          const amt = convertToBase(loan.installment_amount, loan.currency)
+          monthlyDebt += amt
+          categories['debt'] = (categories['debt'] || 0) + amt
         }
       })
 
@@ -87,9 +86,9 @@ Deno.serve(async (req) => {
         period,
         month: monthName,
         income: Number(monthlyIncome.toFixed(2)),
-        expenses: Number(monthlyExpenses.toFixed(2)),
-        debt: Number(monthlyDebt.toFixed(2)),
-        net: Number((monthlyIncome - monthlyExpenses - monthlyDebt).toFixed(2))
+        expense: Number((monthlyExpenses + monthlyDebt).toFixed(2)),
+        net: Number((monthlyIncome - monthlyExpenses - monthlyDebt).toFixed(2)),
+        categories: Object.entries(categories).map(([category, amount]) => ({ category, amount: Number(amount.toFixed(2)) })).sort((a,b) => b.amount - a.amount).slice(0, 3)
       })
     }
 

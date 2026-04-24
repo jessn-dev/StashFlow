@@ -25,4 +25,4 @@ This document serves as a repository for highly advanced, complex features that 
 4.  **UI Integration**: Add a "Reconciliation" view showing matched receipts (green) and orphaned receipts/transactions (yellow/red) for tax prep.
 
 ### Why this is a "Future" Plan
-While highly valuable, this feature requires a complex, multi-stage pipeline involving storage webhooks, external LLM API calls, and intricate fuzzy-matching algorithms in PostgreSQL. It is best tackled after core modules (Loans, Budgeting, and basic Mobile parity) are fully stabilized in production.
+While highly valuable, this feature requires a complex, multi-stage pipeline involving storage webhooks, external LLM API calls, and intricate fuzzy-matching algorithms in PostgreSQL. It is best tackled after core modules (Loans, Budgeting, and Web parity) are fully stabilized in production, alongside the future **Mobile App (Milestone 20)**.

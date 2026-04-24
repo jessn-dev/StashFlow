@@ -1,6 +1,6 @@
 # StashFlow: Development Guide
 
-Welcome to the StashFlow engineering team! This guide provides everything you need to know about building, testing, and contributing to the project.
+Welcome to the StashFlow engineering team! This guide outlines our **Domain-Driven** development workflow designed for extreme stability and scale.
 
 ## 1. Local Environment Setup
 
@@ -10,54 +10,36 @@ StashFlow is a **Turborepo** monorepo using **pnpm** for package management.
 *   **Node.js**: v22.x LTS (Recommended)
 *   **pnpm**: v10.x
 *   **Supabase CLI**: Required for local database development.
-*   **Expo Go**: For testing the mobile app on physical devices.
+*   **Docker**: Required for running the local Supabase environment.
 
 ### Installation
-The project includes a comprehensive bootstrap script that automates the monorepo initialization, pnpm installation, and workspace linking.
-
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-username/stashflow.git
-cd stashflow
-
-# 2. Run the automated bootstrap
-# This validates your Node version and initializes all apps and packages.
-chmod +x setup.sh
-./setup.sh init
-
-# 3. Initialize local Supabase
-supabase start
-supabase db reset # Apply migrations and seed data
+./setup.sh init   # Bootstraps the monorepo and database
+pnpm db:reset    # Reset local DB with high-volatility seed data
 ```
-
-### Environment Variables
-*   **Web**: Copy `apps/web/.env.example` to `.env.local`
-*   **Mobile**: Copy `apps/mobile/.env.example` to `.env`
-*   **Note**: Ensure `FRED_API_KEY` is set in `.env.local` for Market Intelligence features.
 
 ---
 
-## 2. Mobile Development Setup
+## 2. Monorepo Architecture
 
-To develop and test the mobile application, you must configure your local machine for iOS and Android simulation.
+We maintain strict boundaries between logic, data, and presentation.
 
-### iOS (macOS Only)
-1.  **Xcode**: Install Xcode from the Mac App Store.
-2.  **Command Line Tools**: Run `xcode-select --install`.
-3.  **CocoaPods**: Install via `brew install cocoapods`.
-4.  **Simulator**: Open Xcode -> Settings -> Platforms to download iOS simulators.
+### 📦 `@stashflow/core` (Internal Packages)
+Located in `packages/core/src`. **Never import from generic "utils" folders.**
+*   `schema/`: Global TypeScript types and DB interfaces.
+*   `math/`: Pure, side-effect-free financial logic (Amortization, DTI math).
+*   `regional/`: Plugin-based regional strategy adapters.
+*   `analysis/`: Analytical engines (Smart budgeting).
 
-### Android
-1.  **Android Studio**: Download and install Android Studio.
-2.  **SDKs**: Use the SDK Manager to install the latest Android SDK and Build Tools.
-3.  **ADB**: Ensure `adb` is in your system PATH.
-4.  **Emulator**: Create a Virtual Device (AVD) using the Device Manager in Android Studio.
+### 📦 `@stashflow/api` (Services)
+Located in `packages/api/src/services`. **Uses a Service-Oriented approach.**
+*   `DashboardService`: Orchestrates unified data for the main UI.
+*   `FinancialService`: Manages core CRUD and transaction logic.
 
-### Physical Devices (Expo Go)
-1.  Install the **Expo Go** app from the App Store or Play Store.
-2.  Ensure your phone and computer are on the same Wi-Fi network.
-3.  **Network Configuration**: Use your machine's **Local IP** (e.g., `192.168.x.x`) in the mobile `.env` so the device can reach your local Supabase instance.
-4.  Run `pnpm dev` and scan the QR code displayed in the terminal.
+### 📦 `apps/web` (Feature Modules)
+Located in `apps/web/modules`. **Treat every folder like a standalone library.**
+*   Each module (e.g., `loans`, `spending`) must expose its public API via `index.ts`.
+*   Avoid direct relative imports between modules.
 
 ---
 
@@ -66,44 +48,26 @@ To develop and test the mobile application, you must configure your local machin
 ### Standard Commands
 | Command | Description |
 |---|---|
-| `pnpm dev` | Start Web, Mobile, and API development servers. |
+| `pnpm dev` | Start Web and API development servers. |
 | `pnpm build` | Run a full monorepo build. |
-| `pnpm lint` | Run ESLint across all packages. |
+| `pnpm test` | Run Vitest across all packages. |
+| `pnpm test:coverage` | Run coverage (Threshold: 90% for Core). |
 
-### Database Migrations
-We use Supabase local development for schema changes.
-1.  Make changes in the Supabase dashboard or SQL editor.
-2.  Pull changes: `supabase db pull`
-3.  Apply to team: Migrations are stored in `supabase/migrations/` and should be committed to Git.
-
----
-
-## 3. Testing Standards
-
-We maintain high standards for financial logic integrity. We use **Vitest** for units and **Cypress** (planned) for E2E.
-
-### Commands
-*   **Run All Tests**: `pnpm test`
-*   **Check Coverage**: `pnpm test:coverage`
-*   **Pre-commit Hook**: A Git hook (Husky) automatically runs tests on staged files before every commit.
-
-### Coverage Targets
-*   **Business Logic (`@stashflow/core`)**: 90%+ Branch Coverage.
-*   **API/UI Integration**: 70%+ Coverage.
+### Adding a New Region
+1.  Create a new strategy class in `packages/core/src/regional/strategies/`.
+2.  Register the strategy in `packages/core/src/regional/index.ts`.
+3.  Profit. No other core logic changes required.
 
 ---
 
-## 4. Monorepo Architecture
-
-*   **`apps/web`**: Next.js 16 application using Tamagui for high-fidelity UI.
-*   **`apps/mobile`**: Expo React Native application sharing 80% of logic with web.
-*   **`packages/core`**: The "Financial Brain". Pure TypeScript logic for amortization, DTI, and currency math.
-*   **`packages/api`**: Data access layer. Handles Supabase client initialization and complex query aggregations.
-*   **`packages/theme`**: Shared Tamagui design system (tokens, fonts, colors).
+## 4. Resilience & Testing
+*   **Sad Path Testing**: All new logic must include tests for null values, negative inputs, and network failures.
+*   **Edge Functions**: Local functions are served via `supabase functions serve`.
+*   **API Caching**: Always check the PostgreSQL cache (`ai_insights_cache`) before calling external AI APIs to preserve quota.
 
 ---
 
 ## 5. Deployment
 *   **Web**: Automated via Vercel on merge to `main`.
-*   **Mobile**: Build via Expo EAS.
 *   **Edge Functions**: Deploy using `supabase functions deploy [name]`.
+*   **Mobile (Future)**: Milestone 20.

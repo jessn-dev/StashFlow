@@ -5,7 +5,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- Helper Function
+-- Helper Function: High Volatility Realistic Seeding
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.seed_realistic_data(
   u_id uuid,
@@ -23,10 +23,11 @@ DECLARE
   income float;
   expense_multiplier float;
   day_offset int;
-  is_sub boolean;
   sub_name text;
+  volatility_factor float;
+  seasonal_multiplier float;
 
-  categories text[] := ARRAY['food','transport','entertainment','personal','other'];
+  categories text[] := ARRAY['food','transport','entertainment','personal','other','healthcare','shopping'];
   subscriptions text[][] := ARRAY[
     ARRAY['Netflix','entertainment','15.99'],
     ARRAY['Spotify','entertainment','9.99'],
@@ -35,125 +36,109 @@ DECLARE
     ARRAY['Adobe CC','education','52.99']
   ];
 BEGIN
+  -- Seed last 6 months
   FOR i IN 0..5 LOOP
     d := (date_trunc('month', now()) - (i || ' month')::interval)::date;
+    
+    -- 🎲 Monthly Random Fluctuation (±10% variance)
+    volatility_factor := 0.90 + (random() * 0.20);
+
+    -- ❄️ Seasonal Multipliers
+    seasonal_multiplier := 1.0;
+    IF EXTRACT(MONTH FROM d) = 12 THEN
+      seasonal_multiplier := 1.4; -- December (Holidays/Travel)
+    ELSIF EXTRACT(MONTH FROM d) = 1 THEN
+      seasonal_multiplier := 0.8; -- January (Post-holiday dip)
+    END IF;
 
     -- 🎯 Lifestyle control (Dynamic for 'improving')
     IF lifestyle = 'frugal' THEN
-      expense_multiplier := 0.6;
+      expense_multiplier := 0.5 * seasonal_multiplier * volatility_factor;
     ELSIF lifestyle = 'balanced' THEN
-      expense_multiplier := 0.8;
+      expense_multiplier := 0.75 * seasonal_multiplier * volatility_factor;
     ELSIF lifestyle = 'overspender' THEN
-      expense_multiplier := 1.15;
+      expense_multiplier := 1.15 * seasonal_multiplier * volatility_factor;
     ELSIF lifestyle = 'improving' THEN
-      -- Starts at 1.1 (overspender-ish) 5 months ago, drops to 0.7 (frugal-ish) now.
-      expense_multiplier := 0.7 + (i * 0.08); 
+      -- Starts high (6 months ago), drops over time (now)
+      expense_multiplier := (0.6 + (i * 0.1)) * seasonal_multiplier * volatility_factor; 
     ELSE
-      expense_multiplier := 1.0;
+      expense_multiplier := 1.0 * seasonal_multiplier * volatility_factor;
     END IF;
 
-    -- 🎯 Seasonal Income
-    income := monthly_base;
+    -- 🎯 Seasonal & Volatile Income
+    income := monthly_base * (0.98 + (random() * 0.04)); -- ±2% random income noise
+    
     IF EXTRACT(MONTH FROM d) = 12 THEN
-      income := income * 1.25; -- bonus season
+      income := income * 1.35; -- Year-end bonus
     ELSIF EXTRACT(MONTH FROM d) = 1 THEN
-      income := income * 0.9; -- slow January
+      income := income * 0.90; -- Tax season or slow January
     END IF;
 
     -- Salary (1st of month)
     INSERT INTO public.incomes (user_id, amount, currency, source, frequency, date)
-    VALUES (u_id, income, curr, 'Salary', 'monthly'::income_frequency, d + 1);
+    VALUES (u_id, round(income::numeric, 2), curr, 'Primary Income', 'monthly'::income_frequency, d + 1);
 
-    -- ───── Recurring Expenses (Realistic Anchors) ─────
+    -- ───── Recurring Expenses ─────
     INSERT INTO public.expenses (user_id, amount, currency, category, description, date, is_recurring)
     VALUES
-        (u_id, income * 0.25, curr, 'housing'::expense_category, 'Rent', d + 1, TRUE),
-        (u_id, income * 0.05, curr, 'utilities'::expense_category, 'Utilities', d + 10, TRUE);
+        (u_id, round((monthly_base * 0.25)::numeric, 2), curr, 'housing'::expense_category, 'Rent/Mortgage', d + 1, TRUE),
+        (u_id, round((monthly_base * 0.05 * volatility_factor)::numeric, 2), curr, 'utilities'::expense_category, 'Utilities & Internet', d + 10, TRUE);
 
-    -- ───── Monthly Subscriptions (Elite Detection Logic) ─────
-    -- Pick 2-3 random subscriptions from the list for each user
+    -- ───── Monthly Subscriptions ─────
     FOR j IN 1..3 LOOP
       sub_name := subscriptions[j][1];
       amt := subscriptions[j][3]::float;
       
-      -- Currency scaling for subs
-      IF curr = 'PHP' THEN amt := amt * 55;
+      IF curr = 'PHP' THEN amt := amt * 56;
       ELSIF curr = 'JPY' THEN amt := amt * 150;
-      ELSIF curr = 'SGD' THEN amt := amt * 1.3;
+      ELSIF curr = 'SGD' THEN amt := amt * 1.35;
       END IF;
 
       INSERT INTO public.expenses (user_id, amount, currency, category, description, date, is_recurring)
-      VALUES (u_id, amt, curr, subscriptions[j][2]::expense_category, sub_name, d + 15, TRUE);
+      VALUES (u_id, round(amt::numeric, 2), curr, subscriptions[j][2]::expense_category, sub_name, d + 15, TRUE);
     END LOOP;
 
-    -- 🎯 Transaction volume varies by lifestyle
-    IF lifestyle = 'frugal' THEN
-      txn_count := 25 + floor(random()*10);
-    ELSIF lifestyle = 'balanced' THEN
-      txn_count := 35 + floor(random()*10);
-    ELSE
-      txn_count := 50 + floor(random()*15);
-    END IF;
+    -- 🎯 Daily Transaction Volatility
+    txn_count := (25 + floor(random() * 30)) * (seasonal_multiplier); -- More txns in high spend months
 
     FOR j IN 1..txn_count LOOP
-      -- Skip some days (natural gaps)
-      IF random() < 0.2 THEN CONTINUE; END IF;
+      IF random() < 0.1 THEN CONTINUE; END IF; 
 
-      day_offset := floor(random()*28)::int;
+      day_offset := floor(random() * 27)::int;
+      cat := categories[1 + floor(random() * array_length(categories, 1))];
 
-      -- Category bias
-      IF lifestyle = 'overspender' AND random() < 0.4 THEN
-        cat := 'entertainment';
-      ELSE
-        cat := categories[1 + floor(random()*array_length(categories,1))];
-      END IF;
+      -- Base transaction amount (0.1% to 1.2% of base income)
+      amt := (monthly_base * (0.001 + random() * 0.012)) * expense_multiplier;
 
-      -- Base amounts
-      IF cat = 'food' THEN amt := 5 + random()*25;
-      ELSIF cat = 'transport' THEN amt := 3 + random()*15;
-      ELSIF cat = 'entertainment' THEN amt := 20 + random()*80;
-      ELSE amt := 10 + random()*40;
-      END IF;
-
-      -- Weekend boost (simulate behavior)
-      IF EXTRACT(DOW FROM d + day_offset) IN (0,6) THEN
+      -- Weekend boost
+      IF EXTRACT(DOW FROM d + day_offset) IN (0, 6) THEN
         amt := amt * 1.4;
       END IF;
 
-      -- 🎯 Seasonality
-      IF EXTRACT(MONTH FROM d) = 12 THEN
-        amt := amt * 1.4;
-      ELSIF EXTRACT(MONTH FROM d) = 1 THEN
-        amt := amt * 0.75;
-      END IF;
-
-      -- Rare big purchase
+      -- 🚀 Occasional Spikes (Repairs, Travel, Medical)
       IF random() < 0.05 THEN
-        amt := amt * 4;
+        amt := amt + (monthly_base * (0.1 + random() * 0.25)); -- Random spike 10-35% of income
+        cat := CASE 
+          WHEN random() < 0.3 THEN 'healthcare' 
+          WHEN random() < 0.6 THEN 'other' -- 'Repairs'
+          ELSE 'entertainment' -- 'Travel'
+        END;
       END IF;
 
-      -- Currency scaling
-      IF curr = 'PHP' THEN amt := amt * 55;
-      ELSIF curr = 'JPY' THEN amt := amt * 150;
-      ELSIF curr = 'EUR' THEN amt := amt * 0.9;
-      ELSIF curr = 'GBP' THEN amt := amt * 0.8;
-      ELSIF curr = 'SGD' THEN amt := amt * 1.3;
-      END IF;
-
-      INSERT INTO public.expenses (
-          user_id, amount, currency, category, description, date, is_recurring
-      )
+      INSERT INTO public.expenses (user_id, amount, currency, category, description, date, is_recurring)
       VALUES (
           u_id,
-          amt * expense_multiplier,
+          round(amt::numeric, 2),
           curr,
           cat::expense_category,
           CASE
-              WHEN cat = 'food' THEN 'Food & Dining'
-              WHEN cat = 'transport' THEN 'Transport'
-              WHEN cat = 'entertainment' THEN 'Entertainment'
-              WHEN cat = 'personal' THEN 'Personal'
-              ELSE 'Misc'
+              WHEN cat = 'food' THEN 'Dining & Groceries'
+              WHEN cat = 'transport' THEN 'Commute/Gas'
+              WHEN cat = 'entertainment' THEN 'Fun & Hobbies'
+              WHEN cat = 'shopping' THEN 'Retail Therapy'
+              WHEN cat = 'healthcare' THEN 'Medical/Pharmacy'
+              WHEN cat = 'other' THEN 'Emergency Repair'
+              ELSE 'Miscellaneous'
           END,
           d + day_offset,
           FALSE
@@ -164,11 +149,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- USERS
+-- USERS & PERSONAS (Same as before)
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 DECLARE
-id_us uuid := gen_random_uuid();
+  id_us uuid := gen_random_uuid();
   id_ph uuid := gen_random_uuid();
   id_sg uuid := gen_random_uuid();
   id_jp uuid := gen_random_uuid();
@@ -202,9 +187,8 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- PERSONA-BASED DATA
+-- PERSONA-BASED DATA SEEDING
 -- ─────────────────────────────────────────────────────────────────────────────
-
 PERFORM public.seed_realistic_data(id_us, 'USD', 6500, 'balanced');
 PERFORM public.seed_realistic_data(id_ph, 'PHP', 45000, 'overspender');
 PERFORM public.seed_realistic_data(id_sg, 'SGD', 7200, 'improving');
@@ -213,7 +197,7 @@ PERFORM public.seed_realistic_data(id_uk, 'GBP', 4200, 'overspender');
 PERFORM public.seed_realistic_data(id_eu, 'EUR', 3800, 'improving');
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- LOANS (Selective)
+-- LOANS, GOALS & RATES
 -- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO public.loans (user_id, name, principal, currency, interest_rate, duration_months, start_date, end_date, installment_amount, status)
 VALUES
@@ -221,9 +205,6 @@ VALUES
     (id_uk, 'Credit Loan', 5000, 'GBP', 18.5, 24, '2026-02-01', '2028-02-01', 251, 'active'::loan_status),
     (id_jp, 'Home Loan', 35000000, 'JPY', 0.8, 360, '2023-01-01', '2053-01-01', 109200, 'active'::loan_status);
 
--- ─────────────────────────────────────────────────────────────────────────────
--- GOALS
--- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO public.goals (user_id, name, target_amount, current_amount, type, currency)
 VALUES
     (id_us, 'Emergency Fund', 20000, 9000, 'savings', 'USD'),
@@ -233,11 +214,6 @@ VALUES
     (id_uk, 'Emergency Fund', 8000, 1200, 'savings', 'GBP'),
     (id_eu, 'Emergency Fund', 7000, 3000, 'savings', 'EUR');
 
-END $$;
-
--- ─────────────────────────────────────────────────────────────────────────────
--- GLOBAL EXCHANGE RATES
--- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO public.exchange_rates (base, target, rate, fetched_at)
 VALUES
   ('USD', 'EUR', 0.92,   now()), ('EUR', 'USD', 1.087,  now()),
@@ -246,5 +222,7 @@ VALUES
   ('USD', 'PHP', 56.12,  now()), ('PHP', 'USD', 0.0178, now()),
   ('USD', 'SGD', 1.34,   now()), ('SGD', 'USD', 0.746,  now())
 ON CONFLICT (base, target) DO UPDATE SET rate = EXCLUDED.rate, fetched_at = EXCLUDED.fetched_at;
+
+END $$;
 
 DROP FUNCTION public.seed_realistic_data(uuid, text, float, text);

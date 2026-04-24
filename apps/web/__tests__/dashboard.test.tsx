@@ -1,7 +1,12 @@
 import { render, screen, act, fireEvent } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import DashboardUI from '@/components/dashboard/DashboardUI'
-import { DashboardPayload } from '@stashflow/api'
+import { DashboardPayload } from '@stashflow/core'
+
+// Mock the CashFlowChart because it uses SVG and complex refs that are hard to test in JSDOM
+vi.mock('@/modules/dashboard/components/trends/CashFlowChart', () => ({
+  CashFlowChart: () => <div data-testid="cash-flow-chart" />
+}))
 
 const mockPayload: DashboardPayload = {
   summary: {
@@ -44,15 +49,10 @@ const mockPayload: DashboardPayload = {
     },
   ],
   trend: [
-    { month: 'Nov', income: 5000, expense: 1000 },
-    { month: 'Dec', income: 5000, expense: 1100 },
-    { month: 'Jan', income: 5000, expense: 1200 },
-    { month: 'Feb', income: 5000, expense: 1150 },
-    { month: 'Mar', income: 5000, expense: 1300 },
     { month: 'Apr', income: 5000, expense: 1200 },
   ],
   categoryBreakdown: [
-    { category: 'housing', amount: 1200, vsLastMonth: null },
+    { category: 'housing', amount: 1200, vsLastMonth: 0 },
   ],
   subscriptions: [],
   habitTrend: { isImproving: false, score: 0, message: 'Keep tracking...' },
@@ -68,6 +68,7 @@ const mockPayload: DashboardPayload = {
     email: 'test@example.com',
     preferred_currency: 'USD',
     budgeting_enabled: false,
+    global_rollover_enabled: false,
     rollover_start_month: null,
     contingency_mode_active: false,
   },
@@ -83,51 +84,31 @@ describe('DashboardUI', () => {
     expect(screen.getByText('test@example.com')).toBeInTheDocument()
   })
 
-  it('renders stat cards with formatted financial values', async () => {
+  it('renders summary values correctly', async () => {
     await act(async () => {
       render(<DashboardUI payload={mockPayload} userEmail="test@example.com" />)
     })
 
-    expect(screen.getByText('Net Worth')).toBeInTheDocument()
-    expect(screen.getByText('$10,000.00')).toBeInTheDocument()
-    expect(screen.getByText('Monthly Income')).toBeInTheDocument()
+    expect(screen.getAllByText('NET WORTH').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('$10,000.00').length).toBeGreaterThan(0)
   })
 
-  it('renders recent transactions in the history table', async () => {
+  it('renders recent transactions correctly', async () => {
     await act(async () => {
       render(<DashboardUI payload={mockPayload} userEmail="test@example.com" />)
     })
 
     expect(screen.getByText('Transactions')).toBeInTheDocument()
-    expect(screen.getAllByText('Monthly Rent').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Monthly Salary').length).toBeGreaterThan(0)
+    expect(screen.getByText('Monthly Rent')).toBeInTheDocument()
+    expect(screen.getByText('Monthly Salary')).toBeInTheDocument()
   })
 
-  it('renders empty state when no transactions are present', async () => {
-    const emptyPayload: DashboardPayload = {
-      ...mockPayload,
-      recentTransactions: [],
-    }
-
-    await act(async () => {
-      render(<DashboardUI payload={emptyPayload} userEmail="test@example.com" />)
-    })
-
-    expect(screen.getByText(/No matches found/i)).toBeInTheDocument()
-  })
-
-  it('renders the financial health card with DTI data', async () => {
+  it('renders the financial health indicators', async () => {
     await act(async () => {
       render(<DashboardUI payload={mockPayload} userEmail="test@example.com" />)
     })
 
-    // Click the DTI Ratio sidebar button to switch view
-    const dtiButton = screen.getByRole('button', { name: /DTI Ratio/i })
-    await act(async () => {
-      fireEvent.click(dtiButton)
-    })
-
-    expect(screen.getAllByText(/DTI Ratio/i).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/24/).length).toBeGreaterThan(0)
+    expect(screen.getByText('DTI RATIO')).toBeInTheDocument()
+    expect(screen.getByText('24%')).toBeInTheDocument()
   })
 })

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getLoans, createLoan, deleteLoan, getLoanPayments, togglePaymentStatus } from './loans'
+import { getLoans, getLoan, createLoan, deleteLoan, getLoanPayments, togglePaymentStatus, markAllPaid } from './loans'
 import { SupabaseClient } from '@supabase/supabase-js'
 
 describe('loans queries', () => {
@@ -20,6 +20,34 @@ describe('loans queries', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(mockSupabase.auth.getUser).mockResolvedValue({ data: { user: { id: 'user-123' } }, error: null } as any)
+  })
+
+  describe('getLoan', () => {
+    it('returns a loan by id', async () => {
+      const mockLoan = { id: 'loan-1', name: 'Home Loan' }
+      vi.mocked(mockSupabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: mockLoan, error: null })
+          })
+        })
+      } as any)
+
+      const result = await getLoan(mockSupabase, 'loan-1')
+      expect(result).toEqual(mockLoan)
+    })
+
+    it('throws when getLoan errors', async () => {
+      vi.mocked(mockSupabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: null, error: new Error('not found') })
+          })
+        })
+      } as any)
+
+      await expect(getLoan(mockSupabase, 'missing')).rejects.toThrow('not found')
+    })
   })
 
   describe('getLoans', () => {
@@ -107,6 +135,40 @@ describe('loans queries', () => {
 
       const result = await getLoanPayments(mockSupabase, 'loan-123')
       expect(result).toEqual(mockData)
+    })
+  })
+
+  describe('markAllPaid', () => {
+    it('marks all payments as paid and updates loan to completed', async () => {
+      vi.mocked(mockSupabase.from)
+        .mockReturnValueOnce({
+          update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+        } as any)
+        .mockReturnValueOnce({
+          update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+        } as any)
+
+      await expect(markAllPaid(mockSupabase, 'loan-1')).resolves.toBeUndefined()
+    })
+
+    it('throws when loan_payments update fails', async () => {
+      vi.mocked(mockSupabase.from).mockReturnValueOnce({
+        update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: new Error('payments error') }) })
+      } as any)
+
+      await expect(markAllPaid(mockSupabase, 'loan-1')).rejects.toThrow('payments error')
+    })
+
+    it('throws when loans update fails', async () => {
+      vi.mocked(mockSupabase.from)
+        .mockReturnValueOnce({
+          update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+        } as any)
+        .mockReturnValueOnce({
+          update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: new Error('loan update error') }) })
+        } as any)
+
+      await expect(markAllPaid(mockSupabase, 'loan-1')).rejects.toThrow('loan update error')
     })
   })
 

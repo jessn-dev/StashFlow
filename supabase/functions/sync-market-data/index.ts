@@ -35,11 +35,11 @@ const SERIES_TO_TRACK = [
 
   // ── SGD (Singapore) ───────────────────────────────────────────────────────
   { id: 'SGPPCPIPCPPPT',    name: 'Singapore CPI',       cat: null, currency: 'SGD' },
-  { id: 'INTDSRSGM193N',    name: 'MAS Discount Rate',   cat: null, currency: 'SGD' },
+  { id: 'SGPINTDSRM',       name: 'MAS Discount Rate',   cat: null, currency: 'SGD' },
 
   // ── PHP (Philippines) ─────────────────────────────────────────────────────
   { id: 'PHLPCPIPCPPPT',    name: 'PH CPI (Inflation)',  cat: null, currency: 'PHP' },
-  { id: 'INTDSRPHM193N',    name: 'BSP Discount Rate',   cat: null, currency: 'PHP' },
+  { id: 'PHLINTDSRM',       name: 'BSP Discount Rate',   cat: null, currency: 'PHP' },
 ]
 
 const corsHeaders = {
@@ -68,9 +68,10 @@ serve(async (req) => {
   try {
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!)
     const results: any[] = []
+    const todayStr = new Date().toISOString().split('T')[0]
 
     for (const series of SERIES_TO_TRACK) {
-      const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${series.id}&api_key=${fredApiKey}&file_type=json&sort_order=desc&limit=10`
+      const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${series.id}&api_key=${fredApiKey}&file_type=json&sort_order=desc&limit=15`
       
       try {
         const resp = await fetch(url)
@@ -82,11 +83,10 @@ serve(async (req) => {
         const data = await resp.json()
         const observations = data.observations || []
         
-        console.log(`Received ${observations.length} observations for ${series.id}`)
-        
         let captured = 0
         observations.forEach((obs: any) => {
-          if (obs.value !== '.' && captured < 2) { 
+          // Ignore placeholder values ('.') and future-dated forecasts (obs.date > today)
+          if (obs.value !== '.' && captured < 2 && obs.date <= todayStr) { 
             results.push({
               series_id: series.id,
               series_name: series.name,

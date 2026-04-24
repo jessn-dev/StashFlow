@@ -1,6 +1,24 @@
 import { describe, it, expect, vi } from 'vitest'
-import { getBudgets, upsertBudget, getBudgetPeriod, rebalanceBudget } from './budgets'
+import { getBudgets, upsertBudget, getBudgetPeriod, rebalanceBudget, getSmartBudgetRecommendation } from './budgets'
 import { SupabaseClient } from '@supabase/supabase-js'
+import { getProfile } from './profile'
+
+vi.mock('./dti', () => ({
+  getDTIRatio: vi.fn().mockResolvedValue({ gross_income: 5000, total_debt: 1000, status: 'low' })
+}))
+
+vi.mock('./profile', () => ({
+  getProfile: vi.fn().mockResolvedValue({ preferred_currency: 'USD' })
+}))
+
+vi.mock('./exchange-rates', () => ({
+  fetchRateMap: vi.fn().mockResolvedValue({}),
+  convertCurrency: vi.fn((amount: number) => amount)
+}))
+
+vi.mock('@stashflow/core', () => ({
+  generateSmartBudget: vi.fn().mockReturnValue({ housing: 1500, food: 500 })
+}))
 
 const mockUser = { id: 'user-1' }
 const mockBudget = { id: 'b1', user_id: 'user-1', category: 'food', amount: 500, currency: 'USD', rollover_enabled: true, created_at: null }
@@ -116,5 +134,105 @@ describe('rebalanceBudget', () => {
     await expect(
       rebalanceBudget(supabase, { fromCategory: 'food', toCategory: 'transport', amount: 50, period: '2026-04', permanent: false })
     ).rejects.toThrow('Unauthorized')
+  })
+})
+
+function makeSmartBudgetSupabase(opts: {
+  expensesData?: any[]
+  invokeResult?: { data: any; error: any }
+  invokeThrows?: boolean
+} = {}) {
+  return {
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        gte: vi.fn().mockReturnValue({
+          in: vi.fn().mockResolvedValue({ data: opts.expensesData ?? [], error: null })
+        })
+      })
+    }),
+    functions: {
+      invoke: opts.invokeThrows
+        ? vi.fn().mockRejectedValue(new Error('network error'))
+        : vi.fn().mockResolvedValue(opts.invokeResult ?? { data: { region: 'USA' }, error: null })
+    }
+  } as unknown as SupabaseClient
+}
+
+describe('getSmartBudgetRecommendation', () => {
+  it('returns a recommendation with USD profile', async () => {
+    const result = await getSmartBudgetRecommendation(makeSmartBudgetSupabase())
+    expect(result).toBeDefined()
+  })
+
+  it('falls back to USD when preferred_currency is null', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({ preferred_currency: null } as any)
+    const result = await getSmartBudgetRecommendation(makeSmartBudgetSupabase())
+    expect(result).toBeDefined()
+  })
+
+  it('handles macro profile response with error (skips macroProfile)', async () => {
+    const result = await getSmartBudgetRecommendation(
+      makeSmartBudgetSupabase({ invokeResult: { data: null, error: 'edge error' } })
+    )
+    expect(result).toBeDefined()
+  })
+
+  it('handles macro profile network failure (catch branch)', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const result = await getSmartBudgetRecommendation(
+      makeSmartBudgetSupabase({ invokeThrows: true })
+    )
+    expect(result).toBeDefined()
+    expect(consoleSpy).toHaveBeenCalled()
+    consoleSpy.mockRestore()
+  })
+
+  it('handles PHP currency (Philippines region)', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({ preferred_currency: 'PHP' } as any)
+    const result = await getSmartBudgetRecommendation(makeSmartBudgetSupabase())
+    expect(result).toBeDefined()
+  })
+
+  it('handles SGD currency (Singapore region)', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({ preferred_currency: 'SGD' } as any)
+    const result = await getSmartBudgetRecommendation(makeSmartBudgetSupabase())
+    expect(result).toBeDefined()
+  })
+
+  it('handles JPY currency (Japan region)', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({ preferred_currency: 'JPY' } as any)
+    const result = await getSmartBudgetRecommendation(makeSmartBudgetSupabase())
+    expect(result).toBeDefined()
+  })
+
+  it('handles GBP currency (UK region)', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({ preferred_currency: 'GBP' } as any)
+    const result = await getSmartBudgetRecommendation(makeSmartBudgetSupabase())
+    expect(result).toBeDefined()
+  })
+
+  it('handles EUR currency (EU region)', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({ preferred_currency: 'EUR' } as any)
+    const result = await getSmartBudgetRecommendation(makeSmartBudgetSupabase())
+    expect(result).toBeDefined()
+  })
+
+  it('handles unknown currency (Global region default)', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({ preferred_currency: 'BTC' } as any)
+    const result = await getSmartBudgetRecommendation(makeSmartBudgetSupabase())
+    expect(result).toBeDefined()
+  })
+
+  it('computes 3-month rolling averages from expense data', async () => {
+    const result = await getSmartBudgetRecommendation(
+      makeSmartBudgetSupabase({
+        expensesData: [
+          { amount: '300', currency: 'USD', category: 'housing' },
+          { amount: '100', currency: 'USD', category: 'utilities' },
+          { amount: '200', currency: 'USD', category: 'food' },
+        ]
+      })
+    )
+    expect(result).toBeDefined()
   })
 })

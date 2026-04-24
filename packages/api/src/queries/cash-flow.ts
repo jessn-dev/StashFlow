@@ -1,11 +1,19 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@stashflow/core'
 
+export interface TopTransaction {
+  description: string
+  amount: number
+  category: string
+}
+
 export interface CashFlowProjection {
   period: string
   month: string
   income: number
   expenses: number
+  expensesByCategory: Record<string, number>
+  topTransactions: TopTransaction[]
   debt: number
   net: number
 }
@@ -50,13 +58,40 @@ export async function getCashFlowProjections(
   ] = await Promise.all([
     supabase.from('incomes').select('amount, frequency, currency'),
     supabase.from('loans').select('installment_amount, currency, end_date').eq('status', 'active'),
-    supabase.from('expenses').select('amount').gte('date', threeMonthsAgoStr),
+    supabase.from('expenses').select('amount, category, description, date').gte('date', threeMonthsAgoStr),
   ])
 
   const currency      = incomeRows?.[0]?.currency ?? loanRows?.[0]?.currency ?? 'USD'
   const monthlyIncome = (incomeRows ?? []).reduce((s, r) => s + toMonthly(r.amount, r.frequency ?? 'monthly'), 0)
   const monthlyDebt   = (loanRows ?? []).reduce((s, r) => s + r.installment_amount, 0)
   const avgMonthlyExp = (recentExp ?? []).reduce((s, r) => s + r.amount, 0) / 3
+
+  // Per-category 3-month rolling averages
+  const categoryTotals: Record<string, number> = {}
+  for (const exp of (recentExp ?? [])) {
+    const cat = (exp.category as string) ?? 'other'
+    categoryTotals[cat] = (categoryTotals[cat] ?? 0) + exp.amount
+  }
+  const avgExpByCategory: Record<string, number> = {}
+  for (const [cat, total] of Object.entries(categoryTotals)) {
+    avgExpByCategory[cat] = Math.round(total / 3)
+  }
+
+  // Top 5 transactions per calendar month (only available for past/current months)
+  const expsByPeriod: Record<string, typeof recentExp> = {}
+  for (const exp of (recentExp ?? [])) {
+    if (!exp.date) continue
+    const period = exp.date.substring(0, 7)
+    if (!expsByPeriod[period]) expsByPeriod[period] = []
+    expsByPeriod[period]!.push(exp)
+  }
+  const topByPeriod: Record<string, TopTransaction[]> = {}
+  for (const [period, exps] of Object.entries(expsByPeriod)) {
+    topByPeriod[period] = (exps ?? [])
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5)
+      .map(e => ({ description: e.description, amount: e.amount, category: e.category as string }))
+  }
 
   // Build 12-month forward projection
   const projections: CashFlowProjection[] = []
@@ -74,10 +109,12 @@ export async function getCashFlowProjections(
     projections.push({
       period,
       month,
-      income:   Math.round(monthlyIncome),
-      expenses: Math.round(avgMonthlyExp),
-      debt:     Math.round(activeDebtThisMonth),
-      net:      Math.round(net),
+      income:              Math.round(monthlyIncome),
+      expenses:            Math.round(avgMonthlyExp),
+      expensesByCategory:  avgExpByCategory,
+      topTransactions:     topByPeriod[period] ?? [],
+      debt:                Math.round(activeDebtThisMonth),
+      net:                 Math.round(net),
     })
   }
 

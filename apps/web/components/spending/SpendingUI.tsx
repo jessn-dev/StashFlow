@@ -62,7 +62,7 @@ function computeSpending(
         label: 'MoM Change',     
         value: diff === 0 ? String(expenses.length) : `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%`,
         sub: diff === 0 ? 'transactions' : 'vs last month',
-        trend: diff > 0 ? 'down' : diff < 0 ? 'up' : null
+        trend: diff > 0 ? 'down' : diff < 0 ? 'up' : undefined
       }
     ],
     insights: [

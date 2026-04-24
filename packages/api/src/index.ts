@@ -1,4 +1,5 @@
 export * from './client'
+export * from './services'
 export * from './queries/dashboard'
 export * from './queries/expenses'
 export * from './queries/income'

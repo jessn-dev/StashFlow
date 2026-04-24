@@ -6,8 +6,10 @@ import LoanForm from '@/components/loans/LoanForm'
 import InstallmentList from '@/components/loans/InstallmentList'
 import { YStack, XStack, Text, Button, Spinner, Heading, Circle } from 'tamagui'
 import { formatCurrency, Loan } from '@stashflow/core'
-import { Landmark, Plus, ArrowUpRight, Search, Filter } from 'lucide-react-native'
+import { getLoanPayments } from '@stashflow/api'
+import { Landmark, Plus, ArrowUpRight, Search, Filter, X } from 'lucide-react-native'
 import FormModal from '@/components/ui/FormModal'
+import { createClient } from '@/utils/supabase/client'
 
 interface LoansUIProps {
   loans: Loan[]
@@ -20,7 +22,29 @@ interface LoansUIProps {
 export default function LoansUI({ loans, totalActiveDebt, preferredCurrency, rates, onRefresh }: LoansUIProps) {
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all')
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null)
+  const [installments, setInstallments] = useState<any[]>([])
+  const [loadingInstallments, setLoadingInstallments] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
+
+  useEffect(() => {
+    if (selectedLoan) {
+      async function load() {
+        setLoadingInstallments(true)
+        try {
+          const sb = createClient()
+          const data = await getLoanPayments(sb, selectedLoan!.id)
+          setInstallments(data)
+        } catch (e) {
+          console.error(e)
+        } finally {
+          setLoadingInstallments(false)
+        }
+      }
+      load()
+    } else {
+      setInstallments([])
+    }
+  }, [selectedLoan])
 
   const filteredLoans = loans.filter(l => {
     if (filter === 'all') return true
@@ -30,7 +54,7 @@ export default function LoansUI({ loans, totalActiveDebt, preferredCurrency, rat
   return (
     <YStack gap={32} width="100%">
       <FormModal isOpen={formOpen} onClose={() => setFormOpen(false)} title="Add New Loan">
-        <LoanForm onRefresh={onRefresh} />
+        <LoanForm onSuccess={onRefresh} />
       </FormModal>
 
       {/* 1. Summary Header */}
@@ -40,7 +64,7 @@ export default function LoansUI({ loans, totalActiveDebt, preferredCurrency, rat
               <Text fontSize={12} fontWeight="700" color="rgba(255,255,255,0.6)" textTransform="uppercase" letterSpacing={1.5}>Total Active Debt</Text>
               <Landmark size={20} color="white" opacity={0.5} />
            </XStack>
-           <Heading size="$3xl" color="white" fontWeight="900" letterSpacing={-1}>{formatCurrency(totalActiveDebt, preferredCurrency)}</Heading>
+           <Heading fontSize={48} color="white" fontWeight="900" letterSpacing={-1}>{formatCurrency(totalActiveDebt, preferredCurrency)}</Heading>
            <Text fontSize={14} color="rgba(255,255,255,0.5)">Across {loans.filter(l => l.status === 'active').length} active loan accounts</Text>
         </YStack>
 
@@ -60,7 +84,7 @@ export default function LoansUI({ loans, totalActiveDebt, preferredCurrency, rat
            <YStack backgroundColor="$brandWhite" borderRadius={16} shadowColor="black" shadowOpacity={0.04} shadowRadius={10} borderWidth={1} borderColor="$borderColor" overflow="hidden">
               <XStack padding={24} borderBottomWidth={1} borderColor="$borderColor" backgroundColor="rgba(13,61,61,0.01)" justifyContent="space-between" alignItems="center">
                  <XStack gap={16} alignItems="center">
-                    <Heading size="$xs" color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5} fontWeight="800">Loan Portfolios</Heading>
+                    <Heading fontSize={12} color="$brandPrimary" textTransform="uppercase" letterSpacing={1.5} fontWeight="800">Loan Portfolios</Heading>
                     <XStack backgroundColor="$brandBg" borderRadius={8} padding={2}>
                        {(['all', 'active', 'completed'] as const).map(f => (
                          <Button key={f} size="$1" backgroundColor={filter === f ? '$brandPrimary' : 'transparent'} onPress={() => setFilter(f)} chromeless={filter !== f}>
@@ -110,7 +134,19 @@ export default function LoansUI({ loans, totalActiveDebt, preferredCurrency, rat
                    <Button size="$1" circular icon={<X size={14} />} onPress={() => setSelectedLoan(null)} chromeless />
                 </XStack>
                 <YStack padding={0}>
-                   <InstallmentList loanId={selectedLoan.id} onRefresh={() => { onRefresh?.(); }} />
+                  {loadingInstallments ? (
+                    <YStack padding={40} alignItems="center">
+                      <Spinner size="large" color="$brandPrimary" />
+                    </YStack>
+                  ) : (
+                    <InstallmentList 
+                      loanId={selectedLoan.id} 
+                      installments={installments}
+                      currency={selectedLoan.currency}
+                      installmentAmount={selectedLoan.installment_amount}
+                      onSuccess={() => { onRefresh?.(); }} 
+                    />
+                  )}
                 </YStack>
              </YStack>
            ) : (

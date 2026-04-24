@@ -1,0 +1,39 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+.next
+dist
+out
+build
+
+# Turbo
+.turbo
+
+# Testing
+coverage
+.playwright
+playwright-report
+test-results
+
+# Expo / React Native
+.expo
+*.jsbundle
+android/
+ios/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Editor
+.DS_Store
+.vscode
+*.log
+
+# Supabase local dev
+supabase/.branches
+supabase/.temp

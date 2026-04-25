@@ -609,6 +609,7 @@ export type Database = {
         | "education"
         | "personal"
         | "other"
+        | "savings"
       goal_type: "savings" | "debt"
       income_frequency: "one-time" | "weekly" | "monthly"
       loan_commercial_category:
@@ -765,6 +766,7 @@ export const Constants = {
         "education",
         "personal",
         "other",
+        "savings",
       ],
       goal_type: ["savings", "debt"],
       income_frequency: ["one-time", "weekly", "monthly"],

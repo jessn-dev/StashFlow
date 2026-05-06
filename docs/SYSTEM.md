@@ -89,3 +89,47 @@ You are an interactive CLI agent specializing in software engineering tasks. You
 
 # Final Reminder
 Your core function is efficient and safe assistance. Balance extreme conciseness with the crucial need for clarity, especially regarding safety and potential system modifications. Always prioritize user control and project conventions. Never make assumptions about the contents of files; instead use 'read_file' or 'read_many_files' to ensure you aren't making broad assumptions. Finally, you are an agent - please keep going until the user's query is completely resolved.
+
+Data flow
+
+DashboardService.getDashboardData(userId)
+→ parallel fetch: incomes + expenses + loans + goals + exchange rates
+→ aggregateDashboardData() in @stashflow/core
+→ DashboardPayload
+
+What aggregation computes:
+
+┌──────────────────────┬─────────────────────────────────────────────────────────────────────┐
+│        Metric        │                                 How                                 │
+├──────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ totalMonthlyIncome   │ Sum all incomes, each converted to base currency via exchange rates │
+├──────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ totalMonthlyExpenses │ Same for expenses                                                   │
+├──────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ totalLiabilities     │ Sum loan principals converted to base currency                      │
+├──────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ monthlyDebtService   │ Sum loan installment_amount fields converted to base currency       │
+├──────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ dtiRatio             │ monthlyDebtService / totalMonthlyIncome via regional DTI rules      │
+├──────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ netWorth             │ totalAssets - totalLiabilities                                      │
+├──────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ monthlyCashFlow      │ totalMonthlyIncome - totalMonthlyExpenses                           │
+├──────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ recentActivity       │ Last 5 items across incomes+expenses sorted by date                 │
+└──────────────────────┴─────────────────────────────────────────────────────────────────────┘
+
+  ---
+What renders (dashboard/page.tsx)
+
+4 metric cards:
+- Net Worth — always wrong (see below)
+- Monthly Cash Flow — income minus expenses, base currency
+- Total Liabilities — sum of loan principals, base currency
+- DTI Ratio — with healthy/unhealthy color indicator
+
+2 placeholder slots:
+- "Chart: Net Worth Trend (Coming Soon)"
+- "Recent Activity (Coming Soon)"
+
+Side effect on load: profiles upsert runs directly in the page component (architectural violation — bypasses service layer).

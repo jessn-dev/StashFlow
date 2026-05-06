@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 478">
+  <defs>
+    <radialGradient id="bodyGrad" cx="38%" cy="48%" r="62%">
+      <stop offset="0%" stop-color="#608c22"/>
+      <stop offset="52%" stop-color="#3d6614"/>
+      <stop offset="100%" stop-color="#223808"/>
+    </radialGradient>
+    <radialGradient id="faceGrad" cx="40%" cy="38%" r="62%">
+      <stop offset="0%" stop-color="#e8f048"/>
+      <stop offset="60%" stop-color="#c0d428"/>
+      <stop offset="100%" stop-color="#96aa18"/>
+    </radialGradient>
+    <radialGradient id="billGrad" cx="38%" cy="30%" r="68%">
+      <stop offset="0%" stop-color="#faee58"/>
+      <stop offset="100%" stop-color="#d4c420"/>
+    </radialGradient>
+    <radialGradient id="coinGrad" cx="32%" cy="28%" r="68%">
+      <stop offset="0%" stop-color="#6a9e28"/>
+      <stop offset="100%" stop-color="#365a0e"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Bills -->
+  <g transform="rotate(-26, 194, 200)">
+    <rect x="164" y="104" width="58" height="84" rx="6" fill="url(#billGrad)" stroke="#1c3608" stroke-width="6"/>
+    <ellipse cx="193" cy="146" rx="14" ry="17" fill="#3a6010"/>
+    <ellipse cx="188" cy="141" rx="4.5" ry="5.5" fill="#1c3608"/>
+    <ellipse cx="198" cy="141" rx="4.5" ry="5.5" fill="#1c3608"/>
+    <rect x="167" y="107" width="22" height="4" rx="2" fill="white" opacity="0.38"/>
+  </g>
+  <g transform="rotate(-10, 230, 194)">
+    <rect x="200" y="90" width="58" height="88" rx="6" fill="url(#billGrad)" stroke="#1c3608" stroke-width="6"/>
+    <ellipse cx="229" cy="134" rx="14" ry="17" fill="#3a6010"/>
+    <ellipse cx="224" cy="129" rx="4.5" ry="5.5" fill="#1c3608"/>
+    <ellipse cx="234" cy="129" rx="4.5" ry="5.5" fill="#1c3608"/>
+    <rect x="203" y="93" width="22" height="4" rx="2" fill="white" opacity="0.38"/>
+  </g>
+  <g transform="rotate(3, 261, 188)">
+    <rect x="231" y="82" width="58" height="90" rx="6" fill="url(#billGrad)" stroke="#1c3608" stroke-width="6"/>
+    <ellipse cx="260" cy="127" rx="14" ry="17" fill="#3a6010"/>
+    <ellipse cx="255" cy="122" rx="4.5" ry="5.5" fill="#1c3608"/>
+    <ellipse cx="265" cy="122" rx="4.5" ry="5.5" fill="#1c3608"/>
+    <rect x="234" y="85" width="22" height="4" rx="2" fill="white" opacity="0.38"/>
+  </g>
+  <g transform="rotate(17, 297, 194)">
+    <rect x="267" y="90" width="58" height="86" rx="6" fill="url(#billGrad)" stroke="#1c3608" stroke-width="6"/>
+    <ellipse cx="296" cy="133" rx="14" ry="17" fill="#3a6010"/>
+    <ellipse cx="291" cy="128" rx="4.5" ry="5.5" fill="#1c3608"/>
+    <ellipse cx="301" cy="128" rx="4.5" ry="5.5" fill="#1c3608"/>
+    <rect x="270" y="93" width="22" height="4" rx="2" fill="white" opacity="0.38"/>
+  </g>
+
+  <!-- Coins -->
+  <circle cx="168" cy="212" r="21" fill="url(#coinGrad)" stroke="#1c3608" stroke-width="5"/>
+  <circle cx="160" cy="204" r="8" fill="#5a8c1e" opacity="0.55"/>
+  <circle cx="340" cy="208" r="18" fill="url(#coinGrad)" stroke="#1c3608" stroke-width="5"/>
+  <circle cx="333" cy="201" r="6.5" fill="#5a8c1e" opacity="0.55"/>
+
+  <!-- Purse body -->
+  <path d="M 250 462 C 168 462, 104 428, 86 375 C 70 328, 77 272, 100 238 C 120 210, 150 196, 180 190 C 202 185, 226 183, 250 183 C 274 183, 298 185, 320 190 C 350 196, 380 210, 400 238 C 423 272, 430 328, 414 375 C 396 428, 332 462, 250 462 Z"
+        fill="url(#bodyGrad)" stroke="#1a3008" stroke-width="10"/>
+  <path d="M 140 252 Q 195 222, 252 219 Q 308 222, 362 252"
+        fill="none" stroke="#78aa28" stroke-width="5" stroke-linecap="round" opacity="0.35"/>
+
+  <!-- Face oval -->
+  <ellipse cx="250" cy="340" rx="136" ry="116" fill="url(#faceGrad)"/>
+
+  <!-- Clasp frame -->
+  <path d="M 154 234 Q 250 194, 346 234" fill="none" stroke="#1a3008" stroke-width="30" stroke-linecap="round" opacity="0.35"/>
+  <path d="M 154 234 Q 250 194, 346 234" fill="none" stroke="#eeeeee" stroke-width="23" stroke-linecap="round"/>
+  <path d="M 157 227 Q 250 188, 343 227" fill="none" stroke="white" stroke-width="9" stroke-linecap="round" opacity="0.75"/>
+
+  <!-- Eyes -->
+  <ellipse cx="202" cy="306" rx="31" ry="40" fill="#1a3008"/>
+  <ellipse cx="298" cy="306" rx="31" ry="40" fill="#1a3008"/>
+  <ellipse cx="213" cy="292" rx="10" ry="13" fill="white" opacity="0.32"/>
+  <ellipse cx="309" cy="292" rx="10" ry="13" fill="white" opacity="0.32"/>
+
+  <!-- Smile -->
+  <path d="M 207 370 Q 250 406, 293 370" fill="white" stroke="#1a3008" stroke-width="6" stroke-linejoin="round"/>
+
+  <!-- Clasp knobs -->
+  <circle cx="154" cy="234" r="17" fill="#eeeeee" stroke="#1a3008" stroke-width="6"/>
+  <circle cx="146" cy="226" r="7" fill="white" opacity="0.6"/>
+  <circle cx="346" cy="234" r="17" fill="#eeeeee" stroke="#1a3008" stroke-width="6"/>
+  <circle cx="338" cy="226" r="7" fill="white" opacity="0.6"/>
+</svg>

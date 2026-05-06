@@ -24,13 +24,9 @@ export function generateSmartBudget(
 ): BudgetRecommendation[] {
   const essentialsTotal = monthlyIncome * 0.50;
   const wantsTotal = monthlyIncome * 0.30;
-  const savingsTotal = monthlyIncome * 0.20;
   
-  // Dynamically determine wants by excluding essentials and savings from all categories
   const allCategories = Constants.public.Enums.expense_category as unknown as ExpenseCategory[];
-  const wantsCategories = allCategories.filter(
-    (cat) => !ESSENTIAL_CATEGORIES.includes(cat) && cat !== 'savings'
-  );
+  const wantsCategories = allCategories.filter((cat) => !ESSENTIAL_CATEGORIES.includes(cat));
 
   const essentialCount = ESSENTIAL_CATEGORIES.length;
   const wantsCount = wantsCategories.length;
@@ -51,12 +47,6 @@ export function generateSmartBudget(
       suggestedAmount: customAllocations?.[cat] ?? wantsTotal / wantsCount,
       isEssential: false,
     });
-  });
-
-  recommendations.push({
-    category: 'savings',
-    suggestedAmount: customAllocations?.['savings'] ?? savingsTotal,
-    isEssential: false,
   });
 
   return recommendations;

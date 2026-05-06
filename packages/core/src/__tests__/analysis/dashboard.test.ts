@@ -21,6 +21,7 @@ describe('dashboard analysis', () => {
       goals: [],
       rates: { USD: 1 },
       region: 'US',
+      currency: 'USD',
     });
 
     expect(result.monthlyCashFlow).toBe(3000);

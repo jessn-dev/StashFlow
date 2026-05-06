@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@stashflow/api": "workspace:*",
@@ -15,12 +15,14 @@
     "@stashflow/ui": "workspace:*",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.104.1",
+    "lucide-react": "^1.11.0",
     "next": "16.2.4",
     "react": "19.2.5",
-    "react-dom": "19.2.5",
-    "lucide-react": "latest"
+    "react-dom": "19.2.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@tailwindcss/postcss": "^4.2.4",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",

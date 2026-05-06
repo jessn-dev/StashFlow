@@ -1,11 +1,4 @@
-import { Region } from '../schema';
-
-export interface DTIRatioResult {
-  ratio: number;
-  isHealthy: boolean;
-  threshold: number;
-  label: string;
-}
+import { Region, DTIRatioResult } from '../schema';
 
 export const REGIONAL_THRESHOLDS: Record<Region, number> = {
   US: 0.36, // Standard 36% rule
@@ -27,9 +20,10 @@ export function calculateDTIRatio(
   region: Region = 'US'
 ): DTIRatioResult {
   if (totalGrossMonthlyIncome <= 0) {
+    const isHealthy = totalMonthlyDebts <= 0;
     return {
-      ratio: 0,
-      isHealthy: true,
+      ratio: totalMonthlyDebts > 0 ? 1 : 0, // 100% or 0% depending on debt
+      isHealthy,
       threshold: REGIONAL_THRESHOLDS[region],
       label: 'No income',
     };

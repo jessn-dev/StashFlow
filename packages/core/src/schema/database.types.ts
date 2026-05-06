@@ -34,91 +34,32 @@ export type Database = {
   }
   public: {
     Tables: {
-      documents: {
+      ai_insights_cache: {
         Row: {
-          content_type: string
-          created_at: string | null
-          file_name: string
-          file_size: number
+          currency: string
+          data_version_hash: string
           id: string
-          storage_path: string
-          user_id: string
+          insight_json: Json
+          region: string
+          updated_at: string | null
         }
         Insert: {
-          content_type: string
-          created_at?: string | null
-          file_name: string
-          file_size: number
+          currency: string
+          data_version_hash: string
           id?: string
-          storage_path: string
-          user_id: string
+          insight_json: Json
+          region: string
+          updated_at?: string | null
         }
         Update: {
-          content_type?: string
-          created_at?: string | null
-          file_name?: string
-          file_size?: number
+          currency?: string
+          data_version_hash?: string
           id?: string
-          storage_path?: string
-          user_id?: string
+          insight_json?: Json
+          region?: string
+          updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "documents_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      loan_fees: {
-        Row: {
-          amount: number
-          created_at: string | null
-          id: string
-          is_financed: boolean | null
-          is_recurring: boolean | null
-          loan_id: string
-          name: string
-          user_id: string
-        }
-        Insert: {
-          amount?: number
-          created_at?: string | null
-          id?: string
-          is_financed?: boolean | null
-          is_recurring?: boolean | null
-          loan_id: string
-          name: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          id?: string
-          is_financed?: boolean | null
-          is_recurring?: boolean | null
-          loan_id?: string
-          name?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "loan_fees_loan_id_fkey"
-            columns: ["loan_id"]
-            isOneToOne: false
-            referencedRelation: "loans"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "loan_fees_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       budget_periods: {
         Row: {
@@ -192,6 +133,110 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "budgets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_metadata: {
+        Row: {
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string | null
+          id: string
+          is_essential: boolean | null
+          user_id: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          id?: string
+          is_essential?: boolean | null
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          id?: string
+          is_essential?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_metadata_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          content_type: string
+          created_at: string | null
+          extracted_data: Json | null
+          extraction_source: string | null
+          file_name: string
+          file_size: number
+          id: string
+          inferred_type: string | null
+          last_processed_at: string | null
+          loan_id: string | null
+          processing_attempts: number
+          processing_error: Json | null
+          processing_status: string
+          source: string | null
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          content_type: string
+          created_at?: string | null
+          extracted_data?: Json | null
+          extraction_source?: string | null
+          file_name: string
+          file_size: number
+          id?: string
+          inferred_type?: string | null
+          last_processed_at?: string | null
+          loan_id?: string | null
+          processing_attempts?: number
+          processing_error?: Json | null
+          processing_status?: string
+          source?: string | null
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          content_type?: string
+          created_at?: string | null
+          extracted_data?: Json | null
+          extraction_source?: string | null
+          file_name?: string
+          file_size?: number
+          id?: string
+          inferred_type?: string | null
+          last_processed_at?: string | null
+          loan_id?: string | null
+          processing_attempts?: number
+          processing_error?: Json | null
+          processing_status?: string
+          source?: string | null
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -358,6 +403,54 @@ export type Database = {
           },
         ]
       }
+      loan_fees: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          is_financed: boolean | null
+          is_recurring: boolean | null
+          loan_id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          is_financed?: boolean | null
+          is_recurring?: boolean | null
+          loan_id: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          is_financed?: boolean | null
+          is_recurring?: boolean | null
+          loan_id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_fees_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_fees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loan_payments: {
         Row: {
           amount_paid: number | null
@@ -411,6 +504,7 @@ export type Database = {
           commercial_category:
             | Database["public"]["Enums"]["loan_commercial_category"]
             | null
+          completed_at: string | null
           country_code: string | null
           created_at: string | null
           currency: string
@@ -418,25 +512,30 @@ export type Database = {
           effective_interest_rate: number | null
           end_date: string
           id: string
+          inference_confidence: number | null
+          inference_source: string | null
           installment_amount: number
           interest_basis:
             | Database["public"]["Enums"]["loan_interest_basis"]
             | null
           interest_rate: number
-          interest_type: Database["public"]["Enums"]["loan_interest_type"] | null
+          interest_type:
+            | Database["public"]["Enums"]["loan_interest_type"]
+            | null
           lender: string | null
           name: string
           payment_start_date: string | null
           principal: number
+          source_document_id: string | null
           start_date: string
           status: Database["public"]["Enums"]["loan_status"] | null
           user_id: string
-          completed_at: string | null
         }
         Insert: {
           commercial_category?:
             | Database["public"]["Enums"]["loan_commercial_category"]
             | null
+          completed_at?: string | null
           country_code?: string | null
           created_at?: string | null
           currency: string
@@ -444,6 +543,8 @@ export type Database = {
           effective_interest_rate?: number | null
           end_date: string
           id?: string
+          inference_confidence?: number | null
+          inference_source?: string | null
           installment_amount: number
           interest_basis?:
             | Database["public"]["Enums"]["loan_interest_basis"]
@@ -456,15 +557,16 @@ export type Database = {
           name: string
           payment_start_date?: string | null
           principal: number
+          source_document_id?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["loan_status"] | null
           user_id: string
-          completed_at?: string | null
         }
         Update: {
           commercial_category?:
             | Database["public"]["Enums"]["loan_commercial_category"]
             | null
+          completed_at?: string | null
           country_code?: string | null
           created_at?: string | null
           currency?: string
@@ -472,6 +574,8 @@ export type Database = {
           effective_interest_rate?: number | null
           end_date?: string
           id?: string
+          inference_confidence?: number | null
+          inference_source?: string | null
           installment_amount?: number
           interest_basis?:
             | Database["public"]["Enums"]["loan_interest_basis"]
@@ -484,12 +588,19 @@ export type Database = {
           name?: string
           payment_start_date?: string | null
           principal?: number
+          source_document_id?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["loan_status"] | null
           user_id?: string
-          completed_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "loans_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "loans_user_id_fkey"
             columns: ["user_id"]
@@ -499,6 +610,39 @@ export type Database = {
           },
         ]
       }
+      market_trends: {
+        Row: {
+          category: Database["public"]["Enums"]["expense_category"] | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          period: string
+          series_id: string
+          series_name: string
+          value: number
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["expense_category"] | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          period: string
+          series_id: string
+          series_name: string
+          value: number
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["expense_category"] | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          period?: string
+          series_id?: string
+          series_name?: string
+          value?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           budgeting_enabled: boolean | null
@@ -506,9 +650,11 @@ export type Database = {
           created_at: string | null
           email: string
           full_name: string | null
+          global_rollover_enabled: boolean | null
           id: string
           preferred_currency: string | null
           rollover_start_month: string | null
+          updated_at: string | null
         }
         Insert: {
           budgeting_enabled?: boolean | null
@@ -516,9 +662,11 @@ export type Database = {
           created_at?: string | null
           email: string
           full_name?: string | null
+          global_rollover_enabled?: boolean | null
           id: string
           preferred_currency?: string | null
           rollover_start_month?: string | null
+          updated_at?: string | null
         }
         Update: {
           budgeting_enabled?: boolean | null
@@ -526,37 +674,48 @@ export type Database = {
           created_at?: string | null
           email?: string
           full_name?: string | null
+          global_rollover_enabled?: boolean | null
           id?: string
           preferred_currency?: string | null
           rollover_start_month?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
-      category_metadata: {
+      system_audit_logs: {
         Row: {
-          category: Database["public"]["Enums"]["expense_category"]
+          action: string
           created_at: string | null
+          event_type: string
           id: string
-          is_essential: boolean | null
-          user_id: string
+          ip_address: string | null
+          metadata: Json | null
+          severity: string | null
+          user_id: string | null
         }
         Insert: {
-          category: Database["public"]["Enums"]["expense_category"]
+          action: string
           created_at?: string | null
+          event_type: string
           id?: string
-          is_essential?: boolean | null
-          user_id: string
+          ip_address?: string | null
+          metadata?: Json | null
+          severity?: string | null
+          user_id?: string | null
         }
         Update: {
-          category?: Database["public"]["Enums"]["expense_category"]
+          action?: string
           created_at?: string | null
+          event_type?: string
           id?: string
-          is_essential?: boolean | null
-          user_id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          severity?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "category_metadata_user_id_fkey"
+            foreignKeyName: "system_audit_logs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -564,39 +723,12 @@ export type Database = {
           },
         ]
       }
-      market_trends: {
-        Row: {
-          category: string
-          created_at: string | null
-          id: string
-          period: string
-          signal: string
-          trend_score: number
-        }
-        Insert: {
-          category: string
-          created_at?: string | null
-          id?: string
-          period: string
-          signal: string
-          trend_score: number
-        }
-        Update: {
-          category?: string
-          created_at?: string | null
-          id?: string
-          period?: string
-          signal?: string
-          trend_score?: number
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      prune_stale_test_data: { Args: never; Returns: undefined }
     }
     Enums: {
       expense_category:
@@ -609,7 +741,7 @@ export type Database = {
         | "education"
         | "personal"
         | "other"
-        | "savings"
+        | "shopping"
       goal_type: "savings" | "debt"
       income_frequency: "one-time" | "weekly" | "monthly"
       loan_commercial_category:
@@ -766,7 +898,7 @@ export const Constants = {
         "education",
         "personal",
         "other",
-        "savings",
+        "shopping",
       ],
       goal_type: ["savings", "debt"],
       income_frequency: ["one-time", "weekly", "monthly"],
@@ -789,4 +921,3 @@ export const Constants = {
     },
   },
 } as const
-

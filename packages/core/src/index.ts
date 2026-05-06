@@ -5,3 +5,5 @@ export * from './math/loans';
 export * from './regional';
 export * from './analysis/dashboard';
 export * from './analysis/budget';
+export * from './analysis/loans';
+export * from './inference';

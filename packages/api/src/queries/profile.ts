@@ -8,7 +8,7 @@ export class ProfileQuery extends BaseQuery implements IProfileQuery {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;

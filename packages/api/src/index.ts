@@ -7,6 +7,5 @@ export * from './queries/loan';
 export * from './queries/goal';
 export * from './queries/budget';
 export * from './queries/exchange-rate';
-export * from './services/dashboard';
 export * from './services/loans';
 export * from './services/factory';

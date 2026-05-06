@@ -127,5 +127,5 @@ export function generateAmortizationSchedule(params: {
 function addMonths(dateStr: string, months: number): string {
   const date = new Date(dateStr);
   date.setMonth(date.getMonth() + months);
-  return date.toISOString().split('T')[0];
+  return date.toISOString().split('T')[0]!;
 }

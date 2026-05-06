@@ -33,8 +33,12 @@ ios/
 .DS_Store
 .vscode
 *.log
+*.tsbuildinfo
 
 # Supabase local dev
 supabase/.branches
 supabase/.temp
 *.md
+
+.idea/
+.claude

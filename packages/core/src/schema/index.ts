@@ -1,5 +1,6 @@
-import { Tables, Enums, Constants } from './database.types';
+import { type Json, Database, Tables, Enums, Constants } from './database.types';
 
+export type { Database, Json };
 export { Constants };
 
 // Entities
@@ -29,11 +30,33 @@ export type PaymentStatus = Enums<'payment_status'>;
 
 export type Region = 'US' | 'PH' | 'SG';
 
+export const CURRENCIES = ['USD', 'PHP', 'SGD', 'EUR', 'GBP'] as const;
+
+export const EXPENSE_CATEGORIES = Constants.public.Enums.expense_category as unknown as ExpenseCategory[];
+
 export interface ActivityItem {
   type: 'income' | 'expense';
   amount: number;
   description: string;
   date: string;
+}
+
+export interface UnifiedTransaction {
+  id: string;
+  type: 'income' | 'expense';
+  amount: number;
+  currency: string;
+  description: string;
+  date: string;
+  category?: ExpenseCategory | null;
+  notes?: string | null;
+}
+
+export interface TransactionSummary {
+  totalIncome: number;
+  totalExpenses: number;
+  netFlow: number;
+  currency: string;
 }
 
 export interface DashboardPayload {
@@ -45,4 +68,18 @@ export interface DashboardPayload {
   dtiHealthy: boolean;
   currency: string;
   recentActivity: ActivityItem[];
+}
+
+export interface DTIRatioResult {
+  ratio: number;
+  isHealthy: boolean;
+  threshold: number;
+  label: string;
+}
+
+export interface LoanMetrics {
+  paidCount: number;
+  paidPercent: number;
+  remainingBalance: number;
+  nextDueDate: string | null;
 }

@@ -89,6 +89,26 @@ load_supabase_env() {
   fi
 }
 
+# ── JWT helper ────────────────────────────────────────────────────────────────
+# Generates a local dev service_role JWT signed with the running Postgres JWT secret.
+# Outputs the JWT string; exits non-zero on failure.
+gen_dev_jwt() {
+  require_node
+  local jwt_secret
+  jwt_secret=$(psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -t -c \
+    "SELECT current_setting('app.settings.jwt_secret', true);" 2>/dev/null | tr -d ' \n') \
+    || { error "Cannot reach local Postgres — is Supabase running?"; return 1; }
+  [ -z "$jwt_secret" ] && { error "app.settings.jwt_secret not set in local database."; return 1; }
+
+  JWT_SECRET="$jwt_secret" node -e "
+    const header  = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url');
+    const payload = Buffer.from(JSON.stringify({iss:'supabase-demo',role:'service_role',exp:1983812996})).toString('base64url');
+    const crypto  = require('crypto');
+    const sig     = crypto.createHmac('sha256', process.env.JWT_SECRET).update(header+'.'+payload).digest('base64url');
+    console.log(header+'.'+payload+'.'+sig);
+  "
+}
+
 # ── Commands ──────────────────────────────────────────────────────────────────
 
 cmd_help() {
@@ -117,6 +137,7 @@ cmd_help() {
   echo -e "    db:port <port>             Change the Supabase API port (config.toml)"
   echo -e "    env:init                   Create missing .env files; inject keys if Supabase running"
   echo -e "    db:env                     Overwrite .env files with current local Supabase keys"
+  echo -e "    db:jwt                     Regenerate dev service_role JWT and update pg_net trigger"
   echo -e "    db:types                   Regenerate TypeScript types from local schema"
   echo ""
   echo -e "  ${CYAN}Testing${RESET}"
@@ -172,6 +193,9 @@ cmd_dev() {
   if [ "$target" != "web" ] && [ ! -f "apps/mobile/.env" ]; then
     warn "apps/mobile/.env not found. Run ./setup.sh db:env to generate it."
   fi
+
+  # ── Refresh dev JWT in pg_net trigger ────────────────────────────────────
+  cmd_db_jwt
 
   # ── Stop any stale edge function process ──────────────────────────────────
   if pkill -f "supabase functions serve" 2>/dev/null; then
@@ -234,6 +258,7 @@ cmd_db_reset() {
     info "Resetting database..."
     supabase db reset
     success "Database reset complete. Test user: test@stashflow.com / password123"
+    cmd_db_jwt
   else
     info "Reset cancelled."
   fi
@@ -294,10 +319,46 @@ cmd_db_env() {
   success "Updated apps/mobile/.env"
 
   # ── Edge functions ────────────────────────────────────────────────────────
+  # Edge functions run inside Docker — must use Docker-internal Kong URL, not the host-mapped port
   touch supabase/functions/.env
-  upsert_env_var supabase/functions/.env SUPABASE_URL      "$api_url"
+  upsert_env_var supabase/functions/.env SUPABASE_URL      "http://supabase_kong_StashFlow:8000"
   upsert_env_var supabase/functions/.env SUPABASE_ANON_KEY "$anon_key"
   success "Updated supabase/functions/.env"
+}
+
+cmd_db_jwt() {
+  require_supabase
+  info "Generating local dev service_role JWT..."
+
+  local jwt
+  jwt=$(gen_dev_jwt) || die "JWT generation failed."
+
+  # Persist in functions .env so developers can inspect/copy it
+  touch supabase/functions/.env
+  upsert_env_var supabase/functions/.env DEV_SERVICE_ROLE_JWT "$jwt"
+  success "Stored in supabase/functions/.env → DEV_SERVICE_ROLE_JWT"
+
+  # Update the live pg_net trigger with the refreshed JWT
+  psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -q -c "
+    CREATE OR REPLACE FUNCTION public.tr_on_document_inserted()
+    RETURNS TRIGGER AS \$\$
+    BEGIN
+      PERFORM
+        net.http_post(
+          url := 'http://supabase_edge_runtime_StashFlow:8081/parse-loan-document',
+          headers := jsonb_build_object(
+            'Content-Type', 'application/json',
+            'x-webhook-secret', 'dev-secret-123',
+            'Authorization', 'Bearer $jwt'
+          ),
+          body := jsonb_build_object('record', row_to_json(NEW))
+        );
+      RETURN NEW;
+    END;
+    \$\$ LANGUAGE plpgsql SECURITY DEFINER;
+  " || die "Failed to update pg_net trigger."
+
+  success "pg_net trigger updated with fresh JWT."
 }
 
 cmd_db_types() {
@@ -430,7 +491,8 @@ cmd_env_init() {
   upsert_env_var apps/mobile/.env EXPO_PUBLIC_SUPABASE_ANON_KEY "$anon_key"
   success "Updated apps/mobile/.env"
 
-  upsert_env_var supabase/functions/.env SUPABASE_URL      "$api_url"
+  # Edge functions run inside Docker — must use Docker-internal Kong URL, not the host-mapped port
+  upsert_env_var supabase/functions/.env SUPABASE_URL      "http://supabase_kong_StashFlow:8000"
   upsert_env_var supabase/functions/.env SUPABASE_ANON_KEY "$anon_key"
   success "Updated supabase/functions/.env"
 
@@ -452,6 +514,7 @@ case "$1" in
   db:port)      cmd_db_port "$2" ;;
   env:init)     cmd_env_init ;;
   db:env)       cmd_db_env ;;
+  db:jwt)       cmd_db_jwt ;;
   db:types)     cmd_db_types ;;
   test)         cmd_test "$2" "$3" ;;
   test:e2e)     cmd_test_e2e ;;

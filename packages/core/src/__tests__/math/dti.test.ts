@@ -24,7 +24,8 @@ describe('DTI math', () => {
 
   it('should handle zero income gracefully', () => {
     const result = calculateDTIRatio(100, 0, 'US');
-    expect(result.ratio).toBe(0);
+    expect(result.ratio).toBe(1);
     expect(result.label).toBe('No income');
+    expect(result.isHealthy).toBe(false);
   });
 });

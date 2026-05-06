@@ -19,7 +19,7 @@ describe('loan math', () => {
     // M = 10000 * (0.01 * (1.01)^12) / ((1.01)^12 - 1) = 888.48...
     expect(result.monthlyPayment).toBeCloseTo(888.48, 1);
     expect(result.entries).toHaveLength(12);
-    expect(result.entries[11].remainingBalance).toBeCloseTo(0, 5);
+    expect(result.entries[11]?.remainingBalance).toBeCloseTo(0, 5);
   });
 
   it('should calculate Interest-Only loan correctly', () => {
@@ -29,9 +29,9 @@ describe('loan math', () => {
     });
 
     expect(result.monthlyPayment).toBe(100); // 10000 * 0.01
-    expect(result.entries[0].principalPayment).toBe(0);
-    expect(result.entries[11].principalPayment).toBe(10000);
-    expect(result.entries[11].remainingBalance).toBe(0);
+    expect(result.entries[0]?.principalPayment).toBe(0);
+    expect(result.entries[11]?.principalPayment).toBe(10000);
+    expect(result.entries[11]?.remainingBalance).toBe(0);
   });
 
   it('should calculate Add-on Interest loan correctly', () => {
@@ -55,8 +55,8 @@ describe('loan math', () => {
     // Principal payment = 10000 / 12 = 833.33
     // First interest = 10000 * 0.01 = 100
     // First payment = 933.33
-    expect(result.entries[0].principalPayment).toBeCloseTo(833.33, 1);
-    expect(result.entries[0].interestPayment).toBe(100);
+    expect(result.entries[0]?.principalPayment).toBeCloseTo(833.33, 1);
+    expect(result.entries[0]?.interestPayment).toBe(100);
     expect(result.monthlyPayment).toBeCloseTo(933.33, 1);
   });
 });

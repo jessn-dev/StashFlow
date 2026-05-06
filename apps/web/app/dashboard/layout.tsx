@@ -1,62 +1,44 @@
-import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
+import { SidebarNav } from '@/modules/dashboard/components/SidebarNav';
+import { MfaNudgeBanner } from '@/modules/settings/components/MfaNudgeBanner';
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login');
-  }
-
-  const navItems = [
-    { label: 'Overview', href: '/dashboard' },
-    { label: 'Income', href: '/dashboard/income' },
-    { label: 'Spending', href: '/dashboard/spending' },
-    { label: 'Loans', href: '/dashboard/loans' },
-    { label: 'Budgets', href: '/dashboard/budgets' },
-    { label: 'Goals', href: '/dashboard/goals' },
-    { label: 'Settings', href: '/dashboard/settings' },
-  ];
+  if (!user) redirect('/login');
 
   return (
-    <div className="flex min-h-screen bg-gray-50 text-black">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold text-brand-primary">StashFlow</h2>
-        </div>
-        <nav className="mt-4">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block px-6 py-3 text-sm font-medium hover:bg-gray-100 border-l-4 border-transparent hover:border-brand-primary"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-8">
-        <header className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-500">{user.email}</span>
+    <div className="flex flex-col min-h-screen bg-gray-50 text-gray-900">
+      {/* Global Top Navigation — 72px */}
+      <header className="h-[72px] bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-30 flex-shrink-0">
+        <div className="flex items-center justify-between h-full px-6">
+          <span className="text-lg font-black tracking-tight text-gray-900">StashFlow</span>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-400 hidden md:block">{user.email}</span>
             <form action="/auth/signout" method="post">
-               <button className="text-sm text-red-600 font-medium">Sign out</button>
+              <button className="text-sm text-gray-500 hover:text-gray-800 font-medium transition-colors">
+                Sign out
+              </button>
             </form>
           </div>
-        </header>
-        {children}
-      </main>
+        </div>
+      </header>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar — 240px */}
+        <aside className="w-60 bg-white border-r border-gray-100 flex-shrink-0 flex flex-col">
+          <SidebarNav />
+        </aside>
+
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto">
+          <MfaNudgeBanner />
+          <div className="max-w-[1320px] mx-auto px-6 py-8">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

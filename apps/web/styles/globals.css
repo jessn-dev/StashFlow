@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #0070f3;
+  --color-brand-secondary: #ff0080;
+}
+
+body {
+  color: #111;
+  background: #fff;
+}
+
+/* Hero Gradient Animations */
+.gradient-blob {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  filter: blur(80px);
+  opacity: 0.6;
+  border-radius: 50%;
+}
+
+.blob1 {
+  background: #6366F1; /* hero.primary */
+  top: -100px;
+  right: -100px;
+  animation: float1 18s ease-in-out infinite;
+}
+
+.blob2 {
+  background: #10B981; /* hero.success */
+  bottom: -120px;
+  left: -80px;
+  animation: float2 22s ease-in-out infinite;
+}
+
+.blob3 {
+  background: #38BDF8; /* hero.accent */
+  top: 40%;
+  left: 30%;
+  width: 400px;
+  height: 400px;
+  animation: float3 15s ease-in-out infinite;
+}
+
+@keyframes float1 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-40px, 40px); }
+}
+
+@keyframes float2 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(50px, -30px); }
+}
+
+@keyframes float3 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-30px, -60px); }
+}
+
+/* Animation Utilities */
+.animate-bounce-slow {
+  animation: bounce 3s infinite;
+}
+
+.animate-float-slow {
+  animation: float1 5s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Scroll Reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Parallax Blobs */
+.parallax-container {
+  perspective: 1000px;
+}
+
+.parallax-blob {
+  transition: transform 0.2s ease-out;
+}

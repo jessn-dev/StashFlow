@@ -17,7 +17,9 @@
 #   db:port <port>            Change the local Supabase API port
 #   db:env                    Update workspace .env files with local Supabase keys
 #   db:types                  Regenerate TypeScript types from local schema
-#   test [coverage]           Run web unit tests (optional: with coverage)
+#   test [pkg] [coverage]     Run tests (optional: filter by package name)
+#   test:e2e                  Run Playwright E2E tests (requires web dev server)
+#   typecheck                 Run TypeScript typecheck across all packages
 #   clean                     Remove all build caches and generated output
 #   help                      Show this message
 # =============================================================================
@@ -40,9 +42,20 @@ error()   { echo -e "${RED}✖  $*${RESET}" >&2; return 0; }
 die()     { error "$*"; exit 1; }
 divider() { echo -e "${BOLD}────────────────────────────────────────────────────────${RESET}"; return 0; }
 
-# ── Resolve project root (the directory this script lives in) ─────────────────
+# ── Resolve project root ──────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
+
+# ── Env helpers ───────────────────────────────────────────────────────────────
+# Update key if present, append if missing
+upsert_env_var() {
+  local file=$1 key=$2 value=$3
+  if grep -q "^${key}=" "$file" 2>/dev/null; then
+    sed -i '' "s|^${key}=.*|${key}=${value}|" "$file"
+  else
+    echo "${key}=${value}" >> "$file"
+  fi
+}
 
 # ── Prerequisite checks ───────────────────────────────────────────────────────
 require_node() {
@@ -53,7 +66,7 @@ require_node() {
 require_pnpm() {
   command -v pnpm &>/dev/null || {
     info "Installing pnpm..."
-    npm install -g pnpm@10.33.0
+    npm install -g pnpm@10.33.2
   }
   return 0
 }
@@ -63,8 +76,6 @@ require_supabase() {
   return 0
 }
 
-# Injects OAuth credentials from apps/web/.env.local into the current shell session.
-# This allows the Supabase CLI to use them during 'start' or 'reset' as defined in config.toml.
 load_supabase_env() {
   local env_file="apps/web/.env.local"
   if [ -f "$env_file" ]; then
@@ -76,6 +87,26 @@ load_supabase_env() {
   else
     warn "No $env_file found. OAuth credentials may not be injected."
   fi
+}
+
+# ── JWT helper ────────────────────────────────────────────────────────────────
+# Generates a local dev service_role JWT signed with the running Postgres JWT secret.
+# Outputs the JWT string; exits non-zero on failure.
+gen_dev_jwt() {
+  require_node
+  local jwt_secret
+  jwt_secret=$(psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -t -c \
+    "SELECT current_setting('app.settings.jwt_secret', true);" 2>/dev/null | tr -d ' \n') \
+    || { error "Cannot reach local Postgres — is Supabase running?"; return 1; }
+  [ -z "$jwt_secret" ] && { error "app.settings.jwt_secret not set in local database."; return 1; }
+
+  JWT_SECRET="$jwt_secret" node -e "
+    const header  = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url');
+    const payload = Buffer.from(JSON.stringify({iss:'supabase-demo',role:'service_role',exp:1983812996})).toString('base64url');
+    const crypto  = require('crypto');
+    const sig     = crypto.createHmac('sha256', process.env.JWT_SECRET).update(header+'.'+payload).digest('base64url');
+    console.log(header+'.'+payload+'.'+sig);
+  "
 }
 
 # ── Commands ──────────────────────────────────────────────────────────────────
@@ -93,7 +124,9 @@ cmd_help() {
   echo -e "    add <pkg> [-w <workspace>] Add a package to root or a specific workspace"
   echo ""
   echo -e "  ${CYAN}Development${RESET}"
-  echo -e "    dev                        Start web + mobile dev servers + edge functions"
+  echo -e "    dev                        Start all dev servers via Turbo"
+  echo -e "    dev web                    Start web app only"
+  echo -e "    dev mobile                 Start mobile app only (Expo)"
   echo ""
   echo -e "  ${CYAN}Database (Supabase)${RESET}"
   echo -e "    db:start                   Start local Supabase instance (Docker)"
@@ -102,15 +135,21 @@ cmd_help() {
   echo -e "    db:functions               Serve Edge Functions locally with .env loading"
   echo -e "    db:status                  Show service URLs and running status"
   echo -e "    db:port <port>             Change the Supabase API port (config.toml)"
-  echo -e "    db:env                     Update .env files with current local keys"
+  echo -e "    env:init                   Create missing .env files; inject keys if Supabase running"
+  echo -e "    db:env                     Overwrite .env files with current local Supabase keys"
+  echo -e "    db:jwt                     Regenerate dev service_role JWT and update pg_net trigger"
   echo -e "    db:types                   Regenerate TypeScript types from local schema"
   echo ""
   echo -e "  ${CYAN}Testing${RESET}"
-  echo -e "    test                       Run web unit tests (Vitest)"
-  echo -e "    test coverage              Run tests and generate a coverage report"
+  echo -e "    test                       Run all package unit tests"
+  echo -e "    test <pkg>                 Run unit tests for one package (e.g. @stashflow/core)"
+  echo -e "    test coverage              Run all unit tests with coverage (enforces thresholds)"
+  echo -e "    test <pkg> coverage        Run coverage for one package"
+  echo -e "    test:e2e                   Run Playwright E2E tests against local web server"
+  echo -e "    typecheck                  TypeScript typecheck across all packages"
   echo ""
   echo -e "  ${CYAN}Maintenance${RESET}"
-  echo -e "    clean                      Remove .next, dist, .turbo build caches"
+  echo -e "    clean                      Remove build artifacts + stop & prune Supabase/Docker"
   echo ""
 }
 
@@ -120,7 +159,7 @@ cmd_init() {
   info "Initializing StashFlow monorepo..."
   pnpm install
   success "Workspace dependencies installed."
-  
+
   if [ ! -d ".git" ]; then
     git init
     success "Git repository initialized."
@@ -128,26 +167,49 @@ cmd_init() {
 
   info "Validating local Supabase configuration..."
   require_supabase
-  
+
   success "Initialization complete."
 }
 
 cmd_dev() {
   local target=$1
   require_pnpm
+  require_supabase
 
-  # Kill any existing edge functions server so new code is picked up
+  # ── Preflight: Supabase must be running ───────────────────────────────────
+  if ! supabase status &>/dev/null; then
+    die "Supabase is not running. Start it first:\n   ./setup.sh db:start"
+  fi
+
+  # ── Preflight: edge function env must exist ────────────────────────────────
+  if [ ! -f "supabase/functions/.env" ]; then
+    die "supabase/functions/.env not found.\n   Create it from supabase/functions/.env.example or run ./setup.sh db:env"
+  fi
+
+  # ── Preflight: app env files ──────────────────────────────────────────────
+  if [ "$target" != "mobile" ] && [ ! -f "apps/web/.env.local" ]; then
+    warn "apps/web/.env.local not found. Run ./setup.sh db:env to generate it."
+  fi
+  if [ "$target" != "web" ] && [ ! -f "apps/mobile/.env" ]; then
+    warn "apps/mobile/.env not found. Run ./setup.sh db:env to generate it."
+  fi
+
+  # ── Refresh dev JWT in pg_net trigger ────────────────────────────────────
+  cmd_db_jwt
+
+  # ── Stop any stale edge function process ──────────────────────────────────
   if pkill -f "supabase functions serve" 2>/dev/null; then
     info "Stopped existing Edge Functions server."
     sleep 1
   fi
 
-  # Start local edge functions in background
   info "Launching local Edge Functions server..."
-  supabase functions serve --env-file supabase/functions/.env --no-verify-jwt &
+  supabase functions serve \
+    --env-file supabase/functions/.env \
+    --import-map supabase/functions/import_map.json \
+    --no-verify-jwt &
   FUNC_PID=$!
 
-  # Ensure functions are killed on exit
   trap "info 'Stopping Edge Functions...'; kill $FUNC_PID; exit" EXIT INT TERM
 
   if [ "$target" == "web" ]; then
@@ -169,6 +231,16 @@ cmd_install() {
   success "All packages up to date."
 }
 
+cmd_add() {
+  require_pnpm
+  local pkg=$1
+  [ -z "$pkg" ] && die "Usage: ./setup.sh add <package> [-w <workspace>]"
+  shift
+  info "Adding $pkg..."
+  pnpm add "$pkg" "$@"
+  success "Added $pkg."
+}
+
 cmd_db_start() {
   require_supabase
   load_supabase_env
@@ -186,6 +258,7 @@ cmd_db_reset() {
     info "Resetting database..."
     supabase db reset
     success "Database reset complete. Test user: test@stashflow.com / password123"
+    cmd_db_jwt
   else
     info "Reset cancelled."
   fi
@@ -195,7 +268,10 @@ cmd_db_functions() {
   require_supabase
   load_supabase_env
   info "Serving Edge Functions locally..."
-  supabase functions serve --env-file supabase/functions/.env --no-verify-jwt
+  supabase functions serve \
+    --env-file supabase/functions/.env \
+    --import-map supabase/functions/import_map.json \
+    --no-verify-jwt
 }
 
 cmd_db_status() {
@@ -212,54 +288,215 @@ cmd_db_port() {
 
 cmd_db_env() {
   require_supabase
-  info "Injecting local keys into workspace .env files..."
-  
-  local status=$(supabase status -o json)
-  local anon_key=$(echo $status | grep -o '"anon_key": "[^"]*' | cut -d'"' -f4)
-  local service_key=$(echo $status | grep -o '"service_role_key": "[^"]*' | cut -d'"' -f4)
-  local api_url=$(echo $status | grep -o '"api_url": "[^"]*' | cut -d'"' -f4)
+  info "Reading local Supabase keys..."
 
-  # Update Web
-  if [ -f "apps/web/.env.local" ]; then
-    sed -i '' "s|^NEXT_PUBLIC_SUPABASE_URL=.*|NEXT_PUBLIC_SUPABASE_URL=$api_url|" apps/web/.env.local
-    sed -i '' "s|^NEXT_PUBLIC_SUPABASE_ANON_KEY=.*|NEXT_PUBLIC_SUPABASE_ANON_KEY=$anon_key|" apps/web/.env.local
-    sed -i '' "s|^SUPABASE_SERVICE_ROLE_KEY=.*|SUPABASE_SERVICE_ROLE_KEY=$service_key|" apps/web/.env.local
-    success "Updated apps/web/.env.local"
+  # Parse supabase status text output using │-delimited table format (CLI v2+)
+  local sb_status
+  sb_status=$(supabase status 2>&1) || die "Supabase is not running. Run ./setup.sh db:start first."
+
+  local api_url anon_key service_key
+  api_url=$(echo "$sb_status"     | grep "Project URL"              | awk -F'│' '{print $3}' | tr -d ' ')
+  anon_key=$(echo "$sb_status"    | grep "Publishable"              | awk -F'│' '{print $3}' | tr -d ' ')
+  service_key=$(echo "$sb_status" | grep -E "│ Secret[[:space:]]+│" | awk -F'│' '{print $3}' | tr -d ' ')
+
+  if [ -z "$api_url" ] || [ -z "$anon_key" ]; then
+    die "Could not parse Supabase status output. Is Supabase running?\n   Run ./setup.sh db:start"
   fi
 
-  # Update Mobile
-  if [ -f "apps/mobile/.env" ]; then
-    sed -i '' "s|^EXPO_PUBLIC_SUPABASE_URL=.*|EXPO_PUBLIC_SUPABASE_URL=$api_url|" apps/mobile/.env
-    sed -i '' "s|^EXPO_PUBLIC_SUPABASE_ANON_KEY=.*|EXPO_PUBLIC_SUPABASE_ANON_KEY=$anon_key|" apps/mobile/.env
-    success "Updated apps/mobile/.env"
-  fi
+  info "Injecting keys into workspace .env files..."
+
+  # ── Web ───────────────────────────────────────────────────────────────────
+  touch apps/web/.env.local
+  upsert_env_var apps/web/.env.local NEXT_PUBLIC_SUPABASE_URL      "$api_url"
+  upsert_env_var apps/web/.env.local NEXT_PUBLIC_SUPABASE_ANON_KEY "$anon_key"
+  upsert_env_var apps/web/.env.local SUPABASE_SERVICE_ROLE_KEY     "$service_key"
+  success "Updated apps/web/.env.local"
+
+  # ── Mobile ────────────────────────────────────────────────────────────────
+  touch apps/mobile/.env
+  upsert_env_var apps/mobile/.env EXPO_PUBLIC_SUPABASE_URL      "$api_url"
+  upsert_env_var apps/mobile/.env EXPO_PUBLIC_SUPABASE_ANON_KEY "$anon_key"
+  success "Updated apps/mobile/.env"
+
+  # ── Edge functions ────────────────────────────────────────────────────────
+  # Edge functions run inside Docker — must use Docker-internal Kong URL, not the host-mapped port
+  touch supabase/functions/.env
+  upsert_env_var supabase/functions/.env SUPABASE_URL      "http://supabase_kong_StashFlow:8000"
+  upsert_env_var supabase/functions/.env SUPABASE_ANON_KEY "$anon_key"
+  success "Updated supabase/functions/.env"
+}
+
+cmd_db_jwt() {
+  require_supabase
+  info "Generating local dev service_role JWT..."
+
+  local jwt
+  jwt=$(gen_dev_jwt) || die "JWT generation failed."
+
+  # Persist in functions .env so developers can inspect/copy it
+  touch supabase/functions/.env
+  upsert_env_var supabase/functions/.env DEV_SERVICE_ROLE_JWT "$jwt"
+  success "Stored in supabase/functions/.env → DEV_SERVICE_ROLE_JWT"
+
+  # Update the live pg_net trigger with the refreshed JWT
+  psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -q -c "
+    CREATE OR REPLACE FUNCTION public.tr_on_document_inserted()
+    RETURNS TRIGGER AS \$\$
+    BEGIN
+      PERFORM
+        net.http_post(
+          url := 'http://supabase_edge_runtime_StashFlow:8081/parse-loan-document',
+          headers := jsonb_build_object(
+            'Content-Type', 'application/json',
+            'x-webhook-secret', 'dev-secret-123',
+            'Authorization', 'Bearer $jwt'
+          ),
+          body := jsonb_build_object('record', row_to_json(NEW))
+        );
+      RETURN NEW;
+    END;
+    \$\$ LANGUAGE plpgsql SECURITY DEFINER;
+  " || die "Failed to update pg_net trigger."
+
+  success "pg_net trigger updated with fresh JWT."
 }
 
 cmd_db_types() {
   require_supabase
-  info "Regenerating TypeScript types..."
-  supabase gen types typescript local > packages/core/src/types/database.types.ts
-  success "Types updated in packages/core/src/types/database.types.ts"
+  info "Regenerating TypeScript types from local schema..."
+  supabase gen types typescript --local > packages/core/src/schema/database.types.ts
+  success "Types updated → packages/core/src/schema/database.types.ts"
 }
 
 cmd_test() {
   require_pnpm
-  if [ "$1" == "coverage" ]; then
-    info "Running tests with coverage reporting..."
+  local arg1=$1
+  local arg2=$2
+
+  if [ "$arg1" == "coverage" ]; then
+    info "Running all tests with coverage..."
     pnpm run test:coverage
+    success "Coverage reports written to each package's coverage/ directory."
+  elif [ -n "$arg1" ] && [ "$arg2" == "coverage" ]; then
+    info "Running tests with coverage for $arg1..."
+    turbo run test:coverage --filter="$arg1"
+    success "Coverage report written to packages coverage/ directory."
+  elif [ -n "$arg1" ]; then
+    info "Running tests for $arg1..."
+    turbo run test --filter="$arg1"
   else
-    info "Running web unit tests..."
-    pnpm --filter web test
+    info "Running all package tests..."
+    pnpm run test
   fi
+}
+
+cmd_test_e2e() {
+  require_pnpm
+  info "Running Playwright E2E tests..."
+  pnpm --filter web exec playwright test
+}
+
+cmd_typecheck() {
+  require_pnpm
+  info "Typechecking all packages..."
+  turbo run typecheck
+  success "Typecheck passed."
 }
 
 cmd_clean() {
   info "Cleaning monorepo build artifacts..."
-  find . -type d -name ".next" -exec rm -rf {} +
-  find . -type d -name "dist" -exec rm -rf {} +
-  find . -type d -name ".turbo" -exec rm -rf {} +
-  find . -type d -name "node_modules" -exec rm -rf {} +
-  success "Workspace clean. Run ./setup.sh install to rebuild."
+  find . -type d -name ".next"       -not -path "*/node_modules/*" -exec rm -rf {} + 2>/dev/null || true
+  find . -type d -name "dist"        -not -path "*/node_modules/*" -exec rm -rf {} + 2>/dev/null || true
+  find . -type d -name ".turbo"      -not -path "*/node_modules/*" -exec rm -rf {} + 2>/dev/null || true
+  find . -type d -name "coverage"    -not -path "*/node_modules/*" -exec rm -rf {} + 2>/dev/null || true
+  find . -type d -name "node_modules"                              -exec rm -rf {} + 2>/dev/null || true
+  success "Build artifacts removed."
+
+  # ── Docker / Supabase cleanup ─────────────────────────────────────────────
+  if command -v supabase &>/dev/null; then
+    info "Stopping Supabase containers..."
+    supabase stop --no-backup 2>/dev/null || true
+    success "Supabase containers stopped."
+  fi
+
+  if command -v docker &>/dev/null; then
+    info "Pruning stopped Supabase Docker containers..."
+    docker ps -a --filter "name=supabase" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null || true
+    info "Pruning dangling Docker volumes..."
+    docker volume ls --filter "name=supabase" --format "{{.Name}}" | xargs -r docker volume rm 2>/dev/null || true
+    success "Docker cleanup complete."
+  else
+    warn "Docker not found — skipping container cleanup."
+  fi
+
+  success "Workspace fully clean. Run ./setup.sh install to rebuild."
+}
+
+cmd_env_init() {
+  require_supabase
+  local created=0
+
+  # ── Create missing env files ───────────────────────────────────────────────
+  if [ ! -f "apps/web/.env.local" ]; then
+    touch apps/web/.env.local
+    info "Created apps/web/.env.local"
+    created=1
+  fi
+
+  if [ ! -f "apps/mobile/.env" ]; then
+    touch apps/mobile/.env
+    info "Created apps/mobile/.env"
+    created=1
+  fi
+
+  if [ ! -f "supabase/functions/.env" ]; then
+    if [ -f "supabase/functions/.env.example" ]; then
+      cp supabase/functions/.env.example supabase/functions/.env
+      info "Created supabase/functions/.env from .env.example"
+    else
+      touch supabase/functions/.env
+      info "Created supabase/functions/.env"
+    fi
+    created=1
+  fi
+
+  [ $created -eq 0 ] && info "All .env files already present."
+
+  # ── Inject keys if Supabase is running ────────────────────────────────────
+  local sb_status
+  if ! sb_status=$(supabase status 2>&1); then
+    warn "Supabase not running — env files created without keys."
+    warn "Run ./setup.sh db:start then ./setup.sh env:init again."
+    return 0
+  fi
+
+  local api_url anon_key service_key
+  api_url=$(echo "$sb_status"     | grep "Project URL"              | awk -F'│' '{print $3}' | tr -d ' ')
+  anon_key=$(echo "$sb_status"    | grep "Publishable"              | awk -F'│' '{print $3}' | tr -d ' ')
+  service_key=$(echo "$sb_status" | grep -E "│ Secret[[:space:]]+│" | awk -F'│' '{print $3}' | tr -d ' ')
+
+  if [ -z "$api_url" ] || [ -z "$anon_key" ]; then
+    warn "Could not parse Supabase keys — env files created but keys not injected."
+    return 0
+  fi
+
+  info "Injecting Supabase keys into workspace .env files..."
+
+  upsert_env_var apps/web/.env.local NEXT_PUBLIC_SUPABASE_URL      "$api_url"
+  upsert_env_var apps/web/.env.local NEXT_PUBLIC_SUPABASE_ANON_KEY "$anon_key"
+  upsert_env_var apps/web/.env.local SUPABASE_SERVICE_ROLE_KEY     "$service_key"
+  success "Updated apps/web/.env.local"
+
+  upsert_env_var apps/mobile/.env EXPO_PUBLIC_SUPABASE_URL      "$api_url"
+  upsert_env_var apps/mobile/.env EXPO_PUBLIC_SUPABASE_ANON_KEY "$anon_key"
+  success "Updated apps/mobile/.env"
+
+  # Edge functions run inside Docker — must use Docker-internal Kong URL, not the host-mapped port
+  upsert_env_var supabase/functions/.env SUPABASE_URL      "http://supabase_kong_StashFlow:8000"
+  upsert_env_var supabase/functions/.env SUPABASE_ANON_KEY "$anon_key"
+  success "Updated supabase/functions/.env"
+
+  success "All env files ready."
 }
 
 # ── Dispatcher ────────────────────────────────────────────────────────────────
@@ -268,15 +505,20 @@ case "$1" in
   init)         cmd_init ;;
   dev)          cmd_dev "$2" ;;
   install)      cmd_install ;;
+  add)          shift; cmd_add "$@" ;;
   db:start)     cmd_db_start ;;
   db:stop)      supabase stop ;;
   db:reset)     cmd_db_reset ;;
   db:functions) cmd_db_functions ;;
   db:status)    cmd_db_status ;;
   db:port)      cmd_db_port "$2" ;;
+  env:init)     cmd_env_init ;;
   db:env)       cmd_db_env ;;
+  db:jwt)       cmd_db_jwt ;;
   db:types)     cmd_db_types ;;
-  test)         cmd_test "$2" ;;
+  test)         cmd_test "$2" "$3" ;;
+  test:e2e)     cmd_test_e2e ;;
+  typecheck)    cmd_typecheck ;;
   clean)        cmd_clean ;;
   help|*)       cmd_help ;;
 esac

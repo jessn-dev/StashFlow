@@ -1,19 +1,16 @@
 {
   "name": "@stashflow/theme",
   "version": "0.1.0",
-  "description": "",
-  "main": "src/index.ts",
-  "scripts": {
-    "test": "echo \"No tests specified for theme\" && exit 0"
+  "description": "Design tokens shared across web and mobile",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.33.0",
-  "dependencies": {
-    "@tamagui/font-inter": "2.0.0-rc.40",
-    "@tamagui/shorthands": "2.0.0-rc.40",
-    "@tamagui/themes": "2.0.0-rc.40",
-    "tamagui": "2.0.0-rc.40"
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
   }
 }

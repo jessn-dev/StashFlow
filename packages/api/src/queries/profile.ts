@@ -1,40 +1,28 @@
-import { SupabaseClient } from '@supabase/supabase-js'
-import { Database, Profile } from '@stashflow/core'
+import { BaseQuery } from './base';
+import { Profile } from '@stashflow/core';
+import { IProfileQuery } from './interfaces';
 
-/**
- * Fetch the authenticated user's profile
- */
-export async function getProfile(supabase: SupabaseClient<Database>): Promise<Profile> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
+export class ProfileQuery extends BaseQuery implements IProfileQuery {
+  async get(userId: string): Promise<Profile | null> {
+    const { data, error } = await this.client
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+    if (error) throw error;
+    return data;
+  }
 
-  if (error) throw error
-  return data
-}
+  async update(userId: string, updates: Partial<Profile>): Promise<Profile> {
+    const { data, error } = await this.client
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
 
-/**
- * Update the authenticated user's profile
- */
-export async function updateProfile(
-  supabase: SupabaseClient<Database>,
-  updates: Partial<Pick<Profile, 'full_name' | 'preferred_currency' | 'budgeting_enabled' | 'rollover_start_month'>>
-): Promise<Profile> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
-
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(updates)
-    .eq('id', user.id)
-    .select()
-    .single()
-
-  if (error) throw error
-  return data
+    if (error) throw error;
+    return data;
+  }
 }

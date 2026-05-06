@@ -1,47 +1,25 @@
 {
-  "name": "StashFlow",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "stashflow",
+  "version": "0.0.1",
+  "private": true,
+  "packageManager": "pnpm@10.33.2",
   "scripts": {
-    "test": "turbo run test",
-    "test:coverage": "turbo run test:coverage",
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
     "lint": "turbo run lint",
     "prepare": "husky"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.33.0",
-  "private": "true",
   "devDependencies": {
     "@types/node": "^22",
-    "@vitest/coverage-v8": "^4.1.4",
-    "husky": "^9.1.7",
-    "lint-staged": "^15.2.11",
-    "turbo": "^2.9.3",
-    "typescript": "^5.9.2"
+    "@vitest/coverage-v8": "^4.1.5",
+    "husky": "^9",
+    "lint-staged": "^15",
+    "turbo": "^2.9.6",
+    "typescript": "^6.0.3"
   },
   "lint-staged": {
-    "*.{ts,tsx}": [
-      "bash -c 'pnpm test'"
-    ]
-  },
-  "pnpm": {
-    "overrides": {
-      "react": "19.2.5",
-      "react-dom": "19.2.5",
-      "@types/react": "19.0.10",
-      "@types/react-dom": "19.0.4",
-      "tamagui": "2.0.0-rc.40",
-      "@tamagui/core": "2.0.0-rc.40",
-      "@tamagui/shorthands": "2.0.0-rc.40",
-      "@tamagui/themes": "2.0.0-rc.40",
-      "@tamagui/font-inter": "2.0.0-rc.40",
-      "@tamagui/config": "2.0.0-rc.40",
-      "@tamagui/next-plugin": "2.0.0-rc.40"
-    }
+    "*.{ts,tsx}": ["pnpm test --filter=...[HEAD]"]
   }
 }

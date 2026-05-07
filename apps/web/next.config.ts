@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['tesseract.js', 'pdf-parse', 'pdfjs-dist'],
+  serverExternalPackages: ['pdfjs-dist'],
   transpilePackages: [
     "@stashflow/theme",
     "@stashflow/core",

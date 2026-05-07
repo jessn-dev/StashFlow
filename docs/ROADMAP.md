@@ -68,7 +68,7 @@ Build a calm financial command center powered by invisible intelligence and secu
 |---------|-------|--------|
 | Landing page | `/` | ✅ |
 | Login — email + Google OAuth | `/login` | ✅ |
-| Signup | `/signup` | ⚠️ Exists but orphaned — not linked from login |
+| Signup — standardized UI, email confirmation, Google OAuth | `/signup` | ✅ |
 | Forgot password | `/forgot-password` | ✅ |
 | Password update (email link) | `/auth/update-password` | ✅ |
 | Dashboard — snapshot strip, intelligence feed, right rail | `/dashboard` | ✅ |
@@ -115,8 +115,8 @@ Deep drilldown pages for Cash Flow and DTI Simulator as requested in P3 backlog.
 ### P2-A — Dashboard charts (remaining 1)
 1. **Net Worth Trend** — Needs asset tracking first. ✅
 
-### P2-B — Signup page cleanup
-- Wire `/signup` into the login flow OR delete it and use unified auth entry.
+### P2-B — Signup page cleanup ✅
+- Wired `/signup` into login flow; standardized UI with login; shared auth icons extracted to `modules/auth`; email confirmation redirect fixed to `/auth/callback`.
 
 ### P2-E — Architectural Consolidation (Dry Principle)
 - Create `packages/auth` and `packages/db` to centralize Supabase clients and query logic.
@@ -161,3 +161,4 @@ Deep drilldown pages for Cash Flow and DTI Simulator as requested in P3 backlog.
 | Secure Import & P1-B | Transaction import (CSV), explicit RLS, audit triggers, Zod validation | 2026-05-11 |
 | Analytics Drilldown & P1-C | Cash Flow drilldown, interactive DTI Simulator, core logic consolidation | 2026-05-12 |
 | Asset Tracking & P2-A | Multi-currency asset tracking, Net Worth Trend chart, historical snapshots | 2026-05-13 |
+| Signup Cleanup & P2-B | Unified auth UI, shared icon module, email confirmation fix, stale dep removal | 2026-05-13 |

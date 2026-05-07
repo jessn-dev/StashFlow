@@ -13,57 +13,20 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
   - **Cash Flow Drilldown**: New page at `/dashboard/analytics/cash-flow` with 12-month trend chart and detailed tabular breakdown.
   - **DTI Simulator**: Interactive projected health tool at `/dashboard/analytics/dti-simulator` for testing financial scenarios.
   - **Core Simulation**: Migrated `simulateDTI` to `@stashflow/core/math/dti.ts` with fraction-based accuracy and full unit tests.
-- **P2-B Asset Tracking & Net Worth**
+- **P2-A Asset Tracking & Net Worth**
   - **Multi-currency Assets**: New `assets` and `net_worth_snapshots` tables in Supabase with strict RLS and audit logging.
   - **Asset Management**: Dedicated management UI at `/dashboard/assets` for bank accounts, investments, and property.
   - **Live Net Worth Trend**: Replaced dashboard placeholder with real-time Recharts visualization calculating true Net Worth (Total Assets - Total Liabilities).
   - **API Extension**: Added `AssetQuery` and `NetWorthSnapshotQuery` to `@stashflow/api`.
 - **P2-B Signup Page Cleanup**
-  - **Unified Auth UI**: Standardized Signup page with high-fidelity Login design; extracted shared icons to `@stashflow/auth`.
+  - **Unified Auth UI**: Standardized Signup page with high-fidelity Login design; extracted shared icons to `modules/auth`.
   - **Flow Integration**: Wired orphaned Signup link in Login page; corrected email confirmation redirect to `/auth/callback`.
-  - **Code Quality**: Resolved type errors and removed legacy DTI hooks from API package.
+  - **Code Quality**: Resolved type errors in signup page.
 
 ### Fixed
 - **API Test Failure**: Corrected `dtiRatio` assertion in `loans.service.test.ts` (0–1 fraction vs 0–100 percentage).
 - **Vitest Config**: Excluded `e2e` directory from web app unit tests to prevent runner collisions.
 - **Import Types**: Resolved Supabase field name inconsistencies in transaction import page.
-
----
-
-## [0.11.0] - 2026-05-10
-
-### Added
-- **P1-A Secure Transaction & Document Import**
-  - **`SecureImportZone`**: High-fidelity React component for drag-and-drop uploads with client-side encryption detection.
-  - **`CsvMapper`**: Intelligent column mapping UI with live data preview and automated header detection.
-  - **Client-Side PDF Intelligence**: Implemented `lib/utils/pdf.ts` for proactive password detection using `pdfjs-dist`.
-  - **Bulk Import Integration**: Enabled direct transaction imports into the unified timeline via `/dashboard/transactions/import`.
-  - **Password-Protected Documents**: Refactored `LoanUploadZone` and `parse-loan-document` edge function to support encrypted PDF statements via manual password entry headers.
-
-### Security
-- **P1-B Security Hardening**
-  - **Explicit RLS Policies**: Refactored all user-owned tables from `FOR ALL` to explicit `SELECT`, `INSERT`, `UPDATE`, `DELETE` policies with strict `auth.uid() = user_id` checks.
-  - **Immutable Audit Logs**: Implemented database triggers for `incomes`, `expenses`, and `loans` to log every mutation to the `system_audit_logs` table.
-  - **Zod Validation**: Standardized input validation across Edge Functions using `_shared/validate.ts`.
-  - **Middleware Optimization**: Scoped auth refreshes to protected routes only to prevent auth amplification on static assets.
-
-### Changed
-- **Dashboard Analytics**: Integrated `recharts` for financial visualization (Cash Flow Trend & Spending breakdown).
-- **Consolidated Currency**: Dashboard now authoritative on `profile.preferred_currency`.
-- **Monorepo Cleanup**: Deleted 200+ legacy files to restore 100% passing build/lint status across web and mobile.
-
-### Fixed
-- **Commit Block**: Resolved `lint-staged` path passing bug causing Turborepo "Missing tasks" errors.
-- **Amortization Bug**: Corrected remaining balance offset for new loans with 0 payments.
-- **DTI Engine**: Fixed zero-income scenario to properly flag as unhealthy when debts exist.
-
----
-
-## [0.10.0] - 2026-05-10
-
-### Infrastructure
-- `docs/OPERATIONS.md` — Deployment Process section replaced with complete First-Time Deploy Runbook. Phase 0 (Platform Setup) covers step-by-step account creation and credential collection for Supabase (project creation, where to find ref/anon/service_role keys, enabling pg_net), Vercel (import wizard settings, finding VERCEL_TOKEN/ORG_ID/PROJECT_ID), all AI API keys (Groq/Gemini/Anthropic/Vision), and Google OAuth (Cloud Console config + Supabase Auth configuration). Phases 1–8 cover CLI operations: link, migrations, secrets, pg_net trigger SQL, edge function deploy, Vercel CLI link, GitHub Actions secrets (exact UI path), CI deploy job YAML. Post-deploy smoke test checklist (11 items). Full environment variable reference table (15 vars).
-- `apps/web/vercel.json` — monorepo install command override (`cd ../.. && pnpm install --frozen-lockfile`) so Vercel can resolve workspace packages from the repo root when root directory is set to `apps/web`.
 
 ---
 
@@ -112,13 +75,25 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 
 ## [0.11.0] - 2026-05-10
 
+### Added
+- **P1-A Secure Transaction & Document Import**
+  - **`SecureImportZone`**: High-fidelity React component for drag-and-drop uploads with client-side encryption detection.
+  - **`CsvMapper`**: Intelligent column mapping UI with live data preview and automated header detection.
+  - **Client-Side PDF Intelligence**: Implemented `lib/utils/pdf.ts` for proactive password detection using `pdfjs-dist`.
+  - **Bulk Import Integration**: Enabled direct transaction imports into the unified timeline via `/dashboard/transactions/import`.
+  - **Password-Protected Documents**: Refactored `LoanUploadZone` and `parse-loan-document` edge function to support encrypted PDF statements via manual password entry headers.
+
 ### Security
+- **P1-B Security Hardening**
 - `apps/web/middleware.ts` created — scoped matcher covers `/dashboard/*`, `/login`, `/`, `/auth/*` only. Handles `@supabase/ssr` session refresh, unauthenticated redirect to `/login`, and authenticated redirect to `/dashboard`. `proxy.ts` deleted — it was dead code; Next.js never picks up a `proxy.ts` file regardless of what it exports. Session refresh and route protection were both silently not running since the greenfield rewrite. See ADR-015.
 - `supabase/migrations/20260510000001_explicit_rls_policies.sql` — replaced all `FOR ALL` blanket policies with explicit `SELECT`, `INSERT`, `UPDATE`, `DELETE` per table, each with `WITH CHECK (auth.uid() = user_id)`. Affected: `incomes`, `expenses`, `loans`, `loan_payments`, `loan_fees`, `goals`, `budgets`, `budget_periods`, `documents`, `category_metadata`.
 - `supabase/migrations/20260510000002_audit_log_triggers.sql` — `log_financial_mutation()` trigger function (`SECURITY DEFINER`) + triggers on `incomes`, `expenses`, `loans` for INSERT/UPDATE/DELETE. Writes to `system_audit_logs` with entity ID, table name, and operation — no PII.
 - `supabase/functions/_shared/validate.ts` — `parseBody(req, schema)` helper wrapping Zod `safeParse`; returns typed data or 400 Response.
 - `supabase/functions/import_map.json` — added `"zod": "npm:zod@3"`.
 - `supabase/functions/delete-account/index.ts` — replaced ad-hoc body parsing with `parseBody(req, DeleteAccountSchema)`; `userId` validated as UUID string; 401/403/500 now correctly separated (was all 400).
+
+### Fixed
+- **Commit Block**: Resolved `lint-staged` path passing bug causing Turborepo "Missing tasks" errors.
 
 ---
 
@@ -137,6 +112,10 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 ### Changed
 - All docs aligned to governance spec in `docs/stashflow_engineering_governance_documentation_suite.md`
 - ROADMAP.md restructured to Vision/Strategy format with all P1/P2/P3/mobile priorities preserved
+
+### Infrastructure
+- `docs/OPERATIONS.md` — Deployment Process section replaced with complete First-Time Deploy Runbook. Phase 0 (Platform Setup) covers step-by-step account creation and credential collection for Supabase (project creation, where to find ref/anon/service_role keys, enabling pg_net), Vercel (import wizard settings, finding VERCEL_TOKEN/ORG_ID/PROJECT_ID), all AI API keys (Groq/Gemini/Anthropic/Vision), and Google OAuth (Cloud Console config + Supabase Auth configuration). Phases 1–8 cover CLI operations: link, migrations, secrets, pg_net trigger SQL, edge function deploy, Vercel CLI link, GitHub Actions secrets (exact UI path), CI deploy job YAML. Post-deploy smoke test checklist (11 items). Full environment variable reference table (15 vars).
+- `apps/web/vercel.json` — monorepo install command override (`cd ../.. && pnpm install --frozen-lockfile`) so Vercel can resolve workspace packages from the repo root when root directory is set to `apps/web`.
 
 ---
 

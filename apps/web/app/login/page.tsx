@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { GoogleIcon } from '@/modules/auth/components/AuthIcons';
+import { GoogleIcon, EyeIcon, EyeOffIcon } from '@/modules/auth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -169,7 +168,7 @@ export default function LoginPage() {
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                   </button>
                 </div>
               </div>

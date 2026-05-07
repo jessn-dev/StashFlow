@@ -64,10 +64,10 @@ export default function TransactionImportPage() {
     const incomes = mappedData.filter(d => d.type === 'income').map(d => ({
       user_id: user.id,
       amount: Math.abs(d.amount),
-      description: d.description,
+      source: d.description,
       date: d.date,
       currency: 'USD', // TODO: Allow currency selection
-      frequency: 'one-time'
+      frequency: 'one-time' as const
     }));
 
     const expenses = mappedData.filter(d => d.type === 'expense').map(d => ({
@@ -76,7 +76,7 @@ export default function TransactionImportPage() {
       description: d.description,
       date: d.date,
       currency: 'USD',
-      category: 'other'
+      category: 'other' as const
     }));
 
     // Bulk insert

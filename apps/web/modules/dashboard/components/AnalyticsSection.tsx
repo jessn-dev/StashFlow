@@ -1,36 +1,50 @@
-import { CashFlowChart, SpendingPieChart } from './DashboardCharts';
+import { CashFlowChart, SpendingPieChart, NetWorthChart } from './DashboardCharts';
 import { DebtPayoffChart, type DebtPayoffPoint } from './DebtPayoffChart';
 import type { HistoricalSummary, SpendingByCategory } from '@stashflow/api';
 
 interface AnalyticsSectionProps {
   history: HistoricalSummary[];
   spending: SpendingByCategory[];
+  netWorthHistory: { month: string; netWorth: number }[];
   payoffData: DebtPayoffPoint[];
   currency: string;
 }
 
-export function AnalyticsSection({ history, spending, payoffData, currency }: AnalyticsSectionProps) {
+export function AnalyticsSection({
+  history,
+  spending,
+  netWorthHistory,
+  payoffData,
+  currency,
+}: AnalyticsSectionProps) {
   return (
     <div>
       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">Analytics</p>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard 
-          title="Cash Flow Trend" 
+        <ChartCard
+          title="Cash Flow Trend"
           subtitle="6-month income vs. expenses"
           hasData={history.length > 0}
         >
           <CashFlowChart data={history} currency={currency} />
         </ChartCard>
 
-        <ChartCard 
-          title="Spending by Category" 
+        <ChartCard
+          title="Spending by Category"
           subtitle="Top expenses this month"
           hasData={spending.length > 0}
         >
           <SpendingPieChart data={spending} currency={currency} />
         </ChartCard>
 
-        <ChartPlaceholder title="Net Worth Trend" subtitle="Track wealth over time" />
+        <ChartCard
+          title="Net Worth Trend"
+          subtitle="Total assets minus liabilities"
+          hasData={netWorthHistory.length > 0}
+        >
+          <NetWorthChart data={netWorthHistory} currency={currency} />
+        </ChartCard>
+
         <ChartCard
           title="Debt Payoff Projection"
           subtitle="Time to debt-free"

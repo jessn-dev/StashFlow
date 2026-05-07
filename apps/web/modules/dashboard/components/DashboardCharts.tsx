@@ -90,3 +90,39 @@ export function SpendingPieChart({ data, currency }: { data: SpendingByCategory[
     </div>
   );
 }
+
+export function NetWorthChart({ data, currency }: { data: { month: string, netWorth: number }[], currency: string }) {
+  const chartData = data.map(item => ({
+    name: new Date(item.month + '-01').toLocaleString('default', { month: 'short' }),
+    "Net Worth": item.netWorth,
+  }));
+
+  return (
+    <div className="w-full h-[250px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+          <XAxis 
+            dataKey="name" 
+            axisLine={false} 
+            tickLine={false} 
+            tick={{ fontSize: 12, fill: '#9ca3af' }}
+            dy={10}
+          />
+          <YAxis 
+            axisLine={false} 
+            tickLine={false} 
+            tick={{ fontSize: 12, fill: '#9ca3af' }}
+            tickFormatter={(value) => formatCurrency(value, currency, 'en-US').replace(/\.00$/, '')}
+          />
+          <Tooltip 
+            cursor={{ fill: '#f9fafb' }}
+            contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+            formatter={(value: any) => formatCurrency(Number(value), currency)}
+          />
+          <Bar dataKey="Net Worth" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={40} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}

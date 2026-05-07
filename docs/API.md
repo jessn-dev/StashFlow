@@ -199,6 +199,47 @@ Via `LoanQuery.getPaymentSummaries(userId)`. Returns payments with due dates, lo
 
 ---
 
+## Assets
+
+### List assets
+
+Via `AssetQuery.getAll(userId)`.
+
+### Create / update / delete
+
+```typescript
+// Create
+await supabase.from('assets').insert({
+  user_id: userId,
+  name: string,
+  type: 'cash' | 'investment' | 'property' | 'retirement' | 'other',
+  balance: number,
+  currency: string,
+  institution?: string,
+  notes?: string
+})
+
+// Update
+await supabase.from('assets').update(payload).eq('id', id)
+
+// Delete
+await supabase.from('assets').delete().eq('id', id)
+```
+
+---
+
+## Net Worth Snapshots
+
+### List snapshots
+
+Via `NetWorthSnapshotQuery.getAll(userId)`.
+
+### Get latest snapshot
+
+Via `NetWorthSnapshotQuery.getLatest(userId)`.
+
+---
+
 ## Goals
 
 ### List goals

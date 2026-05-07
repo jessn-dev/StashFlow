@@ -1,4 +1,4 @@
-import { Income, Expense, Loan, Goal, Region, DashboardPayload, ActivityItem } from '../schema';
+import { Income, Expense, Loan, Asset, Goal, Region, DashboardPayload, ActivityItem } from '../schema';
 import { calculateDTIRatio } from '../math/dti';
 import { convertToBase } from '../math/currency';
 
@@ -6,12 +6,13 @@ export function aggregateDashboardData(params: {
   incomes: Income[];
   expenses: Expense[];
   loans: Loan[];
+  assets: Asset[];
   goals: Goal[];
   rates: Record<string, number>; // Target to Base rate map
   region: Region;
   currency: string;
 }): DashboardPayload {
-  const { incomes, expenses, loans, rates, region, currency } = params;
+  const { incomes, expenses, loans, assets, rates, region, currency } = params;
 
   const totalMonthlyIncome = incomes.reduce((acc, inc) => {
     const rate = rates[inc.currency] || 1;
@@ -35,7 +36,10 @@ export function aggregateDashboardData(params: {
 
   const dtiResult = calculateDTIRatio(monthlyDebtService, totalMonthlyIncome, region);
 
-  const totalAssets = 0; // TODO: Aggregate from bank accounts / asset entities
+  const totalAssets = assets.reduce((acc, asset) => {
+    const rate = rates[asset.currency] || 1;
+    return acc + convertToBase(asset.balance, rate);
+  }, 0);
 
   const recentActivity: ActivityItem[] = [
     ...incomes.map(i => ({ type: 'income' as const, amount: i.amount, description: i.source, date: i.date })),

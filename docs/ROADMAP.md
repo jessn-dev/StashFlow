@@ -106,14 +106,14 @@ Build a calm financial command center powered by invisible intelligence and secu
 ## 2. Active Priorities — P1 (Ship Now)
 
 ### P1-C — Advanced Analytics Drilldown
-Deep drilldown pages for Cash Flow and DTI Simulator as requested in P3 backlog.
+Deep drilldown pages for Cash Flow and DTI Simulator as requested in P3 backlog. ✅
 
 ---
 
 ## 3. Next Sprint — P2
 
 ### P2-A — Dashboard charts (remaining 1)
-1. **Net Worth Trend** — Needs asset tracking first.
+1. **Net Worth Trend** — Needs asset tracking first. ✅
 
 ### P2-B — Signup page cleanup
 - Wire `/signup` into the login flow OR delete it and use unified auth entry.
@@ -159,3 +159,5 @@ Deep drilldown pages for Cash Flow and DTI Simulator as requested in P3 backlog.
 | Stability Audit | May 2026 audit, logic fixes, type safety restoration | 2026-05-09 |
 | Analytics V1 | Recharts integration, historical trends, currency fallbacks, legacy cleanup | 2026-05-10 |
 | Secure Import & P1-B | Transaction import (CSV), explicit RLS, audit triggers, Zod validation | 2026-05-11 |
+| Analytics Drilldown & P1-C | Cash Flow drilldown, interactive DTI Simulator, core logic consolidation | 2026-05-12 |
+| Asset Tracking & P2-A | Multi-currency asset tracking, Net Worth Trend chart, historical snapshots | 2026-05-13 |

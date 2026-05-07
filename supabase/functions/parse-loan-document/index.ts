@@ -217,14 +217,6 @@ async function storeSuccess(
     extraction_source: source,
     processing_error: null,
   }).eq('id', documentId)
-
-  // [Phase 11] Audit log success
-  await supabase.from('system_audit_logs').insert({
-    event_type: 'document_parse',
-    action: 'process_success',
-    severity: 'info',
-    metadata: { documentId, source }
-  })
 }
 
 async function storeFailed(
@@ -239,14 +231,23 @@ async function storeFailed(
     processing_status: status,
     processing_error: error,
   }).eq('id', documentId)
+}
 
-  // [Phase 11] Audit log failure
-  await supabase.from('system_audit_logs').insert({
-    event_type: 'document_parse',
-    action: 'process_failed',
-    severity: status === 'error_rate_limit' ? 'low' : 'high',
-    metadata: { documentId, error_code: error.code, stage: error.stage }
-  })
+async function writeOcrTelemetry(
+  supabase: SupabaseClient,
+  documentId: string,
+  telemetry: {
+    confidence_before: number
+    confidence_after: number | null
+    ocr_text_length: number | null
+    ocr_error: string | null
+    duration_ms: number
+  },
+): Promise<void> {
+  await supabase
+    .from('documents')
+    .update({ ocr_telemetry: telemetry })
+    .eq('id', documentId)
 }
 
 async function processDocument(supabase: SupabaseClient, documentId: string, password?: string): Promise<void> {
@@ -268,15 +269,6 @@ async function processDocument(supabase: SupabaseClient, documentId: string, pas
     .single()
 
   if (fetchError || !docRecord) fail('fetch-record', fetchError ?? new Error('Document not found'))
-
-  // [Phase 11] Create Audit Log entry
-  await supabase.from('system_audit_logs').insert({
-    user_id: docRecord.user_id,
-    event_type: 'document_parse',
-    action: 'process_started',
-    severity: 'info',
-    metadata: { documentId, content_type: docRecord.content_type }
-  })
 
   // Idempotency — don't reprocess completed documents
   if (docRecord.processing_status === 'success') {
@@ -396,15 +388,24 @@ async function processDocument(supabase: SupabaseClient, documentId: string, pas
   if (isOcrSupportedImage && GOOGLE_VISION_API_KEY) {
     log('extract-ocr', { type: contentType })
     const base64 = arrayBufferToBase64(buffer)
+    const confidenceBefore = confidence
+    const ocrStart = performance.now()
     const ocrResult = await runVisionOCR(base64, GOOGLE_VISION_API_KEY)
+    const duration_ms = Math.round(performance.now() - ocrStart)
 
     if (ocrResult.ok) {
       log('extract-ocr-done', { chars: ocrResult.value.length })
-      
-      // [6] Re-parse with OCR text
       parsed = parseLoan(ocrResult.value)
       confidence = scoreResult(parsed)
       log('parse-ocr-done', { confidence, threshold: THRESHOLD_OCR })
+
+      await writeOcrTelemetry(supabase, documentId, {
+        confidence_before: confidenceBefore,
+        confidence_after: confidence,
+        ocr_text_length: ocrResult.value.length,
+        ocr_error: null,
+        duration_ms,
+      })
 
       if (confidence >= THRESHOLD_OCR) {
         log('confidence-gate-pass', { confidence, required: THRESHOLD_OCR, source: 'vision' })
@@ -415,6 +416,13 @@ async function processDocument(supabase: SupabaseClient, documentId: string, pas
       }
     } else {
       log('ocr-failed', ocrResult.error)
+      await writeOcrTelemetry(supabase, documentId, {
+        confidence_before: confidenceBefore,
+        confidence_after: null,
+        ocr_text_length: null,
+        ocr_error: ocrResult.error.message,
+        duration_ms,
+      })
       // non-fatal — fall through to AI
     }
   }

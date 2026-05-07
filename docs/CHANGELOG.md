@@ -22,6 +22,10 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
   - **Unified Auth UI**: Standardized Signup page with high-fidelity Login design; extracted shared icons to `modules/auth`.
   - **Flow Integration**: Wired orphaned Signup link in Login page; corrected email confirmation redirect to `/auth/callback`.
   - **Code Quality**: Resolved type errors in signup page.
+- **P2-D Parser Telemetry & Hardening**
+  - **OCR Fallback Telemetry**: Added `ocr_telemetry` column to track Vision OCR performance (timing, confidence delta, errors) mid-pipeline.
+  - **Audit Log Purity**: Removed misplaced document parsing events from `system_audit_logs` to maintain focus on financial compliance mutations.
+  - **Parser Resilience**: Instrumented the 3-tier pipeline to ensure telemetry is captured even on fall-through or error paths.
 
 ### Fixed
 - **API Test Failure**: Corrected `dtiRatio` assertion in `loans.service.test.ts` (0–1 fraction vs 0–100 percentage).

@@ -145,3 +145,27 @@ User preferences and global settings. One-to-one with auth.users.
 | `old_data` | `JSONB` | |
 | `new_data` | `JSONB` | |
 | `created_at` | `TIMESTAMPTZ` | |
+
+---
+
+## Documents & OCR
+
+### `documents`
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `UUID` | PK |
+| `user_id` | `UUID` | |
+| `file_name` | `TEXT` | |
+| `file_size` | `INTEGER` | |
+| `content_type` | `TEXT` | |
+| `storage_path` | `TEXT` | |
+| `processing_status` | `TEXT` | enum: pending, processing, success, error_rate_limit, error_generic |
+| `processing_error` | `JSONB` | Structured error details |
+| `ocr_telemetry` | `JSONB` | { confidence_before, confidence_after, ocr_text_length, ocr_error, duration_ms } |
+| `extraction_source` | `TEXT` | pdfjs, vision, ai |
+| `extracted_data` | `JSONB` | Extracted loan fields |
+| `inferred_type` | `TEXT` | |
+| `loan_id` | `UUID` | |
+| `processing_attempts` | `INTEGER` | |
+| `last_processed_at` | `TIMESTAMPTZ` | |
+| `created_at` | `TIMESTAMPTZ` | |

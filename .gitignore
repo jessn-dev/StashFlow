@@ -39,6 +39,7 @@ ios/
 supabase/.branches
 supabase/.temp
 *.md
+docs/
 
 .idea/
 .claude

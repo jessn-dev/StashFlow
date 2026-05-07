@@ -1,5 +1,5 @@
 import { BaseQuery } from './base';
-import { Budget, BudgetPeriod } from '@stashflow/core';
+import { Budget, BudgetPeriod, ExpenseCategory } from '@stashflow/core';
 import { IBudgetQuery } from './interfaces';
 
 export class BudgetQuery extends BaseQuery implements IBudgetQuery {
@@ -22,5 +22,28 @@ export class BudgetQuery extends BaseQuery implements IBudgetQuery {
 
     if (error) throw error;
     return data || [];
+  }
+
+  async upsert(userId: string, category: ExpenseCategory, amount: number, currency: string): Promise<Budget> {
+    const { data, error } = await this.client
+      .from('budgets')
+      .upsert(
+        { user_id: userId, category, amount, currency },
+        { onConflict: 'user_id,category' },
+      )
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async delete(budgetId: string): Promise<void> {
+    const { error } = await this.client
+      .from('budgets')
+      .delete()
+      .eq('id', budgetId);
+
+    if (error) throw error;
   }
 }

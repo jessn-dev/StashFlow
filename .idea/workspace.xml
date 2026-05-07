@@ -5,69 +5,140 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="732b873c-b9d5-480b-936f-97228e837f10" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/docs/testdocs/AMORT%20SCHED.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/testdocs/Mortgage Letter-studentloan.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/testdocs/ede881e5133ea2fc.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/testdocs/pagibigloan.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260401215434_initial_schema.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260416000000_advanced_budgeting.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260416000001_profile_rollover.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260416000002_advanced_loan_engine.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260416000003_secure_documents.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260417000001_loan_lender.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260417000002_contingency_protocol.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260417000003_loan_completion_timestamp.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260417000004_market_intelligence.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260417000005_budget_automation.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260418000001_add_currency_to_market_trends.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260418000002_add_updated_at_to_profiles.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260418000003_add_insert_policy_to_profiles.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260419000001_add_source_to_documents.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260420082934_ai_insights_cache_and_document_updates.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260420164444_add_shopping_to_expense_category.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/supabase/seed.sql" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/mobile/expo-env.d.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/mobile/nativewind-env.d.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/mobile/tsconfig.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/web/middleware.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/web/modules/dashboard/components/DashboardCharts.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/web/modules/plans/components/BudgetEditor.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/web/modules/plans/components/GoalDrawer.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/web/modules/plans/components/GoalForm.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/web/modules/plans/components/PlansClient.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/web/modules/settings/components/DeleteAccountButton.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/web/modules/settings/components/ProfileEditForm.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/web/modules/settings/index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/supabase/functions/_shared/validate.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/supabase/functions/delete-account/index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260510000001_explicit_rls_policies.sql" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/supabase/migrations/20260510000002_audit_log_triggers.sql" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/mobile/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/mobile/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/__tests__/auth.actions.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/__tests__/dashboard.test.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/__tests__/income.test.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/__tests__/landing.test.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/__tests__/spending.test.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/(auth)/login/LoginUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/(auth)/login/actions.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/(auth)/login/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/(auth)/reset-password/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/api/parse-statement/route.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/budgets/BudgetsUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/budgets/actions.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/budgets/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/cash-flow/CashFlowUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/cash-flow/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/goals/GoalsUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/goals/actions.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/goals/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/income/IncomeUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/income/actions.ts" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/income/page.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/app/dashboard/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/loans/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/app/dashboard/loans/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/loans/LoansUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/loans/[id]/LoanDetailUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/loans/actions.ts" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/app/dashboard/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/plans/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/app/dashboard/plans/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/settings/SettingsUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/settings/actions.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/app/dashboard/settings/actions.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/settings/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/app/dashboard/settings/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/spending/SpendingUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/spending/actions.ts" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/web/app/dashboard/spending/page.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/web/app/login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/app/login/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/web/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/app/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/web/middleware.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/web/modules/transactions/components/TransactionList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/modules/transactions/components/TransactionList.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/TamaguiClientProvider.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/budgets/BudgetProgress.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/budgets/BudgetSetupWizard.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/dashboard/DashboardUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/documents/DocumentsModal.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/dti/DTISimulator.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/goals/GoalForm.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/goals/GoalList.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/goals/GoalsUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/income/IncomeChart.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/income/IncomeForm.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/income/IncomeList.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/income/IncomeUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/layout/PageLayout.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/loans/InstallmentList.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/loans/LoanForm.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/loans/LoansUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/settings/CurrencyForm.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/settings/SettingsUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/spending/CategoryBreakdown.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/spending/ExpenseForm.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/spending/ExpenseList.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/spending/SpendingChart.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/spending/SpendingUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/ui/ConfirmationModal.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/ui/FormModal.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/ui/InsightsPanel.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/ui/MetricsRow.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/modules/dashboard/components/AnalyticsSection.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/modules/dashboard/components/AnalyticsSection.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/modules/plans/components/GoalCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/modules/plans/components/GoalCard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/modules/plans/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/modules/plans/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/next.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/next.config.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/web/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/web/playwright.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/playwright.config.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/web/styles/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/styles/globals.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deno.json" beforeDir="false" afterPath="$PROJECT_DIR$/deno.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/SYSTEM.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/SYSTEM.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/api/src/__tests__/dashboard.service.test.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/api/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/api/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/proxy.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/tamagui.config.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/vitest.config.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/vitest.setup.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/ARCHITECTURE.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/CONTRIBUTING.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/CONTRIBUTING.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/DEVELOPMENT.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/Global_Loan_Management_Specification.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/SYSTEM.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/VULNERABILITIES.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/agentic.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/api.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/api.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/dashboard-redesign.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/dti-reference.docx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/future-plans.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/plan.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/security.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/security.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/testdocs/AMORT%20SCHED.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/testdocs/Mortgage Letter-studentloan.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/testdocs/ede881e5133ea2fc.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/testdocs/pagibigloan.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/testing-strategy.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/budget.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/api/src/queries/budget.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/budgets.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/budgets.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/cash-flow.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/cash-flow.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/dashboard.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/dashboard.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/documents.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/documents.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/dti.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/dti.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/exchange-rates.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/exchange-rates.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/expenses.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/expenses.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/goal.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/api/src/queries/goal.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/goals.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/goals.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/income.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/income.ts" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/api/src/queries/interfaces.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/api/src/queries/interfaces.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/loan.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/api/src/queries/loan.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/profile.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/api/src/queries/profile.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/loans.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/loans.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/api/src/queries/profile.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/api/src/queries/profile.test.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/api/src/queries/transaction.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/api/src/queries/transaction.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/api/src/services/dashboard.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/api/src/services/factory.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/api/src/services/factory.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/api/src/services/loans.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/api/src/services/loans.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/api/vitest.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/api/vitest.config.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/core/src/__tests__/analysis/budget.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/__tests__/analysis/budget.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/core/src/__tests__/analysis/dashboard.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/__tests__/analysis/dashboard.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/core/src/__tests__/math/dti.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/__tests__/math/dti.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/core/src/__tests__/math/loans.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/__tests__/math/loans.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/core/src/analysis/budget.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/analysis/budget.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/core/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/core/src/math/dti.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/math/dti.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/core/src/math/loans.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/math/loans.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/core/src/schema/database.types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/schema/database.types.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/core/src/schema/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/schema/index.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pnpm-lock.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/pnpm-lock.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/setup.sh" beforeDir="false" afterPath="$PROJECT_DIR$/setup.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/supabase/functions/import_map.json" beforeDir="false" afterPath="$PROJECT_DIR$/supabase/functions/import_map.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/turbo.json" beforeDir="false" afterPath="$PROJECT_DIR$/turbo.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -108,32 +179,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "ai.playground.ignore.import.keys.banner.in.settings": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "feature/ui-redesign",
-    "javascript.preferred.runtime.type.id": "node",
-    "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "/Users/mrbubbles/Documents/StashFlow/docs",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
-    "to.speed.mode.migration.done": "true",
-    "ts.external.directory.path": "/Applications/WebStorm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;ai.playground.ignore.import.keys.banner.in.settings&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feat/analytics-v1&quot;,
+    &quot;javascript.preferred.runtime.type.id&quot;: &quot;node&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/mrbubbles/Documents/StashFlow/docs&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Applications/WebStorm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/docs" />

@@ -1,5 +1,6 @@
 {
   "imports": {
-    "@stashflow/core": "../../packages/core/src/index.ts"
+    "@stashflow/core": "../../packages/core/src/index.ts",
+    "zod": "npm:zod@3"
   }
 }

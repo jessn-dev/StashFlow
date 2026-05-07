@@ -1,6 +1,6 @@
 import { BaseQuery } from './base';
 import { Income, Expense, UnifiedTransaction, TransactionSummary, convertToBase } from '@stashflow/core';
-import { ITransactionQuery, TransactionFilterOpts, PeriodSummary } from './interfaces';
+import { ITransactionQuery, TransactionFilterOpts, PeriodSummary, HistoricalSummary, SpendingByCategory } from './interfaces';
 
 export class TransactionQuery extends BaseQuery implements ITransactionQuery {
   async getIncomes(userId: string): Promise<Income[]> {
@@ -133,6 +133,76 @@ export class TransactionQuery extends BaseQuery implements ITransactionQuery {
     const count = (incomeRes.data?.length ?? 0) + (expenseRes.data?.length ?? 0);
 
     return { totalIncome, totalExpenses, netFlow: totalIncome - totalExpenses, currency, count };
+  }
+
+  async getHistoricalSummaries(userId: string, months: number = 12): Promise<HistoricalSummary[]> {
+    const today = new Date();
+    const startDate = new Date(today.getFullYear(), today.getMonth() - months + 1, 1).toISOString().split('T')[0]!;
+
+    const [ratesRes, incomeRes, expenseRes, profileRes] = await Promise.all([
+      this.client.from('exchange_rates').select('target, rate'),
+      this.client.from('incomes').select('amount, currency, date').eq('user_id', userId).gte('date', startDate),
+      this.client.from('expenses').select('amount, currency, date').eq('user_id', userId).gte('date', startDate),
+      this.client.from('profiles').select('preferred_currency').eq('id', userId).maybeSingle(),
+    ]);
+
+    const baseCurrency = profileRes.data?.preferred_currency || 'USD';
+    const rates: Record<string, number> = { USD: 1 };
+    ratesRes.data?.forEach((r) => { rates[r.target] = Number(r.rate); });
+
+    const summaries: Record<string, TransactionSummary> = {};
+
+    // Initialize months
+    for (let i = 0; i < months; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const monthKey = d.toISOString().slice(0, 7);
+      summaries[monthKey] = { totalIncome: 0, totalExpenses: 0, netFlow: 0, currency: baseCurrency };
+    }
+
+    incomeRes.data?.forEach((inc) => {
+      const month = inc.date.slice(0, 7);
+      if (summaries[month]) {
+        summaries[month]!.totalIncome += convertToBase(inc.amount, rates[inc.currency] ?? 1);
+      }
+    });
+
+    expenseRes.data?.forEach((exp) => {
+      const month = exp.date.slice(0, 7);
+      if (summaries[month]) {
+        summaries[month]!.totalExpenses += convertToBase(exp.amount, rates[exp.currency] ?? 1);
+      }
+    });
+
+    Object.values(summaries).forEach((s) => {
+      s.netFlow = s.totalIncome - s.totalExpenses;
+    });
+
+    return Object.entries(summaries)
+      .map(([month, s]) => ({ month, ...s } as HistoricalSummary))
+      .sort((a, b) => a.month.localeCompare(b.month));
+  }
+
+  async getSpendingByCategory(userId: string, dateFrom: string, dateTo: string): Promise<SpendingByCategory[]> {
+    const [ratesRes, expenseRes] = await Promise.all([
+      this.client.from('exchange_rates').select('target, rate'),
+      this.client.from('expenses').select('amount, currency, category').eq('user_id', userId).gte('date', dateFrom).lte('date', dateTo),
+    ]);
+
+    const rates: Record<string, number> = { USD: 1 };
+    ratesRes.data?.forEach((r) => { rates[r.target] = Number(r.rate); });
+
+    const categories: Record<string, number> = {};
+
+    expenseRes.data?.forEach((exp) => {
+      const cat = exp.category || 'other';
+      const amountInBase = convertToBase(exp.amount, rates[exp.currency] ?? 1);
+      categories[cat] = (categories[cat] || 0) + amountInBase;
+    });
+
+    return Object.entries(categories).map(([category, amount]) => ({
+      category: category as any,
+      amount,
+    })).sort((a, b) => b.amount - a.amount);
   }
 
   async getTransactionSummary(userId: string, month: string): Promise<TransactionSummary> {

@@ -1,13 +1,29 @@
 {
   "name": "@stashflow/ui",
   "version": "0.1.0",
-  "description": "",
-  "main": "src/index.ts",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "description": "Shared UI primitives — web (Tailwind/shadcn) + mobile (NativeWind)",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./native": "./src/native/index.ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.33.0"
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@stashflow/theme": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19",
+    "react-native": "*"
+  },
+  "peerDependenciesMeta": {
+    "react-native": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "react": "^19.2.5",
+    "typescript": "^6.0.3"
+  }
 }

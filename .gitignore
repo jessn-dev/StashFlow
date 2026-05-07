@@ -1,74 +1,45 @@
-# ----------------------------------------------------------------------
-# System & Editor
-# ----------------------------------------------------------------------
-.DS_Store
-*.log
-.vscode/
-.idea/
+# Dependencies
+node_modules
+.pnpm-store
 
-# ----------------------------------------------------------------------
-# Dependencies (pnpm & Node)
-# ----------------------------------------------------------------------
-node_modules/
-.pnpm-store/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+# Build outputs
+.next
+dist
+out
+build
 
-# ----------------------------------------------------------------------
-# Turborepo & Build Caches
-# ----------------------------------------------------------------------
-.turbo/
-dist/
-*.tsbuildinfo
+# Turbo
+.turbo
 
-# ----------------------------------------------------------------------
-# Next.js (apps/web)
-# ----------------------------------------------------------------------
-.next/
-out/
-build/
-next-env.d.ts
+# Testing
+coverage
+.playwright
+playwright-report
+test-results
 
-# ----------------------------------------------------------------------
-# Expo & React Native (apps/mobile)
-# ----------------------------------------------------------------------
-.expo/
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-*.orig.*
-web-build/
+# Expo / React Native
+.expo
+*.jsbundle
+android/
+ios/
 
-# If you prebuild native directories later, you may want to ignore these:
-# apps/mobile/ios/
-# apps/mobile/android/
-
-# ----------------------------------------------------------------------
-# Supabase
-# ----------------------------------------------------------------------
-supabase/.temp/
-supabase/.branch/
-
-# ----------------------------------------------------------------------
-# Environment Variables & Secrets
-# ----------------------------------------------------------------------
+# Environment files
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
-*.secret
+.env.*.local
+!.env.example
 
-# ----------------------------------------------------------------------
-# Testing & Coverage
-# ----------------------------------------------------------------------
-coverage/
-playwright-report/
-test-results/
+# Editor
+.DS_Store
+.vscode
+*.log
+*.tsbuildinfo
 
-plan.md
-agentic.md
+# Supabase local dev
+supabase/.branches
+supabase/.temp
+*.md
+docs/
+
+.idea/
+.claude

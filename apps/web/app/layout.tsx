@@ -1,19 +1,19 @@
-import './globals.css'
-import '@tamagui/core/reset.css'
-import TamaguiClientProvider from '@/components/TamaguiClientProvider'
+import '../styles/globals.css';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'StashFlow',
+  description: 'Personal finance for multi-currency users',
+};
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
-      <body suppressHydrationWarning>
-        <TamaguiClientProvider>
-          {children}
-        </TamaguiClientProvider>
-      </body>
+      <body>{children}</body>
     </html>
-  )
+  );
 }

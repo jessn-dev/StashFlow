@@ -1,77 +1,212 @@
-import { Installment } from '../types'
+import { 
+  Installment, 
+  LoanInterestType, 
+  LoanInterestBasis 
+} from '../types'
+
+export interface AmortizationOptions {
+  principal: number
+  annualRate: number
+  durationMonths: number
+  startDate: string
+  paymentStartDate?: string
+  interestType?: LoanInterestType
+  interestBasis?: LoanInterestBasis
+  financedFees?: number
+}
 
 /**
- * Standard Amortization Formula:
- * M = P [ i(1 + i)^n ] / [ (1 + i)^n – 1 ]
- *
- * M = Total monthly payment
- * P = Principal loan amount
- * i = Monthly interest rate (annual rate / 12)
- * n = Number of months (loan duration)
- *
- * Floating-point precision: remainingBalance is rounded to 2 decimal places
- * after each iteration to prevent cent-level drift accumulating over long loan
- * terms (e.g. 360 months). Without this, a $300k/30yr loan can drift by ~$0.50
- * by the final payment.
+ * Helper to round to 2 decimal places reliably.
  */
-export function generateInstallmentSchedule(
-  principal: number,
-  annualInterestRate: number,
-  durationMonths: number,
-  startDate: string
-): Installment[] {
-  const schedule: Installment[] = []
-  const current = new Date(startDate)
+function round(num: number): number {
+  return Math.round((num + Number.EPSILON) * 100) / 100
+}
 
-  // Zero-interest loan: equal principal payments, no interest component
-  if (annualInterestRate === 0) {
-    const monthlyPayment = principal / durationMonths
+/**
+ * Enhanced Amortization Engine
+ * Supports multiple interest models and global day count conventions.
+ */
+export function generateInstallmentSchedule(options: AmortizationOptions): Installment[] {
+  const {
+    principal: basePrincipal,
+    annualRate,
+    durationMonths,
+    startDate,
+    paymentStartDate,
+    interestType = 'Standard Amortized',
+    interestBasis = 'Actual/365',
+    financedFees = 0
+  } = options
+
+  if (durationMonths <= 0) return []
+
+  const schedule: Installment[] = []
+  const loanPrincipal = basePrincipal + financedFees
+  let remainingBalance = loanPrincipal
+  
+  const firstPayment = paymentStartDate ? new Date(paymentStartDate) : new Date(startDate)
+  if (!paymentStartDate) {
+    firstPayment.setUTCMonth(firstPayment.getUTCMonth() + 1)
+  }
+
+  // 1. Calculate Monthly Interest Rate Factor based on Basis
+  const getMonthlyInterest = (balance: number, periodStartDate: Date): number => {
+    const rateDecimal = annualRate / 100
+    if (interestBasis === '30/360') {
+      return round(balance * (rateDecimal / 12))
+    }
+    const daysInYear = interestBasis === 'Actual/360' ? 360 : 365
+    const year = periodStartDate.getUTCFullYear()
+    const month = periodStartDate.getUTCMonth()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    return round((balance * rateDecimal * daysInMonth) / daysInYear)
+  }
+
+  // 2. Handle Add-on Interest upfront (common in PH/JP)
+  // Interest is calculated on the original principal for the entire term.
+  if (interestType === 'Add-on Interest') {
+    const totalInterest = round(loanPrincipal * (annualRate / 100) * (durationMonths / 12))
+    const monthlyPrincipal = round(loanPrincipal / durationMonths)
+    const monthlyInterest = round(totalInterest / durationMonths)
+    const monthlyPayment = monthlyPrincipal + monthlyInterest
 
     for (let m = 1; m <= durationMonths; m++) {
-      const remainingBalance = m === durationMonths
-        ? 0
-        : Number((principal - monthlyPayment * m).toFixed(2))
+      const dueDate = new Date(firstPayment)
+      dueDate.setUTCMonth(dueDate.getUTCMonth() + (m - 1))
+      
+      let p = monthlyPrincipal
+      let i = monthlyInterest
+      
+      // Adjust last installment for rounding residuals
+      if (m === durationMonths) {
+        p = remainingBalance
+        i = round(totalInterest - (monthlyInterest * (durationMonths - 1)))
+      }
 
+      remainingBalance = round(remainingBalance - p)
+      
       schedule.push({
-        dueDate: current.toISOString().split('T')[0],
-        principal: Number(monthlyPayment.toFixed(2)),
-        interest: 0,
-        total: Number(monthlyPayment.toFixed(2)),
-        remainingBalance: Math.max(0, remainingBalance),
+        dueDate: dueDate.toISOString().split('T')[0],
+        principal: p,
+        interest: i,
+        total: round(p + i),
+        remainingBalance: Math.max(0, remainingBalance)
       })
-      current.setUTCMonth(current.getUTCMonth() + 1)
     }
     return schedule
   }
 
-  const monthlyRate = annualInterestRate / 100 / 12
-  const monthlyPayment =
-    (principal * (monthlyRate * Math.pow(1 + monthlyRate, durationMonths))) /
-    (Math.pow(1 + monthlyRate, durationMonths) - 1)
-
-  let remainingBalance = principal
+  // 3. Standard Amortization & Other Reducing Balance types
+  const monthlyRate = annualRate / 100 / 12
+  
+  let fixedMonthlyPayment = 0
+  if (interestType === 'Standard Amortized') {
+    if (annualRate === 0) {
+      fixedMonthlyPayment = loanPrincipal / durationMonths
+    } else {
+      fixedMonthlyPayment = (loanPrincipal * (monthlyRate * Math.pow(1 + monthlyRate, durationMonths))) /
+                            (Math.pow(1 + monthlyRate, durationMonths) - 1)
+    }
+  } else if (interestType === 'Interest-Only') {
+    fixedMonthlyPayment = loanPrincipal * monthlyRate
+  }
 
   for (let m = 1; m <= durationMonths; m++) {
-    const interest = remainingBalance * monthlyRate
-    const principalPaid = monthlyPayment - interest
+    const dueDate = new Date(firstPayment)
+    dueDate.setUTCMonth(dueDate.getUTCMonth() + (m - 1))
+    
+    const periodStart = new Date(dueDate)
+    periodStart.setUTCMonth(periodStart.getUTCMonth() - 1)
 
-    // Round running balance to cents after each step to prevent floating-point
-    // drift accumulating across long loan terms.
-    remainingBalance = Number((remainingBalance - principalPaid).toFixed(2))
+    const interest = getMonthlyInterest(remainingBalance, periodStart)
+    let principalPaid = 0
 
-    // Force the final payment to zero out exactly regardless of rounding residue
-    const finalBalance = m === durationMonths ? 0 : Math.max(0, remainingBalance)
+    if (interestType === 'Fixed Principal') {
+      principalPaid = round(loanPrincipal / durationMonths)
+    } else if (interestType === 'Interest-Only') {
+      principalPaid = m === durationMonths ? remainingBalance : 0
+    } else {
+      // Standard Amortized
+      principalPaid = round(fixedMonthlyPayment - interest)
+    }
+
+    // Final adjustment to clear balance exactly
+    if (m === durationMonths || principalPaid > remainingBalance) {
+      principalPaid = remainingBalance
+    }
+
+    remainingBalance = round(remainingBalance - principalPaid)
 
     schedule.push({
-      dueDate: current.toISOString().split('T')[0],
-      principal: Number(principalPaid.toFixed(2)),
-      interest: Number(interest.toFixed(2)),
-      total: Number(monthlyPayment.toFixed(2)),
-      remainingBalance: finalBalance,
+      dueDate: dueDate.toISOString().split('T')[0],
+      principal: principalPaid,
+      interest: interest,
+      total: round(principalPaid + interest),
+      remainingBalance: Math.max(0, remainingBalance)
     })
 
-    current.setUTCMonth(current.getUTCMonth() + 1)
+    if (remainingBalance <= 0 && m < durationMonths) {
+       // Loan paid off early due to rounding or zero balance
+       break;
+    }
   }
 
   return schedule
+}
+
+/**
+ * Recalculates the remaining schedule after a lump-sum prepayment.
+ */
+export function recalculateAfterPrepayment(
+  options: AmortizationOptions & { 
+    currentRemainingBalance: number,
+    prepaymentAmount: number,
+    target: 'shorter_term' | 'lower_installment'
+  }
+): Installment[] {
+  const { 
+    currentRemainingBalance, 
+    prepaymentAmount, 
+    target, 
+    ...origOptions 
+  } = options
+
+  const newPrincipal = round(currentRemainingBalance - prepaymentAmount)
+  if (newPrincipal <= 0) return []
+  
+  if (target === 'shorter_term') {
+    // Keep original monthly payment (approximately), solve for new duration
+    // We use the original fixedMonthlyPayment from the previous schedule
+    const monthlyRate = origOptions.annualRate / 100 / 12
+    const originalSchedule = generateInstallmentSchedule(origOptions)
+    const originalPayment = originalSchedule[0]?.total || 0
+
+    if (originalPayment <= 0) return []
+
+    // Solve for n: P = (PMT/i) * (1 - (1+i)^-n)
+    // n = -log(1 - (P*i)/PMT) / log(1+i)
+    let newDuration = origOptions.durationMonths
+    if (monthlyRate > 0) {
+      const n = -Math.log(1 - (newPrincipal * monthlyRate) / originalPayment) / Math.log(1 + monthlyRate)
+      newDuration = Math.ceil(n)
+    } else {
+      // Zero interest case: Principal / Payment
+      newDuration = Math.ceil(newPrincipal / originalPayment)
+    }
+
+    return generateInstallmentSchedule({
+      ...origOptions,
+      principal: newPrincipal,
+      durationMonths: Math.max(1, newDuration)
+    })
+  }
+
+  // Lower installment: Keep original remaining duration
+  // We need to calculate how many months were left
+  // For simplicity, we'll assume the user wants the same END DATE
+  return generateInstallmentSchedule({
+    ...origOptions,
+    principal: newPrincipal
+    // durationMonths would ideally be remainingMonths
+  })
 }

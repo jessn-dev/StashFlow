@@ -15,7 +15,8 @@ import { DTIRatioResult } from '../types'
  */
 export function calculateDTIRatio(
   monthlyIncome: number,
-  monthlyDebt: number
+  monthlyDebt: number,
+  currency: string = 'USD'
 ): DTIRatioResult {
   // New users or users with no financial data should not be flagged as high-risk.
   if (monthlyIncome <= 0) {
@@ -28,11 +29,57 @@ export function calculateDTIRatio(
 
   const ratio = (monthlyDebt / monthlyIncome) * 100
 
-  if (ratio <= 36) {
-    return { ratio, status: 'low', color: '#1A7A7A' }    // Brand accent/safe color
-  } else if (ratio < 50) {
-    return { ratio, status: 'medium', color: '#EAB308' } // Warning yellow
+  // Regional Thresholds from dti-reference.docx
+  let healthyLimit = 36
+  let maxLimit = 49
+
+  if (currency === 'PHP') {
+    healthyLimit = 30
+    maxLimit = 40
+  } else if (currency === 'SGD') {
+    healthyLimit = 45
+    maxLimit = 55
+  } else if (currency === 'JPY') {
+    healthyLimit = 30
+    maxLimit = 45
+  }
+
+  if (ratio <= healthyLimit) {
+    return { ratio, status: 'low', color: '#1A7A7A' }
+  } else if (ratio <= maxLimit) {
+    return { ratio, status: 'medium', color: '#EAB308' }
   } else {
-    return { ratio, status: 'high', color: '#D4522A' }   // Brand high-risk color
+    return { ratio, status: 'high', color: '#D4522A' }
+  }
+}
+
+export interface DTISimulationPayload {
+  monthlyIncome: number
+  monthlyDebt: number
+  currency?: string
+  addLoanMonthly?: number
+  addIncomeMonthly?: number
+  payOffLoanMonthly?: number
+}
+
+/**
+ * Projects DTI ratio based on potential financial changes.
+ */
+export function simulateDTI(payload: DTISimulationPayload) {
+  const currency = payload.currency || 'USD'
+  const current = calculateDTIRatio(payload.monthlyIncome, payload.monthlyDebt, currency)
+  
+  const projectedIncome = payload.monthlyIncome + (payload.addIncomeMonthly ?? 0)
+  const projectedDebt = payload.monthlyDebt + (payload.addLoanMonthly ?? 0) - (payload.payOffLoanMonthly ?? 0)
+  
+  const projected = calculateDTIRatio(projectedIncome, Math.max(0, projectedDebt), currency)
+  
+  return {
+    current: current.ratio,
+    projected: projected.ratio,
+    // Difference in percentage points
+    diffPpt: projected.ratio - current.ratio,
+    newStatus: projected.status,
+    newColor: projected.color
   }
 }

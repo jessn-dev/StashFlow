@@ -1,121 +1,367 @@
-# StashFlow API Specification
+# StashFlow — API Reference
 
-> **Architecture Note:** StashFlow utilizes Supabase. Standard CRUD operations are handled via the Supabase JS client directly against the database with Row Level Security (RLS) enforced. Complex logic (Amortization, DTI, Dashboard Aggregation) is routed through Supabase Edge Functions.
-
-## 1. 🔐 Auth API
-Handled entirely by Supabase Auth. No custom backend routes required.
-
-| Action | Method | Notes |
-|---|---|---|
-| Sign Up | `supabase.auth.signUp()` | Sends verification email |
-| Sign In | `supabase.auth.signInWithPassword()` | Returns JWT session |
-| Sign Out | `supabase.auth.signOut()` | Clears local session |
-| Reset Password | `supabase.auth.resetPasswordForEmail()` | Sends recovery link |
-| Session | `supabase.auth.getSession()` | Checks current auth state |
+> StashFlow uses Supabase as its sole backend. Standard CRUD operations execute through the Supabase JS client against Postgres with Row Level Security enforced at the DB layer. Complex aggregations and admin operations are routed through Supabase Edge Functions.
+>
+> All requests require authentication unless noted otherwise.
 
 ---
 
-## 2. 👤 User Profile
+## Authentication
+
+All API access requires a valid Supabase JWT. On web, the JWT is managed automatically in httpOnly cookies via `@supabase/ssr`. On mobile, it is stored in `expo-secure-store`.
+
+| Action | Client method |
+|--------|--------------|
+| Sign up | `supabase.auth.signUp({ email, password })` |
+| Sign in | `supabase.auth.signInWithPassword({ email, password })` |
+| Sign in (Google OAuth) | `supabase.auth.signInWithOAuth({ provider: 'google' })` — PKCE flow |
+| Sign out | `supabase.auth.signOut()` |
+| Get session | `supabase.auth.getSession()` |
+| Reset password | `supabase.auth.resetPasswordForEmail(email, { redirectTo })` |
+| Update password | `supabase.auth.updateUser({ password })` |
+| MFA enroll | `supabase.auth.mfa.enroll({ factorType: 'totp' })` |
+| MFA challenge | `supabase.auth.mfa.challenge({ factorId })` |
+| MFA verify | `supabase.auth.mfa.verify({ factorId, challengeId, code })` |
+
+Edge functions: include `Authorization: Bearer <access_token>` header.
+
+---
+
+## Profile
+
+One `profiles` row per authenticated user. Auto-created on first login.
+
+### Get profile
 
 ```typescript
-// Fetch Profile
-getProfile() → { id, email, full_name, preferred_currency, created_at }
-
-// Update Profile
-updateProfile(payload: { full_name?: string, preferred_currency?: string }) → Profile
+const { data } = await supabase
+  .from('profiles')
+  .select('id, full_name, preferred_currency, budgeting_enabled, global_rollover_enabled')
+  .eq('id', userId)
+  .single()
 ```
-## 3. 📥 Income
+
+### Update profile
+
+```typescript
+const { data } = await supabase
+  .from('profiles')
+  .update({ full_name, preferred_currency })
+  .eq('id', userId)
+  .select()
+  .single()
 ```
-// List Income
-listIncome(filters?: { from?: Date, to?: Date, frequency?: "one-time" | "monthly" | "weekly" }) → Income[]
 
-// Create Income
-createIncome(payload: { amount: number, currency: string, source: string, frequency: string, date: string, notes?: string }) → Income
+---
 
-// Update / Delete
-updateIncome(id: string, payload: Partial<Income>) → Income
-deleteIncome(id: string) → { success: true }
+## Transactions
 
-// Summary (Aggregated monthly total)
-getIncomeSummary(month: string) → { 
-  total_local: number, 
-  total_converted: number, 
-  by_source: { source: string, amount: number }[] 
+Incomes and expenses share a unified timeline. Stored in separate tables (`incomes`, `expenses`) and merged via `UnifiedTransaction` type in `@stashflow/core`.
+
+### List transactions (filtered)
+
+Via `@stashflow/api TransactionQuery.getTransactionsFiltered(userId, opts)`:
+
+```typescript
+interface TransactionFilterOpts {
+  dateFrom?: string    // ISO date
+  dateTo?: string      // ISO date
+  type?: 'income' | 'expense'
+  search?: string      // matches description/source
+  limit?: number
 }
 ```
-## 4. 💳 Expenses / Spending
-```
-// List Expenses (Paginated)
-listExpenses(filters?: { from?: Date, to?: Date, category?: ExpenseCategory, limit?: number, offset?: number }) → { data: Expense[], count: number }
 
-// Create Expense
-createExpense(payload: { amount: number, currency: string, category: ExpenseCategory, description: string, date: string, is_recurring: boolean, notes?: string }) → Expense
+### Period summary
 
-// Update / Delete
-updateExpense(id: string, payload: Partial<Expense>) → Expense
-deleteExpense(id: string) → { success: true }
+Via `TransactionQuery.getSummaryForPeriod(userId, dateFrom, dateTo)`:
 
-// Summary
-getExpenseSummary(month: string) → { 
-  total: number, 
-  by_category: { category: string, amount: number, percentage: number, count: number }[], 
-  vs_last_month: number 
+```typescript
+interface PeriodSummary {
+  totalIncome: number        // converted to preferred_currency
+  totalExpenses: number      // converted to preferred_currency
+  netFlow: number
+  count: number
+  currency: string           // preferred_currency
 }
 ```
-## 5. 🏦 Loans & Installments
-```
-// List / Get Loans
-listLoans(filters?: { status?: "active" | "completed" | "defaulted" }) → Loan[]
-getLoan(id: string) → { loan: Loan, schedule: LoanPayment[], progress: { paid_count: number, remaining: number, paid_amount: number, percent_done: number } }
 
-// Create Loan (⚡ Edge Function: generate-loan-schedule)
-createLoan(payload: { name: string, principal: number, currency: string, interest_rate: number, duration_months: number, start_date: string, installment_amount: number }) → { loan: Loan, schedule: LoanPayment[], summary: object }
+### Historical summaries (12 months)
 
-// Update / Delete
-updateLoan(id: string, payload: Partial<Loan>) → Loan
-deleteLoan(id: string) → { success: true }
+Via `TransactionQuery.getHistoricalSummaries(userId, months)`. Returns array of `{ month, income, expenses, net }` objects.
 
-// Payments
-listPayments(loanId: string) → LoanPayment[]
-markPaymentPaid(loanId: string, paymentId: string, payload: { amount_paid: number, paid_date: string }) → LoanPayment
-getUpcomingPayments() → UpcomingPayment[]
+### Spending by category
+
+Via `TransactionQuery.getSpendingByCategory(userId, period)` where `period` is `YYYY-MM`.
+
+### Create income
+
+```typescript
+await supabase.from('incomes').insert({
+  user_id: userId,
+  amount: number,
+  currency: string,           // ISO 4217
+  source: string,
+  frequency: 'one-time' | 'weekly' | 'monthly',
+  date: string,               // ISO date
+  notes?: string
+})
 ```
-## 6. 📊 DTI Ratio
+
+### Create expense
+
+```typescript
+await supabase.from('expenses').insert({
+  user_id: userId,
+  amount: number,
+  currency: string,
+  description: string,
+  category: ExpenseCategory,  // see enum in @stashflow/core
+  date: string,
+  is_recurring: boolean,
+  notes?: string
+})
 ```
-// Get DTI Ratio (⚡ Edge Function: calculate-dti)
-getDTIRatio(month?: string) → { 
-  ratio: number, 
-  status: "healthy" | "moderate" | "high_risk", 
-  gross_income: number, 
-  total_debt: number, 
-  breakdown: object[], 
-  trend: object[], 
-  recommendation: string 
+
+### Update / delete
+
+```typescript
+// Update
+await supabase.from('incomes').update(payload).eq('id', id)
+await supabase.from('expenses').update(payload).eq('id', id)
+
+// Delete
+await supabase.from('incomes').delete().eq('id', id)
+await supabase.from('expenses').delete().eq('id', id)
+```
+
+---
+
+## Loans
+
+### List loans
+
+Via `LoanQuery.getAll(userId)`. Returns all loans with `status`, `principal`, `interest_rate`, `currency`, `installment_amount`, `duration_months`, `start_date`, `end_date`.
+
+**Critical:** `interest_rate` is stored as a percentage integer (e.g. `12` = 12% annual). Always divide by 100 before passing to `generateAmortizationSchedule`.
+
+### Get loan with amortization schedule
+
+Via `LoansService.getLoanDetail(userId, loanId)`. Returns `{ loan, schedule, payments }`.
+
+### Get loans page data
+
+Via `LoansService.getLoansPageData(userId)`. Returns `{ loans, metrics }` where `metrics` is `LoanMetrics` from `@stashflow/core` (total debt, monthly installments, avg rate, active count — converted to preferred currency).
+
+### Create loan
+
+```typescript
+await supabase.from('loans').insert({
+  user_id: userId,
+  name: string,
+  principal: number,
+  interest_rate: number,     // stored as percentage (12 = 12%)
+  installment_amount: number,
+  duration_months: number,
+  start_date: string,
+  currency: string,
+  interest_type: LoanInterestType,
+  interest_basis: LoanInterestBasis,
+  commercial_category: LoanCommercialCategory,
+  status: 'active'
+})
+```
+
+After creating a loan, generate the amortization schedule using `generateAmortizationSchedule` from `@stashflow/core` and insert all entries into `loan_payments`.
+
+### Update / delete
+
+```typescript
+await supabase.from('loans').update(payload).eq('id', id)
+await supabase.from('loans').delete().eq('id', id)   // cascades loan_payments
+```
+
+### Mark payment paid
+
+```typescript
+await supabase.from('loan_payments')
+  .update({ status: 'paid', paid_date: string })
+  .eq('id', paymentId)
+```
+
+### Upcoming payments
+
+Via `LoanQuery.getPaymentSummaries(userId)`. Returns payments with due dates, loan name, amount, and currency.
+
+---
+
+## Goals
+
+### List goals
+
+Via `GoalQuery.getAll(userId)`.
+
+### Create / update / delete
+
+```typescript
+// Create
+await supabase.from('goals').insert({
+  user_id: userId,
+  name: string,
+  type: 'savings' | 'debt',
+  target_amount: number,
+  current_amount: number,
+  currency: string,
+  deadline?: string
+})
+
+// Update
+await supabase.from('goals').update(payload).eq('id', id)
+
+// Delete
+await supabase.from('goals').delete().eq('id', id)
+```
+
+---
+
+## Budgets
+
+One budget row per user per `expense_category`. Upsert pattern required.
+
+### List active budgets
+
+Via `BudgetQuery.getActive(userId)`.
+
+### Get budget periods
+
+Via `BudgetQuery.getPeriods(userId, period)` where `period` is `YYYY-MM`. Returns `budget_periods` rows with `budgeted`, `spent`, `rolled_over_amount`.
+
+### Upsert budget
+
+Via `BudgetQuery.upsert(userId, category, amount, currency)`. Uses `ON CONFLICT (user_id, category)` — creates or updates.
+
+### Delete budget
+
+Via `BudgetQuery.delete(userId, category)`.
+
+---
+
+## Exchange Rates
+
+Rates are cached in `exchange_rates`, synced hourly by the `sync-exchange-rates` cron.
+
+### Get latest rates
+
+Via `ExchangeRateQuery.getLatest(userId)`. Returns rates relevant to the user's data currencies.
+
+### Currency conversion
+
+Via `convertToBase(amount, rate)` from `@stashflow/core`. `rate` = units of base currency per 1 unit of foreign currency.
+
+---
+
+## Edge Functions
+
+All edge functions are at `{SUPABASE_URL}/functions/v1/{name}`.
+
+### `delete-account`
+
+Permanently deletes the authenticated user and all their data via cascade.
+
+```
+POST /functions/v1/delete-account
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+Body: { "userId": "<user_id>" }
+
+Response 200: { "success": true }
+Response 403: { "error": "Forbidden" }   // userId mismatch
+```
+
+`userId` in body must match the JWT subject. Account deletion cascades to all user-owned rows via `ON DELETE CASCADE`.
+
+### `get-dashboard`
+
+Aggregates full dashboard payload for mobile app.
+
+```
+POST /functions/v1/get-dashboard
+Authorization: Bearer <access_token>
+```
+
+Returns net worth, DTI, cashflow, upcoming payments, recent transactions.
+
+### `calculate-dti`
+
+DTI ratio with regional thresholds (US 36%, PH 40%, SG 55%).
+
+```
+POST /functions/v1/calculate-dti
+Authorization: Bearer <access_token>
+```
+
+Returns `DTIRatioResult`: `ratio`, `isHealthy`, `regionalThreshold`, `breakdown`.
+
+### `macro-financial-advisor`
+
+AI-powered financial insights. Cached by `(region, currency, data_version_hash)` — 24h TTL. Rate-limited to 5 AI calls per user per day.
+
+```
+POST /functions/v1/macro-financial-advisor
+Authorization: Bearer <access_token>
+```
+
+### `parse-loan-document`
+
+Webhook-triggered only — not called by clients directly. Fires on `INSERT` to `documents`. Processes PDF through 3-tier AI pipeline; writes `extracted_data` + `processing_status` back to the row.
+
+---
+
+## Error Handling
+
+### Supabase Client Errors
+
+```typescript
+const { data, error } = await supabase.from('table').select()
+if (error) {
+  // error.message — human-readable description
+  // error.code    — Postgres error code
+  // error.hint    — optional fix suggestion
 }
+```
 
-// Simulate DTI (What-If Calculator)
-simulateDTI(payload: { add_loan?: object, add_income?: object, pay_off_loan?: object }) → { current_dti: number, projected_dti: number, change: number, new_status: string }
-```
-## 7. 💱 Currency / Exchange Rates
-```
-// Get Cached Rates
-getRates(payload: { base: string, targets: string[] }) → { base: string, rates: Record<string, number>, fetched_at: string, is_cached: boolean }
+### Edge Function Error Shape
 
-// Convert
-convertAmount(payload: { amount: number, from: string, to: string }) → { original: number, converted: number, rate: number }
+```json
+{ "error": "Unauthorized" }
+{ "error": "Forbidden" }
+{ "error": "Invalid request body" }
+```
 
-// Supported List
-getSupportedCurrencies() → { code: string, name: string, symbol: string }[]
-```
-## 8. 📊 Dashboard Aggregation
-```
-// Get Dashboard Payload (⚡ Edge Function: getDashboard)
-getDashboard() → { 
-  summary: object, 
-  cash_flow: object[], 
-  spending_by_category: object[], 
-  upcoming_payments: object[], 
-  recent_transactions: object[], 
-  loan_summary: object 
+Status codes: 400 validation, 401 unauthenticated, 403 forbidden, 500 internal.
+
+### Document Processing Errors
+
+`documents.processing_error` JSONB column:
+
+```typescript
+interface ProcessingError {
+  code: string        // e.g. 'PDF_PARSE_FAILED', 'OCR_TIMEOUT', 'AI_UNAVAILABLE'
+  message: string
+  stage: 'pdf' | 'ocr' | 'ai'
+  timestamp: string
 }
 ```
+
+---
+
+## Rate Limits
+
+| Resource | Limit |
+|----------|-------|
+| AI advisor (`macro-financial-advisor`) | 5 per user per day |
+| Edge function invocations | Supabase plan limits |
+| Storage uploads | Supabase plan limits |
+| Exchange rate sync | 1× per hour (cron) |
+| Auth endpoints | Supabase built-in rate limiting |

@@ -1,30 +1,26 @@
-import { NextResponse } from 'next/server'
-// The client you created from the Server-Side Auth instructions
-import { createClient } from '@/utils/supabase/server'
+import { createClient } from '@/lib/supabase/server';
+import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
-  // if "next" is in search params, use it as the redirection URL
-  const next = searchParams.get('next') ?? '/'
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get('code');
 
   if (code) {
-    const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
-      const forwardedHost = request.headers.get('x-forwarded-host') // case-insensitive
-      const isLocalEnv = process.env.NODE_ENV === 'development'
-      if (isLocalEnv) {
-        // we can skip forwarded host check in local dev
-        return NextResponse.redirect(`${origin}${next}`)
-      } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`)
-      } else {
-        return NextResponse.redirect(`${origin}${next}`)
-      }
+    const supabase = await createClient();
+    const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (!error && session?.user) {
+      const { user } = session;
+      await supabase.from('profiles').upsert(
+        {
+          id: user.id,
+          email: user.email ?? '',
+          full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? null,
+        },
+        { onConflict: 'id', ignoreDuplicates: true }
+      );
     }
   }
 
-  // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/login?message=Could not login with code`)
+  return NextResponse.redirect(new URL('/dashboard', request.url));
 }

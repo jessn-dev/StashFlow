@@ -1,344 +1,227 @@
-# 💰 StashFlow
+# StashFlow
 
-> A personal finance tracker for managing spending, debt-to-income ratio, loan installments, and multi-currency support — available on Web, iOS, and Android.
+Personal finance platform for multi-currency users. Tracks income, expenses, loans, budgets, and goals — with AI-powered document parsing and region-specific financial rules.
 
-![Status](https://img.shields.io/badge/status-in%20development-yellow)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20Expo%20%7C%20Supabase-blue)
-![Platform](https://img.shields.io/badge/platform-Web%20%7C%20iOS%20%7C%20Android-lightgrey)
+Targets users in the Philippines, United States, and Singapore with appropriate regional thresholds (DTI, tax categories, loan conventions).
 
 ---
 
-## 📌 Overview
+## Overview
 
-StashFlow helps users take control of their finances by providing:
+StashFlow is a calm financial command center. It reduces financial anxiety through automated calculations, multi-currency normalization, and intelligent loan contract parsing — without requiring bank account linking.
 
-- **Spending Tracker** — log and categorize daily expenses
-- **Income Logger** — track one-time and recurring income sources
-- **Loan Manager** — add loans with full installment schedules auto-generated (amount, duration, start/end dates)
-- **DTI Ratio** — real-time debt-to-income ratio with health indicators and recommendations
-- **Multi-Currency Support** — live exchange rates via Frankfurter API, convert across currencies seamlessly
-- **Dashboard** — unified financial overview with cash flow charts, upcoming bills, and recent transactions
-- **Dark / Light Mode** — full theme toggle across all screens
+Data entry is manual or via PDF upload. The AI pipeline extracts loan terms from uploaded contracts automatically.
 
 ---
 
-## 🏗️ Tech Stack
+## Core Features
 
-| Layer | Technology | Notes |
-|---|---|---|
-| Web App | Next.js 15 (App Router) | Deployed on Vercel |
-| Mobile App | React Native + Expo | iOS & Android via Expo EAS |
-| Backend / DB | Supabase | Auth, PostgreSQL, Edge Functions, RLS |
-| Shared Logic | Turborepo Monorepo | Shared hooks, utils, types |
-| Currency Rates | Frankfurter API | Free, open-source, cached daily |
-| Analytics | PostHog | Event tracking and funnels |
-| UI Library (Web) | DaisyUI + Tailwind CSS v3 | |
-| UI Library (Mobile) | Custom + React Native Paper | |
+- **Multi-currency tracking** — Incomes, expenses, and loans in any currency. All dashboard metrics normalize to the user's preferred base currency via live FX rates.
+- **Loan management** — Supports Standard Amortized, Add-on Interest, Interest-Only, and Fixed Principal loan types. Generates full amortization schedules. Tracks payment status.
+- **AI loan document parsing** — Upload a loan contract PDF; the 3-tier pipeline (regex → OCR → LLM) extracts principal, rate, term, and payment structure automatically.
+- **Intelligent loan modeling** — Numerical inference engine classifies loan type from principal/payment/rate/term without asking technical questions.
+- **DTI health** — Debt-to-income ratio with regional thresholds (PH 40%, US 36%, SG 55%). Zero-income edge case handled correctly.
+- **Plans** — Savings and debt goals with progress tracking. Per-category budgets with monthly spend snapshots.
+- **Transaction timeline** — Unified income + expense feed with URL-driven filtering, inline edit/delete, and date-range presets.
+- **MFA** — TOTP-based multi-factor authentication via Supabase Auth.
 
 ---
 
-## 🏗️ System Architecture Overview
+## Architecture
 
-StashFlow utilizes a modern, serverless architecture designed for maximum code reuse across web and mobile platforms, backed by a secure and scalable PostgreSQL database.
-
-```text
-┌─────────────────────────────────────────────────────┐
-│                    CLIENT LAYER                     │
-│                                                     │
-│   ┌──────────────┐         ┌──────────────────┐     │
-│   │  Next.js 15  │         │  Expo SDK 54     │     │
-│   │  (Web App)   │         │  (iOS + Android) │     │
-│   └──────┬───────┘         └────────┬─────────┘     │
-│          │                          │               │
-│          └──────────┬───────────────┘               │
-│                     │  Shared via Turborepo         │
-│              @stashflow/core  (hooks, utils, types)  │
-│              @stashflow/ui    (components)           │
-│              @stashflow/api   (Supabase queries)     │
-└─────────────────────┬───────────────────────────────┘
-                      │ HTTPS / WebSocket (Realtime)
-┌─────────────────────▼───────────────────────────────┐
-│                  BACKEND LAYER (Supabase)           │
-│                                                     │
-│   ┌──────────┐  ┌──────────┐  ┌─────────────────┐   │
-│   │   Auth   │  │Postgres  │  │ Row Level Sec.  │   │
-│   └──────────┘  └──────────┘  └─────────────────┘   │
-│                                                     │
-│   Edge Functions (Deno):                            │
-│   • generate-loan-schedule                          │
-│   • calculate-dti                                   │
-│   • sync-exchange-rates (cron daily)                │
-└─────────────────────┬───────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────┐
-│               EXTERNAL SERVICES                     │
-│  Frankfurter API │  PostHog Analytics │  Vercel     │
-└─────────────────────────────────────────────────────┘
-```
-
-## 📁 Repository Structure
-
-We use Turborepo to manage our codebase. This allows us to orchestrate builds, cache outputs, and share code seamlessly between the Web and Mobile apps.
+Domain-driven monorepo. Pure business logic in `@stashflow/core` → service layer in `@stashflow/api` → Next.js web app + Expo mobile app. Supabase handles database, auth, storage, and edge functions.
 
 ```
-stashflow/
+Browser / Mobile App
+        │
+        ▼
+   Next.js 16 (RSC + Server Actions)
+   Expo SDK 55 (React Native)
+        │
+        ▼
+   @stashflow/api (Supabase queries + service layer)
+        │
+        ▼
+   Supabase (Postgres + Auth + Storage + Edge Functions)
+        │
+        ▼
+   @stashflow/core (pure financial logic — no I/O)
+```
+
+For full architecture detail: `docs/ARCHITECTURE.md`
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Language | TypeScript | 6.0.3 |
+| Web framework | Next.js | 16.2.4 |
+| UI runtime | React | 19.2.5 |
+| Mobile | Expo SDK | 55.0.17 |
+| Styling (web) | Tailwind CSS | 4.2.4 |
+| Styling (mobile) | NativeWind | latest stable |
+| Component library | shadcn/ui | latest |
+| Database + Auth | Supabase | — |
+| Supabase JS | @supabase/supabase-js | 2.104.1 |
+| SSR auth | @supabase/ssr | 0.10.2 |
+| Unit testing | Vitest | 4.1.5 |
+| E2E testing | Playwright | 1.59.1 |
+| Monorepo | Turborepo | 2.9.6 |
+| Package manager | pnpm | 10.33.2 |
+| Edge functions | Deno | — |
+
+---
+
+## Monorepo Structure
+
+```
+StashFlow/
 ├── apps/
-│   ├── web/                      # Next.js 14 web application
-│   │   ├── app/
-│   │   │   ├── (auth)/           # Login, signup, reset password
-│   │   │   └── (dashboard)/      # Protected app routes
-│   │   │       ├── page.tsx      # Dashboard
-│   │   │       ├── spending/
-│   │   │       ├── income/
-│   │   │       ├── loans/
-│   │   │       ├── dti/
-│   │   │       └── currencies/
-│   │   └── middleware.ts         # Auth route guard
-│   │
-│   └── mobile/                   # Expo React Native app
-│       ├── app/
-│       │   ├── (auth)/           # Auth screens
-│       │   └── (tabs)/           # Bottom tab navigation
-│       │       ├── index.tsx     # Dashboard
-│       │       ├── spending.tsx
-│       │       ├── loans.tsx
-│       │       ├── dti.tsx
-│       │       └── currencies.tsx
-│       └── app.json
+│   ├── web/                  # Next.js 16, App Router, RSC, Tailwind 4, shadcn/ui
+│   └── mobile/               # Expo SDK 55, React Native, NativeWind
 │
-└── packages/
-    ├── core/                     # Shared business logic
-    │   ├── hooks/                # useLoans, useSpending, useDTI, useCurrencies
-    │   ├── utils/                # DTI formula, installment generator, currency converter
-    │   └── types/                # Shared TypeScript types
-    ├── ui/
-    │   ├── web/                  # shadcn-based web components
-    │   └── native/               # React Native equivalents
-    └── api/                      # Supabase client + all query functions
-        ├── client.ts
-        ├── loans.ts
-        ├── spending.ts
-        ├── income.ts
-        └── currencies.ts
+├── packages/
+│   ├── core/                 # @stashflow/core — pure TS, zero deps, Deno-compatible
+│   ├── api/                  # @stashflow/api  — Supabase queries, service layer (web/Node only)
+│   ├── ui/                   # @stashflow/ui   — shared component primitives
+│   └── theme/                # @stashflow/theme — design tokens
+│
+├── supabase/
+│   ├── functions/            # Deno edge functions
+│   └── migrations/           # Versioned SQL migrations (16+)
+│
+├── docs/                     # Engineering documentation
+├── deno.json                 # Deno workspace root
+├── turbo.json                # Turborepo pipeline
+└── pnpm-workspace.yaml
 ```
 
 ---
 
-## 🗄️ Database Schema
+## Local Development
 
-```sql
--- All tables enforce Row Level Security (RLS)
--- Users can only access their own data
+### Prerequisites
 
-users
-  id · email · full_name · preferred_currency · created_at
+- Node.js 22 LTS
+- Docker Desktop
+- pnpm 10
 
-incomes
-  id · user_id · amount · currency · source
-  frequency (one-time | monthly | weekly) · date · notes
+### Setup
 
-expenses
-  id · user_id · amount · currency · category
-  description · date · is_recurring · notes
-
-loans
-  id · user_id · name · principal · currency
-  interest_rate · duration_months · start_date
-  end_date · installment_amount · status
-
-loan_payments
-  id · loan_id · user_id · amount_paid
-  due_date · paid_date · status (paid | pending | overdue)
-
-exchange_rates              -- cached, refreshed daily
-  id · base · target · rate · fetched_at
-```
-
----
-
-## ⚡ Edge Functions
-
-| Function | Trigger | Responsibility |
-|---|---|---|
-| `generate-loan-schedule` | `POST /api/loans` | Amortization calc, inserts all payment rows |
-| `calculate-dti` | `GET /api/dti`, Dashboard load | Queries income + loans, returns ratio + tip |
-| `sync-exchange-rates` | Daily cron + cache miss | Fetches Frankfurter API, updates exchange table |
-
----
-
-## 🔐 Auth Flow
-
-```
-Sign Up → Email Verification → Profile Created → JWT Issued
-       → Web: stored in httpOnly cookie
-       → Mobile: stored in Expo SecureStore
-       → All requests carry JWT → Supabase RLS enforces data access
-```
-
----
-
-## 🌿 Branch Strategy
-
-| Branch | Purpose |
-|---|---|
-| `main` | Production-ready code only |
-| `develop` | Integration branch for active development |
-| `poc/initial-planning` | ⚠️ POC — UI prototype, API design, architecture docs (not for production) |
-| `feature/*` | Individual feature branches off `develop` |
-| `fix/*` | Bug fixes |
-| `release/*` | Release candidates before merging to `main` |
-
-> ⚠️ The `poc/initial-planning` branch contains early planning artefacts: the interactive UI prototype, API design definitions, and architecture documentation. This is **not production code** and will not be merged into `main`.
-
----
-
-## 🚀 Roadmap
-
-### Phase 1 — MVP (Current)
-- [x] Architecture design
-- [x] API design
-- [x] UI/UX prototype
-- [ ] Monorepo scaffold (Turborepo + Next.js + Expo)
-- [ ] Supabase schema + RLS policies
-- [ ] Auth flow (web + mobile)
-- [ ] Dashboard
-- [ ] Income & expense logging
-- [ ] Loan manager with installment schedule
-- [ ] DTI ratio calculator
-- [ ] Multi-currency support
-
-### Phase 2 — Growth
-- [ ] Push notifications (upcoming payments, overdue alerts)
-- [ ] Charts & spending trends
-- [ ] CSV export
-- [ ] Budget limits per category
-- [ ] App Store + Google Play submission
-
-### Phase 3 — Scale
-- [ ] Bank account linking (Plaid / Mono)
-- [ ] Premium subscription (RevenueCat)
-- [ ] Family / multi-account support
-- [ ] Upgrade Supabase to Pro at 50k+ MAUs
-
----
-
-## 📈 Scale Plan
-
-| Users | Infrastructure | Est. Cost |
-|---|---|---|
-| 0 – 10k | Supabase Free + Vercel Free + Expo Free | $0/mo |
-| 10k – 50k | Same — monitor usage | $0/mo |
-| 50k+ | Supabase Pro | $25/mo |
-| 100k+ | Add Upstash Redis cache | +$10/mo |
-| 500k+ | Supabase dedicated + CDN | ~$300/mo |
-
----
-
-## 📱 Distribution
-
-| Stage | Channel | Cost |
-|---|---|---|
-| Development | Expo Go (QR scan) | Free |
-| Beta | TestFlight (iOS) + Play Internal Track (Android) | Free |
-| Public Launch | App Store + Google Play | $99/yr + $25 one-time |
-
----
-
-## 🛠️ Getting Started
-
-> Prerequisites: Node.js 18+, pnpm, Expo CLI, Supabase account
-
-```bash
-# Clone the repo
-git clone https://github.com/your-username/stashflow.git
-cd stashflow
-
-# Install dependencies
-pnpm install
-
-# Set up environment variables
-cp apps/web/.env.example apps/web/.env.local
-cp apps/mobile/.env.example apps/mobile/.env
-
-# Add your Supabase keys to both .env files
-# NEXT_PUBLIC_SUPABASE_URL=
-# NEXT_PUBLIC_SUPABASE_ANON_KEY=
-
-# Run web app
-pnpm --filter web dev
-
-# Run mobile app
-pnpm --filter mobile start
-```
-
----
-
-## 📱 Mobile Local Development
-
-When developing the mobile app locally with a self-hosted or local Supabase instance, you must configure `apps/mobile/.env` correctly to allow the emulator/simulator to reach your host machine.
-
-### Supabase URL Configuration
-- **iOS Simulator:** Can use `http://127.0.0.1:54321`.
-- **Android Emulator:** Must use `http://10.0.2.2:54321` (a special alias to your host's loopback).
-- **Physical Devices:** Must use your machine's **Local Network IP** (e.g., `http://192.168.1.185:54321`).
-
-**Recommended:** Use your Local Network IP for all mobile development to ensure compatibility across all devices and emulators.
-
-#### How to find your Local IP (macOS):
-```bash
-# Run this in your terminal
-ifconfig | grep "inet " | grep -v 127.0.0.1
-```
-Look for the `inet` value starting with `192.168.x.x` or `10.x.x.x`. Update your `apps/mobile/.env` with this value.
-
----
-
-## 🤝 Contributing
-
-This project is currently in private development. Branch and PR guidelines:
-
-1. Branch off `develop` — never commit directly to `main`
-2. Name branches: `feature/loan-scheduler`, `fix/dti-calculation`
-3. PRs require at least one review before merge
-4. All PRs must pass lint and type checks
-
----
-
-## 🚀 Quick Start: Automated Setup
-
-To guarantee a frictionless onboarding experience, StashFlow includes an automated bootstrap script (`setup.sh`). This script handles the entire monorepo initialization process.
-
-### What the Script Does:
-1. Validates your **Node.js** installation.
-2. Checks for **pnpm** and installs the standalone binary if it is missing.
-3. Initializes the **Turborepo** workspace.
-4. Scaffolds the **Next.js 15** web app and **Expo SDK 54** mobile app.
-5. Generates the shared `@stashflow` internal packages (`core`, `ui`, `api`).
-6. Installs and links all workspace dependencies.
-
-### Installation Steps
-
-**1. Verify Node.js**
-Ensure you have Node.js v22.x LTS installed:
-```bash
-node -v
-```
-**2. Execute the Setup Script**
-Run the automated bootstrap from the root directory:
 ```bash
 chmod +x setup.sh
 ./setup.sh
 ```
-**3. Refresh Your Environment**
-Note: If the script had to install pnpm for you, you must refresh your terminal before proceeding.
+
+This installs pnpm if missing, installs all workspace dependencies, starts local Supabase containers, and applies all migrations.
+
+If `setup.sh` installed pnpm, refresh your shell:
 ```bash
-source ~/.zshrc  # macOS/Linux Zsh users
-# OR
-source ~/.bash_profile  # Bash users
+source ~/.zshrc
 ```
-**4. Start the Development Servers**
-Spin up both the web and mobile applications simultaneously:
+
+### Environment Variables
+
+**`apps/web/.env.local`:**
+```
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key from supabase start>
+```
+
+**`apps/mobile/.env`:**
+```
+EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon key from supabase start>
+```
+
+---
+
+## Running the Project
+
 ```bash
-pnpm dev
+pnpm dev            # run web + mobile in parallel
 ```
+
+| Service | URL |
+|---------|-----|
+| Web app | http://localhost:3000 |
+| Mobile (Metro) | http://localhost:8081 |
+| Supabase Studio | http://localhost:54323 |
+
+---
+
+## Testing
+
+```bash
+pnpm test                                    # all packages
+pnpm test --filter=@stashflow/core           # single package
+pnpm test:coverage --filter=@stashflow/core  # with coverage
+turbo run typecheck                          # typecheck all packages
+```
+
+Coverage thresholds enforced in CI:
+
+| Package | Required |
+|---------|----------|
+| `@stashflow/core` | 90% |
+| `@stashflow/api` | 70% |
+| `apps/web` | 20% |
+
+---
+
+## Database
+
+```bash
+pnpm db:start       # start Supabase containers
+pnpm db:reset       # wipe + reapply all migrations
+pnpm gen:types      # regenerate TypeScript types from schema
+```
+
+Run `gen:types` after any schema change. The generated file is `packages/core/src/schema/database.types.ts`.
+
+---
+
+## Deployment
+
+| Platform | Target |
+|----------|--------|
+| Web | Vercel (planned) |
+| Mobile | Expo EAS (planned) |
+| Edge functions | Supabase (deployed via `supabase functions deploy`) |
+
+See `docs/OPERATIONS.md` for deployment procedures.
+
+---
+
+## Documentation
+
+| Document | Contents |
+|----------|---------|
+| `docs/ARCHITECTURE.md` | System design, data flows, package boundaries |
+| `docs/SECURITY.md` | Threat model, auth, RLS strategy, security checklist |
+| `docs/DATA_MODEL.md` | All DB entity schemas, relationships, currency handling |
+| `docs/API.md` | Full API reference — Supabase client methods + edge functions |
+| `docs/OPERATIONS.md` | Environments, CI/CD, migrations, incident response |
+| `docs/CONTRIBUTING.md` | Branching, commit standards, PR requirements, testing |
+| `docs/DECISIONS.md` | Architectural decision records (ADRs) |
+| `docs/ROADMAP.md` | What is built, what is next, what is deferred |
+| `docs/CHANGELOG.md` | Versioned history of changes |
+| `CLAUDE.md` | AI agent instructions and feature status |
+
+---
+
+## Security Notes
+
+- Financial data is isolated at the database layer via Row Level Security — no query can return another user's data
+- JWTs stored in httpOnly cookies on web; `expo-secure-store` on mobile
+- Service role key never exposed to the browser
+- AI document parsing runs server-side in Deno edge functions — uploaded PDFs never reach the client
+- See `docs/SECURITY.md` for full threat model and security checklist
+
+---
+
+## License
+
+MIT. See `LICENSE.md`.

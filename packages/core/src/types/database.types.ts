@@ -34,6 +34,171 @@ export type Database = {
   }
   public: {
     Tables: {
+      documents: {
+        Row: {
+          content_type: string
+          created_at: string | null
+          file_name: string
+          file_size: number
+          id: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          content_type: string
+          created_at?: string | null
+          file_name: string
+          file_size: number
+          id?: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          content_type?: string
+          created_at?: string | null
+          file_name?: string
+          file_size?: number
+          id?: string
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_fees: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          is_financed: boolean | null
+          is_recurring: boolean | null
+          loan_id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          is_financed?: boolean | null
+          is_recurring?: boolean | null
+          loan_id: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          is_financed?: boolean | null
+          is_recurring?: boolean | null
+          loan_id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_fees_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_fees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_periods: {
+        Row: {
+          budgeted: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string | null
+          id: string
+          period: string
+          rolled_over_amount: number
+          spent: number
+          user_id: string
+        }
+        Insert: {
+          budgeted?: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          id?: string
+          period: string
+          rolled_over_amount?: number
+          spent?: number
+          user_id: string
+        }
+        Update: {
+          budgeted?: number
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          id?: string
+          period?: string
+          rolled_over_amount?: number
+          spent?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_periods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budgets: {
+        Row: {
+          amount: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string | null
+          currency: string
+          id: string
+          rollover_enabled: boolean | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          currency?: string
+          id?: string
+          rollover_enabled?: boolean | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          currency?: string
+          id?: string
+          rollover_enabled?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exchange_rates: {
         Row: {
           base: string
@@ -98,6 +263,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "expenses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          created_at: string | null
+          currency: string
+          current_amount: number
+          deadline: string | null
+          id: string
+          name: string
+          target_amount: number
+          type: Database["public"]["Enums"]["goal_type"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string
+          current_amount?: number
+          deadline?: string | null
+          id?: string
+          name: string
+          target_amount: number
+          type?: Database["public"]["Enums"]["goal_type"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string
+          current_amount?: number
+          deadline?: string | null
+          id?: string
+          name?: string
+          target_amount?: number
+          type?: Database["public"]["Enums"]["goal_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -199,46 +408,86 @@ export type Database = {
       }
       loans: {
         Row: {
+          commercial_category:
+            | Database["public"]["Enums"]["loan_commercial_category"]
+            | null
+          country_code: string | null
           created_at: string | null
           currency: string
           duration_months: number
+          effective_interest_rate: number | null
           end_date: string
           id: string
           installment_amount: number
+          interest_basis:
+            | Database["public"]["Enums"]["loan_interest_basis"]
+            | null
           interest_rate: number
+          interest_type: Database["public"]["Enums"]["loan_interest_type"] | null
+          lender: string | null
           name: string
+          payment_start_date: string | null
           principal: number
           start_date: string
           status: Database["public"]["Enums"]["loan_status"] | null
           user_id: string
+          completed_at: string | null
         }
         Insert: {
+          commercial_category?:
+            | Database["public"]["Enums"]["loan_commercial_category"]
+            | null
+          country_code?: string | null
           created_at?: string | null
           currency: string
           duration_months: number
+          effective_interest_rate?: number | null
           end_date: string
           id?: string
           installment_amount: number
+          interest_basis?:
+            | Database["public"]["Enums"]["loan_interest_basis"]
+            | null
           interest_rate: number
+          interest_type?:
+            | Database["public"]["Enums"]["loan_interest_type"]
+            | null
+          lender?: string | null
           name: string
+          payment_start_date?: string | null
           principal: number
           start_date: string
           status?: Database["public"]["Enums"]["loan_status"] | null
           user_id: string
+          completed_at?: string | null
         }
         Update: {
+          commercial_category?:
+            | Database["public"]["Enums"]["loan_commercial_category"]
+            | null
+          country_code?: string | null
           created_at?: string | null
           currency?: string
           duration_months?: number
+          effective_interest_rate?: number | null
           end_date?: string
           id?: string
           installment_amount?: number
+          interest_basis?:
+            | Database["public"]["Enums"]["loan_interest_basis"]
+            | null
           interest_rate?: number
+          interest_type?:
+            | Database["public"]["Enums"]["loan_interest_type"]
+            | null
+          lender?: string | null
           name?: string
+          payment_start_date?: string | null
           principal?: number
           start_date?: string
           status?: Database["public"]["Enums"]["loan_status"] | null
           user_id?: string
+          completed_at?: string | null
         }
         Relationships: [
           {
@@ -252,25 +501,31 @@ export type Database = {
       }
       profiles: {
         Row: {
+          budgeting_enabled: boolean | null
           created_at: string | null
           email: string
           full_name: string | null
           id: string
           preferred_currency: string | null
+          rollover_start_month: string | null
         }
         Insert: {
+          budgeting_enabled?: boolean | null
           created_at?: string | null
           email: string
           full_name?: string | null
           id: string
           preferred_currency?: string | null
+          rollover_start_month?: string | null
         }
         Update: {
+          budgeting_enabled?: boolean | null
           created_at?: string | null
           email?: string
           full_name?: string | null
           id?: string
           preferred_currency?: string | null
+          rollover_start_month?: string | null
         }
         Relationships: []
       }
@@ -292,7 +547,20 @@ export type Database = {
         | "education"
         | "personal"
         | "other"
+      goal_type: "savings" | "debt"
       income_frequency: "one-time" | "weekly" | "monthly"
+      loan_commercial_category:
+        | "Asset-Backed"
+        | "Personal / Cash"
+        | "Statutory / Government"
+        | "Educational"
+        | "Specialized Retail"
+      loan_interest_basis: "30/360" | "Actual/360" | "Actual/365"
+      loan_interest_type:
+        | "Standard Amortized"
+        | "Interest-Only"
+        | "Add-on Interest"
+        | "Fixed Principal"
       loan_status: "active" | "completed" | "defaulted"
       payment_status: "pending" | "paid" | "overdue"
     }
@@ -436,7 +704,22 @@ export const Constants = {
         "personal",
         "other",
       ],
+      goal_type: ["savings", "debt"],
       income_frequency: ["one-time", "weekly", "monthly"],
+      loan_commercial_category: [
+        "Asset-Backed",
+        "Personal / Cash",
+        "Statutory / Government",
+        "Educational",
+        "Specialized Retail",
+      ],
+      loan_interest_basis: ["30/360", "Actual/360", "Actual/365"],
+      loan_interest_type: [
+        "Standard Amortized",
+        "Interest-Only",
+        "Add-on Interest",
+        "Fixed Principal",
+      ],
       loan_status: ["active", "completed", "defaulted"],
       payment_status: ["pending", "paid", "overdue"],
     },

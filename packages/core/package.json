@@ -1,17 +1,20 @@
 {
   "name": "@stashflow/core",
   "version": "0.1.0",
-  "description": "",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
-  "scripts": {
-    "test": "vitest run"
+  "description": "Pure financial logic — zero UI/network dependencies",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
   "devDependencies": {
-    "vitest": "^4.1.4"
+    "@vitest/coverage-v8": "^4.1.5",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   }
 }

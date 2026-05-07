@@ -118,8 +118,11 @@ Deep drilldown pages for Cash Flow and DTI Simulator as requested in P3 backlog.
 ### P2-B — Signup page cleanup ✅
 - Wired `/signup` into login flow; standardized UI with login; shared auth icons extracted to `modules/auth`; email confirmation redirect fixed to `/auth/callback`.
 
-### P2-E — Architectural Consolidation (Dry Principle)
-- Create `packages/auth` and `packages/db` to centralize Supabase clients and query logic.
+### P2-E — Architectural Consolidation (Dry Principle) ✅
+- `packages/db`: Supabase client factories centralized; subpath exports for browser/server/mobile/node. Removes 4-way fragmentation.
+- `packages/auth`: `getUser(client)` helper — replaces inline `supabase.auth.getUser()` in dashboard RSCs.
+- Dead code removed: `apps/web/utils/supabase/` (unused), `packages/api/src/client.ts` (unused externally).
+- `packages/api` cleaned: `@supabase/ssr` dep and `createStashFlowClient` export removed.
 
 ### P2-F — Realtime & Feed Scaling
 - Transition unified timeline to pagination-first architecture.

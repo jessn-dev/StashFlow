@@ -14,8 +14,7 @@
   },
   "dependencies": {
     "@stashflow/core": "workspace:*",
-    "@supabase/supabase-js": "^2.104.1",
-    "@supabase/ssr": "^0.10.2"
+    "@supabase/supabase-js": "^2.104.1"
   },
   "devDependencies": {
     "@types/react": "^19",

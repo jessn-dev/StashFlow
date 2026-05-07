@@ -1,4 +1,3 @@
-export * from './client';
 export * from './queries/interfaces';
 export * from './queries/base';
 export * from './queries/profile';

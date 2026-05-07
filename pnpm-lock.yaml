@@ -96,9 +96,6 @@ importers:
       '@stashflow/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@stashflow/theme':
-        specifier: workspace:*
-        version: link:../../packages/theme
       '@stashflow/ui':
         specifier: workspace:*
         version: link:../../packages/ui

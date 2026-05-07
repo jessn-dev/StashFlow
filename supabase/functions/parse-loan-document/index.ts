@@ -427,7 +427,7 @@ async function processDocument(supabase: SupabaseClient, documentId: string, pas
     }
   }
 
-  // [7] AI fallback chain — Multi-model resilience
+  // [6] AI fallback chain — Multi-model resilience
   log('ai-fallback-starting', { confidence })
   const aiInputText = text.length > 200 ? text : ''
   let rawAiResponse = ''
@@ -520,11 +520,9 @@ Deno.serve(async (req) => {
   const secret = req.headers.get('x-webhook-secret')
   const password = req.headers.get('x-document-password') ?? undefined
   
-  if (WEBHOOK_SECRET && secret !== WEBHOOK_SECRET) {
-    // If no secret, check for Auth header (manual invocation from client)
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return new Response('Forbidden', { status: 403 })
-  }
+  const secretOk = !WEBHOOK_SECRET || secret === WEBHOOK_SECRET
+  const authOk   = !!req.headers.get('Authorization')
+  if (!secretOk && !authOk) return new Response('Forbidden', { status: 403 })
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,

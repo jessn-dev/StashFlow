@@ -211,14 +211,24 @@ Edge functions return explicit CORS headers. Allowed origins are restricted in p
 - Signed URLs required to access files — no public reads
 - Processing status tracked in `documents` table, updated by the parse pipeline
 
-### Known Gaps (P2-D)
+### Hardening Applied (P1-B complete)
 
-- **No MIME type validation** — only filename extension checked. A `.pdf` with a malicious payload could be uploaded.
-- **No file size limit** — large PDFs can time out the edge function (Deno 30s limit).
-- **No malware scanning** — files are parsed directly; no pre-processing antivirus step.
-- **No async job queue** — synchronous processing; edge function timeout on large files.
+- [x] **Explicit per-operation RLS policies** —migration `20260510000001_explicit_rls_policies.sql`. All tables refactored from `FOR ALL` to `SELECT/INSERT/UPDATE/DELETE`.
+- [x] **Immutable audit logs for financial mutations** — migration `20260510000002_audit_log_triggers.sql`. Triggers automatically log all inserts/updates/deletes on financial tables.
+- [x] **Zod validation in edge functions** — standardized request validation via `_shared/validate.ts`.
+- [x] **Middleware auth scoped to protected routes** — `apps/web/middleware.ts` optimized to prevent auth amplification.
 
-**Target (P2-D):** MIME gate (validate `Content-Type` + magic bytes), 5MB hard cap, queue-backed async processing.
+### Hardening Applied (P2-D partial)
+
+- [x] **MIME type whitelist** — whitelists PDF/JPG/PNG/WEBP.
+- [x] **5MB hard cap** — checks `file_size` before processing.
+- [x] **Password Support** — added `x-document-password` header and `pdf.ts` client detection.
+
+### Remaining Gaps
+
+- **No magic bytes validation** — `Content-Type` spoofing still possible; true file format not verified against header bytes.
+- **No malware scanning** — files parsed directly; no pre-processing antivirus step.
+- **No async job queue** — synchronous processing; edge function timeout risk on large files remains.
 
 ---
 
@@ -317,8 +327,9 @@ Report security vulnerabilities to `jessengolab.dev@gmail.com`. Do not open publ
 - [x] Immutable audit logs for financial mutations — triggers `trg_audit_incomes/expenses/loans` in migration `20260510000002`
 - [x] Zod validation in edge functions — `_shared/validate.ts` pattern + applied to `delete-account`
 - [x] Middleware auth scoped to protected routes — `apps/web/middleware.ts`
-- [ ] MIME validation + file size limit on document uploads — **P2-D**
-- [ ] `pnpm audit` in CI — **P3-B**
-- [ ] Secret scanning in CI — **P3-B**
+- [x] MIME type whitelist + 5MB file size limit — `parse-loan-document` (P2-D partial; magic bytes + async queue remain)
+- [ ] Magic bytes validation on document uploads — **P2-D remaining**
+- [x] `pnpm audit --audit-level=high` in CI — `security` job in `.github/workflows/ci.yml`
+- [x] Secret scanning in CI — Gitleaks v8.27.2 in `security` job
 - [ ] Session visibility dashboard + revoke all — **P3-A**
 - [ ] Login anomaly detection — **P3-A**

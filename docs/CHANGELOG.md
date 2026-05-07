@@ -6,6 +6,26 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 
 ---
 
+## [0.15.0] - 2026-05-13
+
+### Added
+- **P1-C Advanced Analytics Drilldown**
+  - **Cash Flow Drilldown**: New page at `/dashboard/analytics/cash-flow` with 12-month trend chart and detailed tabular breakdown.
+  - **DTI Simulator**: Interactive projected health tool at `/dashboard/analytics/dti-simulator` for testing financial scenarios.
+  - **Core Simulation**: Migrated `simulateDTI` to `@stashflow/core/math/dti.ts` with fraction-based accuracy and full unit tests.
+- **P2-A Asset Tracking & Net Worth**
+  - **Multi-currency Assets**: New `assets` and `net_worth_snapshots` tables in Supabase with strict RLS and audit logging.
+  - **Asset Management**: Dedicated management UI at `/dashboard/assets` for bank accounts, investments, and property.
+  - **Live Net Worth Trend**: Replaced dashboard placeholder with real-time Recharts visualization calculating true Net Worth (Total Assets - Total Liabilities).
+  - **API Extension**: Added `AssetQuery` and `NetWorthSnapshotQuery` to `@stashflow/api`.
+
+### Fixed
+- **API Test Failure**: Corrected `dtiRatio` assertion in `loans.service.test.ts` (0–1 fraction vs 0–100 percentage).
+- **Vitest Config**: Excluded `e2e` directory from web app unit tests to prevent runner collisions.
+- **Import Types**: Resolved Supabase field name inconsistencies in transaction import page.
+
+---
+
 ## [0.11.0] - 2026-05-10
 
 ### Added

@@ -5,6 +5,8 @@ import {
   LoanQuery,
   ExchangeRateQuery,
   ProfileQuery,
+  AssetQuery,
+  NetWorthSnapshotQuery,
 } from '@stashflow/api';
 import {
   convertToBase,
@@ -86,11 +88,25 @@ export default async function OverviewPage() {
   const transactionQuery = new TransactionQuery(supabase);
   const loanQuery = new LoanQuery(supabase);
   const rateQuery = new ExchangeRateQuery(supabase);
+  const assetQuery = new AssetQuery(supabase);
+  const snapshotQuery = new NetWorthSnapshotQuery(supabase);
 
-  const [profile, monthlySummary, loans, paymentSummaries, rates, history, spending] = await Promise.all([
+  const [
+    profile,
+    monthlySummary,
+    loans,
+    assets,
+    snapshots,
+    paymentSummaries,
+    rates,
+    history,
+    spending,
+  ] = await Promise.all([
     profileQuery.get(user.id),
     transactionQuery.getSummaryForPeriod(user.id, monthStart, today),
     loanQuery.getAll(user.id),
+    assetQuery.getAll(user.id),
+    snapshotQuery.getAll(user.id),
     loanQuery.getPaymentSummaries(user.id),
     rateQuery.getLatest(),
     transactionQuery.getHistoricalSummaries(user.id, 6),
@@ -102,6 +118,10 @@ export default async function OverviewPage() {
     (sum, l) => sum + convertToBase(l.principal, rates[l.currency] ?? 1),
     0,
   );
+  const totalAssets = assets.reduce(
+    (sum, a) => sum + convertToBase(a.balance, rates[a.currency] ?? 1),
+    0,
+  );
   const monthlyDebtService = loans.reduce(
     (sum, l) => sum + convertToBase(l.installment_amount, rates[l.currency] ?? 1),
     0,
@@ -110,11 +130,25 @@ export default async function OverviewPage() {
   const { totalIncome, totalExpenses, netFlow: netCashFlow } = monthlySummary;
   const currency = profile?.preferred_currency || monthlySummary.currency || 'USD';
   const savingsRate = totalIncome > 0 ? Math.round((netCashFlow / totalIncome) * 100) : 0;
-  const netWorth = -totalLiabilities; // assets not tracked yet
+  const netWorth = totalAssets - totalLiabilities;
 
   const region = getRegionByCurrency(currency);
   const dtiResult = calculateDTIRatio(monthlyDebtService, totalIncome, region);
   const payoffData = computeDebtPayoff(loans, rates);
+
+  // Analytics Section
+  const netWorthHistory = snapshots.map((s) => ({
+    month: s.snapshot_date.slice(0, 7),
+    netWorth: Number(s.net_worth),
+  }));
+
+  // Fallback for net worth history if no snapshots exist
+  if (netWorthHistory.length === 0 && (totalAssets > 0 || totalLiabilities > 0)) {
+    netWorthHistory.push({
+      month: today.slice(0, 7),
+      netWorth,
+    });
+  }
 
   // Compute subtitle
   const subtitle = netCashFlow >= 0
@@ -263,7 +297,13 @@ export default async function OverviewPage() {
       </div>
 
       {/* Analytics Section */}
-      <AnalyticsSection history={history} spending={spending} payoffData={payoffData} currency={currency} />
+      <AnalyticsSection
+        history={history}
+        spending={spending}
+        netWorthHistory={netWorthHistory}
+        payoffData={payoffData}
+        currency={currency}
+      />
     </div>
   );
 }

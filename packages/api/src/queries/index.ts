@@ -6,3 +6,5 @@ export * from './loan';
 export * from './goal';
 export * from './budget';
 export * from './exchange-rate';
+export * from './asset';
+export * from './net-worth-snapshot';

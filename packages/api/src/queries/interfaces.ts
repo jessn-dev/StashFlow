@@ -10,6 +10,10 @@ import {
   UnifiedTransaction,
   TransactionSummary,
   ExpenseCategory,
+  Asset,
+  AssetType,
+  AssetInput,
+  NetWorthSnapshot,
 } from '@stashflow/core';
 
 export interface IProfileQuery {
@@ -87,4 +91,17 @@ export interface IBudgetQuery {
   getPeriods(userId: string, period: string): Promise<BudgetPeriod[]>;
   upsert(userId: string, category: ExpenseCategory, amount: number, currency: string): Promise<Budget>;
   delete(budgetId: string): Promise<void>;
+}
+
+export interface IAssetQuery {
+  getAll(userId: string): Promise<Asset[]>;
+  create(userId: string, input: AssetInput): Promise<Asset>;
+  update(assetId: string, userId: string, updates: Partial<AssetInput>): Promise<Asset>;
+  delete(assetId: string, userId: string): Promise<void>;
+}
+
+export interface INetWorthSnapshotQuery {
+  getAll(userId: string): Promise<NetWorthSnapshot[]>;
+  getLatest(userId: string): Promise<NetWorthSnapshot | null>;
+  create(userId: string, snapshot: Omit<NetWorthSnapshot, 'id' | 'created_at' | 'user_id'>): Promise<NetWorthSnapshot>;
 }

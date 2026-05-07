@@ -10,6 +10,9 @@ import {
   Sparkles,
   Download,
   Zap,
+  LineChart,
+  Calculator,
+  Wallet,
   Settings,
   HelpCircle,
 } from 'lucide-react';
@@ -25,8 +28,14 @@ interface NavItem {
 const PRIMARY: NavItem[] = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { href: '/dashboard/transactions', label: 'Transactions', icon: ArrowLeftRight },
+  { href: '/dashboard/assets', label: 'Assets', icon: Wallet },
   { href: '/dashboard/loans', label: 'Loans', icon: CreditCard },
   { href: '/dashboard/plans', label: 'Plans', icon: Target },
+];
+
+const ANALYTICS: NavItem[] = [
+  { href: '/dashboard/analytics/cash-flow', label: 'Cash Flow', icon: LineChart },
+  { href: '/dashboard/analytics/dti-simulator', label: 'DTI Simulator', icon: Calculator },
 ];
 
 const SECONDARY: NavItem[] = [
@@ -73,6 +82,15 @@ export function SidebarNav() {
     <nav className="flex-1 overflow-y-auto p-3 space-y-6 pt-5">
       <div className="space-y-0.5">
         {PRIMARY.map((item) => (
+          <NavItem key={item.href} {...item} />
+        ))}
+      </div>
+
+      <div className="space-y-0.5">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-2">
+          Analytics
+        </p>
+        {ANALYTICS.map((item) => (
           <NavItem key={item.href} {...item} />
         ))}
       </div>

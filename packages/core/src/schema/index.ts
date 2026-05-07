@@ -18,6 +18,35 @@ export type MarketTrend = Tables<'market_trends'>;
 export type CategoryMetadata = Tables<'category_metadata'>;
 export type Document = Tables<'documents'>;
 
+// New P2-A Entities
+export type AssetType = 'cash' | 'investment' | 'property' | 'retirement' | 'other';
+
+export interface Asset {
+  id: string;
+  user_id: string;
+  name: string;
+  type: AssetType;
+  balance: number;
+  currency: string;
+  institution?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export type AssetInput = Omit<Asset, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
+
+export interface NetWorthSnapshot {
+  id: string;
+  user_id: string;
+  snapshot_date: string;
+  total_assets: number;
+  total_liabilities: number;
+  net_worth: number;
+  currency: string;
+  created_at?: string | null;
+}
+
 // Enums
 export type ExpenseCategory = Enums<'expense_category'>;
 export type GoalType = Enums<'goal_type'>;

@@ -7,11 +7,15 @@ import type { Loan, LoanPayment, Profile, Income, ExchangeRate } from '@stashflo
 
 const mockProfile: Profile = {
   id: 'user-1',
+  email: 'test@example.com',
   full_name: 'Test User',
   preferred_currency: 'USD',
   budgeting_enabled: false,
   global_rollover_enabled: false,
   rollover_start_month: null,
+  contingency_mode_active: false,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
 };
 
 const mockLoan: Loan = {
@@ -33,6 +37,11 @@ const mockLoan: Loan = {
   inference_confidence: null,
   inference_source: null,
   source_document_id: null,
+  completed_at: null,
+  country_code: 'US',
+  created_at: '2026-01-01T00:00:00Z',
+  effective_interest_rate: null,
+  payment_start_date: null,
 };
 
 const mockPayment: LoanPayment = {
@@ -55,6 +64,7 @@ const mockIncome: Income = {
   frequency: 'monthly',
   date: '2026-01-01',
   notes: null,
+  created_at: '2026-01-01T00:00:00Z',
 };
 
 const mockRates: ExchangeRate[] = [];

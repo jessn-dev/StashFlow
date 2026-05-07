@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@stashflow/api": "workspace:*",
@@ -17,6 +19,8 @@
     "@supabase/supabase-js": "^2.104.1",
     "lucide-react": "^1.11.0",
     "next": "16.2.4",
+    "papaparse": "^5.5.3",
+    "pdfjs-dist": "^5.7.284",
     "react": "19.2.5",
     "react-dom": "19.2.5",
     "recharts": "^3.8.1"
@@ -25,11 +29,16 @@
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.2.4",
     "@types/node": "^22",
+    "@types/papaparse": "^5.5.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.3.0",
+    "@vitest/coverage-v8": "^4.1.5",
     "autoprefixer": "latest",
+    "jsdom": "^26.0.0",
     "postcss": "latest",
     "tailwindcss": "4.2.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   }
 }

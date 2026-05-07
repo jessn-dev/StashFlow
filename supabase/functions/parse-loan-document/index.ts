@@ -249,7 +249,7 @@ async function storeFailed(
   })
 }
 
-async function processDocument(supabase: SupabaseClient, documentId: string): Promise<void> {
+async function processDocument(supabase: SupabaseClient, documentId: string, password?: string): Promise<void> {
   const log = (step: string, detail?: unknown) =>
     console.log(`[parse-loan-document] [${documentId}] ${step}`, detail ?? '')
   const fail = (step: string, err: unknown) => {
@@ -257,13 +257,13 @@ async function processDocument(supabase: SupabaseClient, documentId: string): Pr
     throw err
   }
 
-  log('start')
+  log('start', { hasPassword: !!password })
 
   // Fetch record — never trust webhook payload for file paths
   log('fetch-record')
   const { data: docRecord, error: fetchError } = await supabase
     .from('documents')
-    .select('user_id, storage_path, content_type, processing_status, processing_attempts')
+    .select('user_id, storage_path, content_type, file_size, processing_status, processing_attempts')
     .eq('id', documentId)
     .single()
 
@@ -290,6 +290,40 @@ async function processDocument(supabase: SupabaseClient, documentId: string): Pr
     processing_attempts: (docRecord.processing_attempts ?? 0) + 1,
     last_processed_at: new Date().toISOString(),
   }).eq('id', documentId)
+
+  // Early validation — reject before paying storage egress costs
+  const ALLOWED_MIME_TYPES = new Set([
+    'application/pdf',
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/tiff',
+    'image/webp',
+  ])
+  const declaredMime = (docRecord.content_type as string | null) ?? ''
+  if (!ALLOWED_MIME_TYPES.has(declaredMime)) {
+    log('mime-rejected', { content_type: declaredMime })
+    await storeFailed(supabase, documentId, {
+      stage: 'inspect',
+      code: 'UNSUPPORTED_TYPE',
+      message: `Unsupported file type: ${declaredMime}. Accepted: PDF, JPEG, PNG, TIFF, WebP.`,
+      retryable: false,
+    })
+    return
+  }
+
+  const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
+  const declaredSize = docRecord.file_size as number | null
+  if (declaredSize !== null && declaredSize > MAX_FILE_SIZE) {
+    log('size-rejected', { file_size: declaredSize, limit: MAX_FILE_SIZE })
+    await storeFailed(supabase, documentId, {
+      stage: 'inspect',
+      code: 'FILE_TOO_LARGE',
+      message: `File size ${declaredSize} bytes exceeds the 5 MB limit.`,
+      retryable: false,
+    })
+    return
+  }
 
   log('storage-download', { path: docRecord.storage_path })
   const { data: fileData, error: downloadError } = await supabase.storage
@@ -318,12 +352,23 @@ async function processDocument(supabase: SupabaseClient, documentId: string): Pr
   // [2] PDF.js extraction — free path
   if (isPDF) {
     log('extract-pdf')
-    const extractResult = await extractPdfText(buffer)
+    const extractResult = await extractPdfText(buffer, password)
     if (extractResult.ok) {
       text = extractResult.value
       log('extract-pdf-done', { chars: text.length })
     } else {
       log('extract-pdf-failed', extractResult.error)
+      
+      // Explicitly catch password protection failures from unpdf/pdf.js
+      if (extractResult.error.message.toLowerCase().includes('password')) {
+         await storeFailed(supabase, documentId, {
+           stage: 'extract',
+           code: 'PASSWORD_REQUIRED',
+           message: 'This document is password protected.',
+           retryable: false,
+         })
+         return
+      }
       // non-fatal — fall through to OCR
     }
   }
@@ -465,8 +510,12 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   const secret = req.headers.get('x-webhook-secret')
+  const password = req.headers.get('x-document-password') ?? undefined
+  
   if (WEBHOOK_SECRET && secret !== WEBHOOK_SECRET) {
-    return new Response('Forbidden', { status: 403 })
+    // If no secret, check for Auth header (manual invocation from client)
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) return new Response('Forbidden', { status: 403 })
   }
 
   const supabase = createClient(
@@ -489,7 +538,7 @@ Deno.serve(async (req) => {
       setTimeout(() => reject(new Error('Processing timeout')), 120_000)
     )
 
-    await Promise.race([processDocument(supabase, documentId), timeout])
+    await Promise.race([processDocument(supabase, documentId, password), timeout])
 
     return new Response(JSON.stringify({ success: true, documentId }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

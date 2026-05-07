@@ -20,9 +20,9 @@ async function getExtractText() {
   return _extractText
 }
 
-export async function extractPdfText(buffer: ArrayBuffer): Promise<StageResult<string>> {
+export async function extractPdfText(buffer: ArrayBuffer, password?: string): Promise<StageResult<string>> {
   try {
-    console.log(`[document-parser] extractPdfText: starting with ${buffer.byteLength} bytes`)
+    console.log(`[document-parser] extractPdfText: starting with ${buffer.byteLength} bytes${password ? ' and password' : ''}`)
     
     const extractText = await getExtractText()
     if (!extractText) {
@@ -33,7 +33,10 @@ export async function extractPdfText(buffer: ArrayBuffer): Promise<StageResult<s
     console.log('[document-parser] extractPdfText: calling unpdf.extractText with Uint8Array...')
     
     // We wrap the call in a promise to track if it ever resolves
-    const result = await extractText(new Uint8Array(buffer), { mergePages: true })
+    const result = await extractText(new Uint8Array(buffer), { 
+      mergePages: true,
+      password: password // unpdf passes this to PDF.js getDocument
+    })
     
     console.log('[document-parser] extractPdfText: call returned successfully')
     const { text, totalPages } = result

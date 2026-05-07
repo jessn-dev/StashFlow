@@ -94,6 +94,10 @@ Via `TransactionQuery.getHistoricalSummaries(userId, months)`. Returns array of 
 
 Via `TransactionQuery.getSpendingByCategory(userId, period)` where `period` is `YYYY-MM`.
 
+### Transaction Import (CSV)
+
+Executed via browser-side parsing using `papaparse`. Users map columns to `date`, `description`, and `amount`. Bulk insert performed via `supabase.from('incomes' | 'expenses').insert([...])`.
+
 ### Create income
 
 ```typescript
@@ -314,7 +318,19 @@ Authorization: Bearer <access_token>
 
 ### `parse-loan-document`
 
-Webhook-triggered only — not called by clients directly. Fires on `INSERT` to `documents`. Processes PDF through 3-tier AI pipeline; writes `extracted_data` + `processing_status` back to the row.
+Webhook-triggered or manually invoked for password-protected files.
+
+**Manual Invocation (Auth required):**
+```
+POST /functions/v1/parse-loan-document
+Authorization: Bearer <access_token>
+x-document-password: <password>
+Content-Type: application/json
+
+Body: { "id": "<document_id>" }
+```
+
+Processes PDF through 3-tier AI pipeline; writes `extracted_data` + `processing_status` back to the row. Supports `x-document-password` for encrypted PDFs.
 
 ---
 

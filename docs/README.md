@@ -208,7 +208,6 @@ See `docs/OPERATIONS.md` for deployment procedures.
 | `docs/DECISIONS.md` | Architectural decision records (ADRs) |
 | `docs/ROADMAP.md` | What is built, what is next, what is deferred |
 | `docs/CHANGELOG.md` | Versioned history of changes |
-| `CLAUDE.md` | AI agent instructions and feature status |
 
 ---
 

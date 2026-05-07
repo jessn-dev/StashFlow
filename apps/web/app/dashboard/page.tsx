@@ -11,12 +11,58 @@ import {
   getRegionByCurrency,
   calculateDTIRatio,
   formatCurrency,
+  generateAmortizationSchedule,
 } from '@stashflow/core';
+import type { DebtPayoffPoint } from '@/modules/dashboard/components/DebtPayoffChart';
+import type { Loan } from '@stashflow/core';
 import { FinancialSnapshotStrip } from '@/modules/dashboard/components/FinancialSnapshotStrip';
 import { IntelligenceFeed } from '@/modules/dashboard/components/IntelligenceFeed';
 import { RightUtilityRail } from '@/modules/dashboard/components/RightUtilityRail';
 import { AnalyticsSection } from '@/modules/dashboard/components/AnalyticsSection';
 import type { IntelligenceItem } from '@/modules/dashboard/components/IntelligenceFeed';
+
+function computeDebtPayoff(loans: Loan[], rates: Record<string, number>): DebtPayoffPoint[] {
+  const active = loans.filter((l) => l.status === 'active');
+  if (!active.length) return [];
+
+  const now = new Date();
+
+  // Compute schedules and current month offset per loan
+  const schedules = active.map((loan) => {
+    const start = new Date(loan.start_date);
+    const elapsed = Math.max(
+      0,
+      (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()),
+    );
+    const schedule = generateAmortizationSchedule({
+      principal: loan.principal,
+      annualInterestRate: loan.interest_rate / 100,
+      durationMonths: loan.duration_months,
+      startDate: loan.start_date,
+      interestType: loan.interest_type ?? 'Standard Amortized',
+    });
+    const rate = rates[loan.currency] ?? 1;
+    return { schedule, elapsed, rate };
+  });
+
+  const maxRemaining = Math.max(
+    ...schedules.map((s) => Math.max(0, s.schedule.entries.length - s.elapsed)),
+  );
+  const months = Math.min(maxRemaining + 1, 121);
+
+  return Array.from({ length: months }, (_, k) => {
+    const date = new Date(now.getFullYear(), now.getMonth() + k, 1);
+    const month = date.toLocaleString('default', { month: 'short', year: '2-digit' });
+    const total = schedules.reduce((sum, { schedule, elapsed, rate }) => {
+      const idx = elapsed + k - 1;
+      const remaining = k === 0
+        ? (schedule.entries[elapsed - 1]?.remainingBalance ?? schedule.entries[0]?.remainingBalance ?? schedule.monthlyPayment * schedule.entries.length)
+        : (schedule.entries[idx]?.remainingBalance ?? 0);
+      return sum + convertToBase(Math.max(0, remaining), rate);
+    }, 0);
+    return { month, total: Math.round(total * 100) / 100 };
+  });
+}
 
 export default async function OverviewPage() {
   const supabase = await createClient();
@@ -68,6 +114,7 @@ export default async function OverviewPage() {
 
   const region = getRegionByCurrency(currency);
   const dtiResult = calculateDTIRatio(monthlyDebtService, totalIncome, region);
+  const payoffData = computeDebtPayoff(loans, rates);
 
   // Compute subtitle
   const subtitle = netCashFlow >= 0
@@ -216,7 +263,7 @@ export default async function OverviewPage() {
       </div>
 
       {/* Analytics Section */}
-      <AnalyticsSection history={history} spending={spending} currency={currency} />
+      <AnalyticsSection history={history} spending={spending} payoffData={payoffData} currency={currency} />
     </div>
   );
 }

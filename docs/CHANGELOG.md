@@ -6,6 +6,25 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 
 ---
 
+## [0.17.0] - 2026-05-15
+
+### Added
+- **P2-F Realtime & Feed Scaling**
+  - **Unified Transactions View**: Created `unified_transactions` view in Supabase (migration `20260515000001`) to aggregate `incomes` and `expenses` with RLS-awareness (security invoker).
+  - **Cursor-based Pagination**: Refactored `TransactionQuery.getTransactionsFiltered` in `@stashflow/api` to use a `(date, id)` cursor for stable, efficient infinite scrolling.
+  - **Infinite Loading Timeline**: Rebuilt `TransactionTimeline` in `apps/web` with local state management and a "Load More" button, transitioning from a static list to a scalable feed.
+  - **Context-Aware Filters**: Updated the transactions page to pass full filter context to the timeline, ensuring pagination respects active search and date parameters.
+
+### Fixed
+- **Technical Debt (TD-1)**: Resolved all `as any` casts in `TransactionForm.tsx`. Component now uses proper `ExpenseCategory` and `IncomeFrequency` enums from `@stashflow/core`.
+- **Technical Debt (TD-6)**: Resolved API query type errors and removed unnecessary `as any` casts in `AssetQuery`, `NetWorthSnapshotQuery`, and `TransactionQuery`.
+- **Database Type Safety**: Updated `database.types.ts` in `@stashflow/core` to include the `unified_transactions` view, enabling end-to-end type safety for paginated queries.
+
+### Removed
+- **Dead Code Cleanup**: Deleted `packages/theme/src/tamagui.config.ts` and related stale Tamagui references to align with the Tailwind-first strategy confirmed in `CLAUDE.md`.
+
+---
+
 ## [0.16.0] - 2026-05-14
 
 ### Added

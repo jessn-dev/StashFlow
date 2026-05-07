@@ -9,18 +9,18 @@ export class NetWorthSnapshotQuery extends BaseQuery implements INetWorthSnapsho
   }
 
   async getAll(userId: string): Promise<NetWorthSnapshot[]> {
-    const { data, error } = await (this.client as any)
+    const { data, error } = await this.client
       .from('net_worth_snapshots')
       .select('*')
       .eq('user_id', userId)
       .order('snapshot_date', { ascending: true });
 
     if (error) throw error;
-    return (data as any) || [];
+    return (data as NetWorthSnapshot[]) || [];
   }
 
   async getLatest(userId: string): Promise<NetWorthSnapshot | null> {
-    const { data, error } = await (this.client as any)
+    const { data, error } = await this.client
       .from('net_worth_snapshots')
       .select('*')
       .eq('user_id', userId)
@@ -29,11 +29,11 @@ export class NetWorthSnapshotQuery extends BaseQuery implements INetWorthSnapsho
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
-    return (data as any) || null;
+    return (data as NetWorthSnapshot) || null;
   }
 
   async create(userId: string, snapshot: Omit<NetWorthSnapshot, 'id' | 'created_at' | 'user_id'>): Promise<NetWorthSnapshot> {
-    const { data, error } = await (this.client as any)
+    const { data, error } = await this.client
       .from('net_worth_snapshots')
       .insert({
         user_id: userId,
@@ -43,6 +43,6 @@ export class NetWorthSnapshotQuery extends BaseQuery implements INetWorthSnapsho
       .single();
 
     if (error) throw error;
-    return data as any;
+    return data as NetWorthSnapshot;
   }
 }

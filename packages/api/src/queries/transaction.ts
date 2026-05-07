@@ -1,5 +1,5 @@
 import { BaseQuery } from './base';
-import { Income, Expense, UnifiedTransaction, TransactionSummary, convertToBase } from '@stashflow/core';
+import { Income, Expense, UnifiedTransaction, TransactionSummary, convertToBase, ExpenseCategory } from '@stashflow/core';
 import { ITransactionQuery, TransactionFilterOpts, PeriodSummary, HistoricalSummary, SpendingByCategory } from './interfaces';
 
 export class TransactionQuery extends BaseQuery implements ITransactionQuery {
@@ -57,55 +57,38 @@ export class TransactionQuery extends BaseQuery implements ITransactionQuery {
   }
 
   async getTransactionsFiltered(userId: string, opts: TransactionFilterOpts): Promise<UnifiedTransaction[]> {
-    const { dateFrom, dateTo, type = 'all', search, limit = 100 } = opts;
+    const { dateFrom, dateTo, type = 'all', search, limit = 100, cursor } = opts;
 
-    const buildIncomeQuery = () => {
-      let q = this.client.from('incomes').select('*').eq('user_id', userId);
-      if (dateFrom) q = q.gte('date', dateFrom);
-      if (dateTo) q = q.lte('date', dateTo);
-      if (search) q = q.or(`source.ilike.%${search}%,notes.ilike.%${search}%`);
-      return q.order('date', { ascending: false }).limit(limit);
-    };
+    let query = this.client
+      .from('unified_transactions')
+      .select('*')
+      .eq('user_id', userId);
 
-    const buildExpenseQuery = () => {
-      let q = this.client.from('expenses').select('*').eq('user_id', userId);
-      if (dateFrom) q = q.gte('date', dateFrom);
-      if (dateTo) q = q.lte('date', dateTo);
-      if (search) q = q.or(`description.ilike.%${search}%,notes.ilike.%${search}%`);
-      return q.order('date', { ascending: false }).limit(limit);
-    };
+    if (type !== 'all') {
+      query = query.eq('type', type);
+    }
 
-    const [incomesRes, expensesRes] = await Promise.all([
-      type === 'all' || type === 'income' ? buildIncomeQuery() : Promise.resolve({ data: [] as Income[], error: null }),
-      type === 'all' || type === 'expense' ? buildExpenseQuery() : Promise.resolve({ data: [] as Expense[], error: null }),
-    ]);
+    if (dateFrom) query = query.gte('date', dateFrom);
+    if (dateTo) query = query.lte('date', dateTo);
+    if (search) {
+      query = query.or(`description.ilike.%${search}%,notes.ilike.%${search}%`);
+    }
 
-    if (incomesRes.error) throw incomesRes.error;
-    if (expensesRes.error) throw expensesRes.error;
+    if (cursor) {
+      const [cDate, cId] = cursor.split('|');
+      if (cDate && cId) {
+        // (date < cDate) OR (date = cDate AND id < cId)
+        query = query.or(`date.lt.${cDate},and(date.eq.${cDate},id.lt.${cId})`);
+      }
+    }
 
-    const unified: UnifiedTransaction[] = [
-      ...(incomesRes.data || []).map((inc) => ({
-        id: inc.id,
-        type: 'income' as const,
-        amount: inc.amount,
-        currency: inc.currency,
-        description: inc.source,
-        date: inc.date,
-        notes: inc.notes,
-      })),
-      ...(expensesRes.data || []).map((exp) => ({
-        id: exp.id,
-        type: 'expense' as const,
-        amount: exp.amount,
-        currency: exp.currency,
-        description: exp.description,
-        date: exp.date,
-        category: exp.category,
-        notes: exp.notes,
-      })),
-    ];
+    const { data, error } = await query
+      .order('date', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(limit);
 
-    return unified.sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit);
+    if (error) throw error;
+    return (data || []) as UnifiedTransaction[];
   }
 
   async getSummaryForPeriod(userId: string, dateFrom: string, dateTo: string): Promise<PeriodSummary> {
@@ -200,7 +183,7 @@ export class TransactionQuery extends BaseQuery implements ITransactionQuery {
     });
 
     return Object.entries(categories).map(([category, amount]) => ({
-      category: category as any,
+      category: category as ExpenseCategory,
       amount,
     })).sort((a, b) => b.amount - a.amount);
   }

@@ -816,7 +816,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      unified_transactions: {
+        Row: {
+          id: string
+          user_id: string
+          amount: number
+          currency: string
+          description: string
+          date: string
+          notes: string | null
+          type: string
+          category: Database["public"]["Enums"]["expense_category"] | null
+          created_at: string
+        }
+        Relationships: []
+      }
     }
     Functions: {
       prune_stale_test_data: { Args: never; Returns: undefined }

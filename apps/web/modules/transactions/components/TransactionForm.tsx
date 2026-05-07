@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { EXPENSE_CATEGORIES, CURRENCIES, IncomeFrequency } from '@stashflow/core';
-import type { UnifiedTransaction } from '@stashflow/core';
+import { EXPENSE_CATEGORIES, CURRENCIES } from '@stashflow/core';
+import type { UnifiedTransaction, ExpenseCategory, IncomeFrequency } from '@stashflow/core';
 
 interface TransactionFormProps {
   onSuccess?: () => void;
@@ -23,7 +23,7 @@ export function TransactionForm({ onSuccess, initialData }: TransactionFormProps
     currency: initialData?.currency ?? 'USD',
     description: initialData?.description ?? '',
     date: initialData?.date ?? new Date().toISOString().split('T')[0]!,
-    category: (initialData?.category ?? EXPENSE_CATEGORIES[0] ?? 'other') as string,
+    category: (initialData?.category ?? EXPENSE_CATEGORIES[0] ?? 'other') as ExpenseCategory,
     frequency: 'one-time' as IncomeFrequency,
     isRecurring: false,
     notes: initialData?.notes ?? '',
@@ -56,7 +56,7 @@ export function TransactionForm({ onSuccess, initialData }: TransactionFormProps
             currency: values.currency,
             description: values.description,
             date: values.date,
-            category: values.category as any,
+            category: values.category,
             notes: values.notes || null,
           }).eq('id', initialData.id);
       dbError = updateError;
@@ -77,7 +77,7 @@ export function TransactionForm({ onSuccess, initialData }: TransactionFormProps
             currency: values.currency,
             description: values.description,
             date: values.date,
-            category: values.category as any,
+            category: values.category,
             is_recurring: values.isRecurring,
             notes: values.notes || null,
           });
@@ -95,7 +95,7 @@ export function TransactionForm({ onSuccess, initialData }: TransactionFormProps
           currency: 'USD',
           description: '',
           date: new Date().toISOString().split('T')[0]!,
-          category: EXPENSE_CATEGORIES[0] || 'other',
+          category: (EXPENSE_CATEGORIES[0] || 'other') as ExpenseCategory,
           frequency: 'one-time' as IncomeFrequency,
           isRecurring: false,
           notes: '',
@@ -192,7 +192,7 @@ export function TransactionForm({ onSuccess, initialData }: TransactionFormProps
                     <select 
                       className={inputClass}
                       value={values.category}
-                      onChange={e => setValues({...values, category: e.target.value as any})}
+                      onChange={e => setValues({...values, category: e.target.value as ExpenseCategory})}
                     >
                       {EXPENSE_CATEGORIES.map(c => (
                         <option key={c} value={c} className="capitalize">{c}</option>
@@ -205,7 +205,7 @@ export function TransactionForm({ onSuccess, initialData }: TransactionFormProps
                     <select 
                       className={inputClass}
                       value={values.frequency}
-                      onChange={e => setValues({...values, frequency: e.target.value as any})}
+                      onChange={e => setValues({...values, frequency: e.target.value as IncomeFrequency})}
                     >
                       <option value="one-time">One-time</option>
                       <option value="monthly">Monthly</option>

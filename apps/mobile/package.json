@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@stashflow/core": "workspace:*",
+    "@stashflow/db": "workspace:*",
     "@stashflow/theme": "workspace:*",
     "@stashflow/ui": "workspace:*",
     "@supabase/supabase-js": "^2.104.1",

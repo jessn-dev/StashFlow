@@ -6,6 +6,19 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 
 ---
 
+## [0.16.0] - 2026-05-14
+
+### Added
+- **P2-E Architectural Consolidation**
+  - **`@stashflow/db`**: New package centralizing all Supabase client factories. Platform-specific subpath exports: `@stashflow/db/browser` (`createBrowserClient`), `@stashflow/db/server` (`createServerClient` with injected cookie handlers), `@stashflow/db/mobile` (`createMobileClient` with injected storage adapter). Default export provides `createNodeClient` for tests/Node. Typed against `Database` from `@stashflow/core`.
+  - **`@stashflow/auth`**: New package with `getUser(client)` helper — typed `User | null` return, replaces the inline `supabase.auth.getUser()` pattern repeated across dashboard RSCs.
+  - **Dead code removed**: `apps/web/utils/supabase/` (3 files, 0 imports) deleted. `packages/api/src/client.ts` deleted — `createStashFlowClient` was unused externally; client creation now owned by `@stashflow/db`.
+  - **`packages/api`**: Removed unused `@supabase/ssr` dependency; removed `createStashFlowClient` export from public API.
+  - **`apps/web/lib/supabase/`**: `client.ts` and `server.ts` are now thin wrappers over `@stashflow/db/browser` and `@stashflow/db/server` respectively. All 30 web import sites unchanged.
+  - **`apps/mobile/src/lib/supabase/client.ts`**: Uses `createMobileClient` from `@stashflow/db/mobile`; `expo-secure-store` adapter injected at the app layer — not a package dep.
+
+---
+
 ## [0.15.0] - 2026-05-13
 
 ### Added
@@ -22,6 +35,10 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
   - **Unified Auth UI**: Standardized Signup page with high-fidelity Login design; extracted shared icons to `modules/auth`.
   - **Flow Integration**: Wired orphaned Signup link in Login page; corrected email confirmation redirect to `/auth/callback`.
   - **Code Quality**: Resolved type errors in signup page.
+- **P2-D Parser Telemetry & Hardening**
+  - **OCR Fallback Telemetry**: Added `ocr_telemetry` column to track Vision OCR performance (timing, confidence delta, errors) mid-pipeline.
+  - **Audit Log Purity**: Removed misplaced document parsing events from `system_audit_logs` to maintain focus on financial compliance mutations.
+  - **Parser Resilience**: Instrumented the 3-tier pipeline to ensure telemetry is captured even on fall-through or error paths.
 
 ### Fixed
 - **API Test Failure**: Corrected `dtiRatio` assertion in `loans.service.test.ts` (0–1 fraction vs 0–100 percentage).

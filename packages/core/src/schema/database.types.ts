@@ -61,6 +61,53 @@ export type Database = {
         }
         Relationships: []
       }
+      assets: {
+        Row: {
+          balance: number
+          created_at: string | null
+          currency: string
+          id: string
+          institution: string | null
+          name: string
+          notes: string | null
+          type: Database["public"]["Enums"]["asset_type"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          institution?: string | null
+          name: string
+          notes?: string | null
+          type?: Database["public"]["Enums"]["asset_type"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          institution?: string | null
+          name?: string
+          notes?: string | null
+          type?: Database["public"]["Enums"]["asset_type"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_periods: {
         Row: {
           budgeted: number
@@ -184,6 +231,7 @@ export type Database = {
           inferred_type: string | null
           last_processed_at: string | null
           loan_id: string | null
+          ocr_telemetry: Json | null
           processing_attempts: number
           processing_error: Json | null
           processing_status: string
@@ -202,6 +250,7 @@ export type Database = {
           inferred_type?: string | null
           last_processed_at?: string | null
           loan_id?: string | null
+          ocr_telemetry?: Json | null
           processing_attempts?: number
           processing_error?: Json | null
           processing_status?: string
@@ -220,6 +269,7 @@ export type Database = {
           inferred_type?: string | null
           last_processed_at?: string | null
           loan_id?: string | null
+          ocr_telemetry?: Json | null
           processing_attempts?: number
           processing_error?: Json | null
           processing_status?: string
@@ -643,6 +693,47 @@ export type Database = {
         }
         Relationships: []
       }
+      net_worth_snapshots: {
+        Row: {
+          created_at: string | null
+          currency: string
+          id: string
+          net_worth: number
+          snapshot_date: string
+          total_assets: number
+          total_liabilities: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string
+          id?: string
+          net_worth: number
+          snapshot_date: string
+          total_assets: number
+          total_liabilities: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string
+          id?: string
+          net_worth?: number
+          snapshot_date?: string
+          total_assets?: number
+          total_liabilities?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "net_worth_snapshots_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           budgeting_enabled: boolean | null
@@ -731,6 +822,7 @@ export type Database = {
       prune_stale_test_data: { Args: never; Returns: undefined }
     }
     Enums: {
+      asset_type: "cash" | "investment" | "property" | "retirement" | "other"
       expense_category:
         | "housing"
         | "food"
@@ -888,6 +980,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      asset_type: ["cash", "investment", "property", "retirement", "other"],
       expense_category: [
         "housing",
         "food",

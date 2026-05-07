@@ -13,11 +13,15 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
   - **Cash Flow Drilldown**: New page at `/dashboard/analytics/cash-flow` with 12-month trend chart and detailed tabular breakdown.
   - **DTI Simulator**: Interactive projected health tool at `/dashboard/analytics/dti-simulator` for testing financial scenarios.
   - **Core Simulation**: Migrated `simulateDTI` to `@stashflow/core/math/dti.ts` with fraction-based accuracy and full unit tests.
-- **P2-A Asset Tracking & Net Worth**
+- **P2-B Asset Tracking & Net Worth**
   - **Multi-currency Assets**: New `assets` and `net_worth_snapshots` tables in Supabase with strict RLS and audit logging.
   - **Asset Management**: Dedicated management UI at `/dashboard/assets` for bank accounts, investments, and property.
   - **Live Net Worth Trend**: Replaced dashboard placeholder with real-time Recharts visualization calculating true Net Worth (Total Assets - Total Liabilities).
   - **API Extension**: Added `AssetQuery` and `NetWorthSnapshotQuery` to `@stashflow/api`.
+- **P2-B Signup Page Cleanup**
+  - **Unified Auth UI**: Standardized Signup page with high-fidelity Login design; extracted shared icons to `@stashflow/auth`.
+  - **Flow Integration**: Wired orphaned Signup link in Login page; corrected email confirmation redirect to `/auth/callback`.
+  - **Code Quality**: Resolved type errors and removed legacy DTI hooks from API package.
 
 ### Fixed
 - **API Test Failure**: Corrected `dtiRatio` assertion in `loans.service.test.ts` (0–1 fraction vs 0–100 percentage).

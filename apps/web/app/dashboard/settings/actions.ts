@@ -1,44 +1,12 @@
-'use server'
+'use server';
 
-import { createClient } from '@/utils/supabase/server'
-import { updateProfile } from '@stashflow/api'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+// Legacy server actions — superseded by ProfileEditForm and DeleteAccountButton.
+// Kept as stubs to avoid breaking legacy component imports; these are not called by any active route.
 
-export async function updateCurrencyAction(formData: FormData) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const preferred_currency = formData.get('currency') as string
-
-  try {
-    await updateProfile(supabase, { preferred_currency })
-  } catch (error) {
-    console.error('Failed to update currency:', error)
-    return { error: 'Failed to update currency' }
-  }
-
-  revalidatePath('/dashboard')
-  revalidatePath('/dashboard/settings')
-  return { success: true }
+export async function updateCurrencyAction(_formData: FormData): Promise<{ success?: boolean; error?: string }> {
+  return { error: 'Not implemented' };
 }
 
-export async function updateContingencyAction(active: boolean) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
-
-  try {
-    await updateProfile(supabase, { contingency_mode_active: active } as any)
-  } catch (error) {
-    console.error('Failed to update contingency mode:', error)
-    return { error: 'Failed to update contingency mode' }
-  }
-
-  revalidatePath('/dashboard')
-  revalidatePath('/dashboard/settings')
-  return { success: true }
+export async function updateContingencyAction(_active: boolean): Promise<{ success?: boolean; error?: string }> {
+  return { error: 'Not implemented' };
 }

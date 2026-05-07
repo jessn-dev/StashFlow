@@ -4,6 +4,7 @@ import {
   TransactionQuery,
   LoanQuery,
   ExchangeRateQuery,
+  ProfileQuery,
 } from '@stashflow/api';
 import {
   convertToBase,
@@ -35,15 +36,19 @@ export default async function OverviewPage() {
   const today = new Date().toISOString().split('T')[0]!;
   const monthStart = today.slice(0, 7) + '-01';
 
+  const profileQuery = new ProfileQuery(supabase);
   const transactionQuery = new TransactionQuery(supabase);
   const loanQuery = new LoanQuery(supabase);
   const rateQuery = new ExchangeRateQuery(supabase);
 
-  const [monthlySummary, loans, paymentSummaries, rates] = await Promise.all([
+  const [profile, monthlySummary, loans, paymentSummaries, rates, history, spending] = await Promise.all([
+    profileQuery.get(user.id),
     transactionQuery.getSummaryForPeriod(user.id, monthStart, today),
     loanQuery.getAll(user.id),
     loanQuery.getPaymentSummaries(user.id),
     rateQuery.getLatest(),
+    transactionQuery.getHistoricalSummaries(user.id, 6),
+    transactionQuery.getSpendingByCategory(user.id, monthStart, today),
   ]);
 
   // Compute metrics
@@ -56,7 +61,8 @@ export default async function OverviewPage() {
     0,
   );
 
-  const { totalIncome, totalExpenses, netFlow: netCashFlow, currency } = monthlySummary;
+  const { totalIncome, totalExpenses, netFlow: netCashFlow } = monthlySummary;
+  const currency = profile?.preferred_currency || monthlySummary.currency || 'USD';
   const savingsRate = totalIncome > 0 ? Math.round((netCashFlow / totalIncome) * 100) : 0;
   const netWorth = -totalLiabilities; // assets not tracked yet
 
@@ -210,7 +216,7 @@ export default async function OverviewPage() {
       </div>
 
       {/* Analytics Section */}
-      <AnalyticsSection />
+      <AnalyticsSection history={history} spending={spending} currency={currency} />
     </div>
   );
 }

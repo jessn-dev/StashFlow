@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { ProfileQuery } from '@stashflow/api';
 import { MfaManager } from '@/modules/settings/components/MfaManager';
+import { ProfileEditForm } from '@/modules/settings/components/ProfileEditForm';
+import { DeleteAccountButton } from '@/modules/settings/components/DeleteAccountButton';
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -26,21 +28,7 @@ export default async function SettingsPage() {
             <p className="text-gray-900 font-semibold">{user.email}</p>
           </div>
           
-          <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Full Name</label>
-            <p className="text-gray-900 font-semibold">{profile?.full_name || 'Not set'}</p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Preferred Currency</label>
-            <p className="text-gray-900 font-black">{profile?.preferred_currency || 'USD'}</p>
-          </div>
-
-          <div className="pt-2">
-            <button className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
-              Edit Profile →
-            </button>
-          </div>
+          <ProfileEditForm profile={profile} userId={user.id} />
         </div>
       </section>
 
@@ -55,9 +43,7 @@ export default async function SettingsPage() {
           <p className="text-sm text-gray-500 leading-relaxed font-medium">
             Once you delete your account, there is no going back. All your financial data, documents, and settings will be permanently erased.
           </p>
-          <button className="bg-red-50 text-red-600 border border-red-100 px-6 py-3 rounded-xl text-sm font-bold hover:bg-red-100 transition-all">
-            Delete Account
-          </button>
+          <DeleteAccountButton />
         </div>
       </section>
     </div>

@@ -1,100 +1,227 @@
-# 💰 StashFlow
+# StashFlow
 
-> A mathematically robust, global-ready personal finance platform for managing spending, debt-to-income ratio, and advanced loan amortization — available on Web, iOS, and Android.
+Personal finance platform for multi-currency users. Tracks income, expenses, loans, budgets, and goals — with AI-powered document parsing and region-specific financial rules.
 
-![Status](https://img.shields.io/badge/status-active%20development-green)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Stack](https://img.shields.io/badge/stack-Next.js%2016%20%7C%20Expo%2054%20%7C%20Supabase-blue)
-![Coverage](https://img.shields.io/badge/coverage-94%25-brightgreen)
+Targets users in the Philippines, United States, and Singapore with appropriate regional thresholds (DTI, tax categories, loan conventions).
 
 ---
 
-## 📌 Overview
+## Overview
 
-StashFlow helps users take absolute control of their finances with pro-grade tools:
+StashFlow is a calm financial command center. It reduces financial anxiety through automated calculations, multi-currency normalization, and intelligent loan contract parsing — without requiring bank account linking.
 
-- **Advanced Loan Engine** — Support for global models: Add-on Interest (PH/JP), Fixed Principal, and Interest-Only. Standardized on 30/360, Actual/360, and Actual/365 conventions.
-- **Market Intelligence** — Real-time macroeconomic insights via FRED® API tracking global inflation and sector trends.
-- **Contingency Protocol** — 1-click "Survival Mode" that pauses discretionary goals and forecasts your liquid runway in days.
-- **Automated Budgeting** — Event-driven budget snapshots powered by PostgreSQL triggers.
-- **DTI Health** — Real-time debt-to-income ratio with regional thresholds (PH, SG, JP, US/EU).
-- **AI Document Scanning** — Upload loan contracts to automatically pre-fill schedules and terms.
+Data entry is manual or via PDF upload. The AI pipeline extracts loan terms from uploaded contracts automatically.
 
 ---
 
-## 🚀 Roadmap
+## Core Features
 
-### Phase 1 — MVP (✅ Core Logic Complete)
-- [x] Architecture design & API definitions
-- [x] Monorepo scaffold (Turborepo + Next.js 16 + Expo 54)
-- [x] Supabase schema, RLS policies, and automated triggers
-- [x] Auth flow (Email/Password + Google/Apple OAuth)
-- [x] Live Dashboards (Real-time sync & revalidation)
-- [x] Global Amortization Engine (94%+ test coverage)
-- [x] Multi-currency support (Auto-converting Net Worth & Transactions)
-- [x] Market Intel & Contingency Protocol
-
-### Phase 2 — Mobile & Refinement (⏳ Active)
-- [x] **Elite Financial Assistant** — Redesigned dashboard with actionable AI insights and closed-loop UX.
-- [x] **AI Resilience** — Multi-provider fallback architecture (Gemini + Groq).
-- [ ] **User Onboarding** — Milestone 20: Interactive tours and tutorials for new users.
-- [ ] **Mobile App Parity** — Build dedicated screens for Loans, Spending, and Budgets in Expo.
-- [ ] **E2E Testing** — Implement Milestone 18: Integrated Testing with Cypress.
-- [ ] **Privacy by Design** — Milestone 16: Adapt open-source standard disclosures and transparency docs.
-
-### Phase 3 — Scale & Intelligence (🔮 Future)
-- [ ] **Universal Statement Importer** — Effortless aggregation via CSV/JSON statement parsing (Free-tier friendly).
-- [ ] **ReceiptOps** — Automated invoice auditing and AI reconciliation.
-- [ ] **Push Notifications** — Predictive alerts for budget breaches and payments.
+- **Multi-currency tracking** — Incomes, expenses, and loans in any currency. All dashboard metrics normalize to the user's preferred base currency via live FX rates.
+- **Loan management** — Supports Standard Amortized, Add-on Interest, Interest-Only, and Fixed Principal loan types. Generates full amortization schedules. Tracks payment status.
+- **AI loan document parsing** — Upload a loan contract PDF; the 3-tier pipeline (regex → OCR → LLM) extracts principal, rate, term, and payment structure automatically.
+- **Intelligent loan modeling** — Numerical inference engine classifies loan type from principal/payment/rate/term without asking technical questions.
+- **DTI health** — Debt-to-income ratio with regional thresholds (PH 40%, US 36%, SG 55%). Zero-income edge case handled correctly.
+- **Plans** — Savings and debt goals with progress tracking. Per-category budgets with monthly spend snapshots.
+- **Transaction timeline** — Unified income + expense feed with URL-driven filtering, inline edit/delete, and date-range presets.
+- **MFA** — TOTP-based multi-factor authentication via Supabase Auth.
 
 ---
 
-## 🏗️ Tech Stack
+## Architecture
 
-| Layer | Technology | Notes |
-|---|---|---|
-| **Web App** | Next.js 16 (App Router) | High-contrast UI with Tamagui |
-| **Mobile App** | React Native + Expo 54 | Shared logic from core/api packages |
-| **Backend** | Supabase | PostgreSQL, Auth, Edge Functions, RLS |
-| **Business Logic** | `@stashflow/core` | 94.4% Branch Coverage via Vitest |
-| **Data Logic** | `@stashflow/api` | Chainable mocks & 70%+ Integration coverage |
-| **Intelligence** | FRED® API | Macroeconomic trend tracking |
-| **UI System** | Tamagui | Truly cross-platform component architecture |
+Domain-driven monorepo. Pure business logic in `@stashflow/core` → service layer in `@stashflow/api` → Next.js web app + Expo mobile app. Supabase handles database, auth, storage, and edge functions.
+
+```
+Browser / Mobile App
+        │
+        ▼
+   Next.js 16 (RSC + Server Actions)
+   Expo SDK 55 (React Native)
+        │
+        ▼
+   @stashflow/api (Supabase queries + service layer)
+        │
+        ▼
+   Supabase (Postgres + Auth + Storage + Edge Functions)
+        │
+        ▼
+   @stashflow/core (pure financial logic — no I/O)
+```
+
+For full architecture detail: `docs/ARCHITECTURE.md`
 
 ---
 
-## 🛠️ Infrastructure & Testing
+## Tech Stack
 
-We maintain high standards for financial data integrity.
-
-*   **Unit Testing**: `pnpm test` — Parameterized testing for amortization and DTI logic.
-*   **Coverage**: `pnpm test:coverage` — Powered by Vitest v8.
-*   **E2E (Planned)**: Cypress implementation for user journey verification.
-*   **Database**: Supabase local development with automated migrations.
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Language | TypeScript | 6.0.3 |
+| Web framework | Next.js | 16.2.4 |
+| UI runtime | React | 19.2.5 |
+| Mobile | Expo SDK | 55.0.17 |
+| Styling (web) | Tailwind CSS | 4.2.4 |
+| Styling (mobile) | NativeWind | latest stable |
+| Component library | shadcn/ui | latest |
+| Database + Auth | Supabase | — |
+| Supabase JS | @supabase/supabase-js | 2.104.1 |
+| SSR auth | @supabase/ssr | 0.10.2 |
+| Unit testing | Vitest | 4.1.5 |
+| E2E testing | Playwright | 1.59.1 |
+| Monorepo | Turborepo | 2.9.6 |
+| Package manager | pnpm | 10.33.2 |
+| Edge functions | Deno | — |
 
 ---
 
-## 📱 Mobile Local Development
+## Monorepo Structure
 
-When developing the mobile app locally, use your machine's **Local Network IP** in `apps/mobile/.env` to allow devices/emulators to reach the local Supabase instance.
-
-```bash
-# Find your IP (macOS)
-ifconfig | grep "inet " | grep -v 127.0.0.1
+```
+StashFlow/
+├── apps/
+│   ├── web/                  # Next.js 16, App Router, RSC, Tailwind 4, shadcn/ui
+│   └── mobile/               # Expo SDK 55, React Native, NativeWind
+│
+├── packages/
+│   ├── core/                 # @stashflow/core — pure TS, zero deps, Deno-compatible
+│   ├── api/                  # @stashflow/api  — Supabase queries, service layer (web/Node only)
+│   ├── ui/                   # @stashflow/ui   — shared component primitives
+│   └── theme/                # @stashflow/theme — design tokens
+│
+├── supabase/
+│   ├── functions/            # Deno edge functions
+│   └── migrations/           # Versioned SQL migrations (16+)
+│
+├── docs/                     # Engineering documentation
+├── deno.json                 # Deno workspace root
+├── turbo.json                # Turborepo pipeline
+└── pnpm-workspace.yaml
 ```
 
 ---
 
-## 🚀 Quick Start
+## Local Development
+
+### Prerequisites
+
+- Node.js 22 LTS
+- Docker Desktop
+- pnpm 10
+
+### Setup
 
 ```bash
-# Automated monorepo setup
 chmod +x setup.sh
-./setup.sh init
-
-# Apply database automation
-supabase db reset
-
-# Run development environment
-pnpm dev
+./setup.sh
 ```
+
+This installs pnpm if missing, installs all workspace dependencies, starts local Supabase containers, and applies all migrations.
+
+If `setup.sh` installed pnpm, refresh your shell:
+```bash
+source ~/.zshrc
+```
+
+### Environment Variables
+
+**`apps/web/.env.local`:**
+```
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key from supabase start>
+```
+
+**`apps/mobile/.env`:**
+```
+EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon key from supabase start>
+```
+
+---
+
+## Running the Project
+
+```bash
+pnpm dev            # run web + mobile in parallel
+```
+
+| Service | URL |
+|---------|-----|
+| Web app | http://localhost:3000 |
+| Mobile (Metro) | http://localhost:8081 |
+| Supabase Studio | http://localhost:54323 |
+
+---
+
+## Testing
+
+```bash
+pnpm test                                    # all packages
+pnpm test --filter=@stashflow/core           # single package
+pnpm test:coverage --filter=@stashflow/core  # with coverage
+turbo run typecheck                          # typecheck all packages
+```
+
+Coverage thresholds enforced in CI:
+
+| Package | Required |
+|---------|----------|
+| `@stashflow/core` | 90% |
+| `@stashflow/api` | 70% |
+| `apps/web` | 20% |
+
+---
+
+## Database
+
+```bash
+pnpm db:start       # start Supabase containers
+pnpm db:reset       # wipe + reapply all migrations
+pnpm gen:types      # regenerate TypeScript types from schema
+```
+
+Run `gen:types` after any schema change. The generated file is `packages/core/src/schema/database.types.ts`.
+
+---
+
+## Deployment
+
+| Platform | Target |
+|----------|--------|
+| Web | Vercel (planned) |
+| Mobile | Expo EAS (planned) |
+| Edge functions | Supabase (deployed via `supabase functions deploy`) |
+
+See `docs/OPERATIONS.md` for deployment procedures.
+
+---
+
+## Documentation
+
+| Document | Contents |
+|----------|---------|
+| `docs/ARCHITECTURE.md` | System design, data flows, package boundaries |
+| `docs/SECURITY.md` | Threat model, auth, RLS strategy, security checklist |
+| `docs/DATA_MODEL.md` | All DB entity schemas, relationships, currency handling |
+| `docs/API.md` | Full API reference — Supabase client methods + edge functions |
+| `docs/OPERATIONS.md` | Environments, CI/CD, migrations, incident response |
+| `docs/CONTRIBUTING.md` | Branching, commit standards, PR requirements, testing |
+| `docs/DECISIONS.md` | Architectural decision records (ADRs) |
+| `docs/ROADMAP.md` | What is built, what is next, what is deferred |
+| `docs/CHANGELOG.md` | Versioned history of changes |
+| `CLAUDE.md` | AI agent instructions and feature status |
+
+---
+
+## Security Notes
+
+- Financial data is isolated at the database layer via Row Level Security — no query can return another user's data
+- JWTs stored in httpOnly cookies on web; `expo-secure-store` on mobile
+- Service role key never exposed to the browser
+- AI document parsing runs server-side in Deno edge functions — uploaded PDFs never reach the client
+- See `docs/SECURITY.md` for full threat model and security checklist
+
+---
+
+## License
+
+MIT. See `LICENSE.md`.

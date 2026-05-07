@@ -38,8 +38,17 @@ ios/
 # Supabase local dev
 supabase/.branches
 supabase/.temp
-*.md
-docs/
+
+# Docs — committed: governance suite (SECURITY, OPERATIONS, API, CONTRIBUTING,
+# ROADMAP, CHANGELOG, README) + reference triad (ARCHITECTURE, DATA_MODEL, DECISIONS).
+# Everything else stays local.
+docs/archive/
+docs/resources/
+docs/specs/
+docs/testdocs/
+docs/reference/
+
+CLAUDE.md
 
 .idea/
 .claude

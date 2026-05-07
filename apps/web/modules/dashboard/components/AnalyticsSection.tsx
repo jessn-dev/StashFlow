@@ -1,13 +1,15 @@
 import { CashFlowChart, SpendingPieChart } from './DashboardCharts';
+import { DebtPayoffChart, type DebtPayoffPoint } from './DebtPayoffChart';
 import type { HistoricalSummary, SpendingByCategory } from '@stashflow/api';
 
 interface AnalyticsSectionProps {
   history: HistoricalSummary[];
   spending: SpendingByCategory[];
+  payoffData: DebtPayoffPoint[];
   currency: string;
 }
 
-export function AnalyticsSection({ history, spending, currency }: AnalyticsSectionProps) {
+export function AnalyticsSection({ history, spending, payoffData, currency }: AnalyticsSectionProps) {
   return (
     <div>
       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">Analytics</p>
@@ -29,7 +31,13 @@ export function AnalyticsSection({ history, spending, currency }: AnalyticsSecti
         </ChartCard>
 
         <ChartPlaceholder title="Net Worth Trend" subtitle="Track wealth over time" />
-        <ChartPlaceholder title="Debt Payoff Projection" subtitle="Time to debt-free" />
+        <ChartCard
+          title="Debt Payoff Projection"
+          subtitle="Time to debt-free"
+          hasData={payoffData.length > 0}
+        >
+          <DebtPayoffChart data={payoffData} currency={currency} />
+        </ChartCard>
       </div>
     </div>
   );

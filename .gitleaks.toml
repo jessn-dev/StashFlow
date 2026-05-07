@@ -1,0 +1,19 @@
+title = "StashFlow Gitleaks Config"
+
+[allowlist]
+description = "Known local dev values that are not real secrets"
+
+# Supabase local dev demo JWT — signed with the well-known local JWT secret
+# ("super-secret-jwt-token-with-at-least-32-characters-long"). Not a production secret.
+# This JWT is hardcoded in supabase/migrations/20260506000002_documents_webhook.sql
+# for the local pg_net trigger. Rotated via ./setup.sh db:jwt in production.
+regexes = [
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0\.[A-Za-z0-9_-]+''',
+]
+
+# Supabase local dev passphrase — Supabase CLI default, publicly documented
+stopwords = [
+  "super-secret-jwt-token-with-at-least-32-characters-long",
+  "dev-secret-123",
+  "supabase-demo",
+]

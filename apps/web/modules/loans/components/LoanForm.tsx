@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { generateAmortizationSchedule, formatCurrency, inferLoanStructure, computeAddOnEIR } from '@stashflow/core';
-import type { LoanInterestType, LoanInferenceResult } from '@stashflow/core';
+import type { LoanInterestType, LoanInterestBasis, LoanInferenceResult } from '@stashflow/core';
 
 export interface LoanFormValues {
   name: string;
@@ -190,8 +190,8 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
       currency: values.currency,
       interest_rate: parseFloat(values.interest_rate),
       duration_months: parseInt(values.duration_months),
-      interest_type: values.interest_type as never,
-      interest_basis: values.interest_basis as never,
+      interest_type: values.interest_type as LoanInterestType,
+      interest_basis: values.interest_basis as LoanInterestBasis,
       start_date: values.start_date,
       end_date: (() => {
         const d = new Date(values.start_date);
@@ -200,9 +200,9 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
       })(),
       lender: values.lender || null,
       installment_amount: parseFloat(values.installment_amount) || 0,
-      status: 'active',
+      status: 'active' as const,
       source_document_id: docId || null,
-    } as any).select('id').single();
+    }).select('id').single();
 
     if (insertError) {
       setError(insertError.message);
@@ -213,7 +213,7 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
     if (docId) {
       await supabase
         .from('documents')
-        .update({ loan_id: loan?.id } as never)
+        .update({ loan_id: loan?.id ?? null })
         .eq('id', docId);
     }
 

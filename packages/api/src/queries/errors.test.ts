@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { AssetQuery, GoalQuery, BudgetQuery, NetWorthSnapshotQuery, ProfileQuery, LoanQuery, TransactionQuery, ExchangeRateQuery } from '../index';
+import { AssetQuery, GoalQuery, BudgetQuery, NetWorthSnapshotQuery, ProfileQuery, LoanQuery, TransactionQuery } from '../index';
 
 describe('API Error Handling', () => {
   const makeMockSupabase = () => {

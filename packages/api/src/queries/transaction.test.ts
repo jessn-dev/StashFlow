@@ -1,10 +1,16 @@
 import { describe, it, expect, vi } from 'vitest'
 import { TransactionQuery } from './transaction'
-import { SupabaseClient } from '@supabase/supabase-js'
 
 describe('TransactionQuery', () => {
+  interface MockFrom {
+    (table: string): any;
+    _data?: any;
+    _error?: any;
+    _data_map?: Record<string, any>;
+  }
+
   const makeMockSupabase = () => {
-    const from = vi.fn().mockImplementation((table) => {
+    const from: MockFrom = vi.fn().mockImplementation((table) => {
       const chain = {} as any;
       ['select', 'eq', 'gte', 'lte', 'or', 'order', 'limit', 'single', 'maybeSingle'].forEach(m => {
         chain[m] = vi.fn().mockReturnValue(chain);
@@ -14,14 +20,14 @@ describe('TransactionQuery', () => {
         return Promise.resolve({ data, error: from._error }).then(onFullfilled);
       };
       return chain;
-    });
-    (from as any)._data_map = {};
+    }) as MockFrom;
+    from._data_map = {};
     return { from };
   };
 
   it('should fetch summary for a period', async () => {
     const { from } = makeMockSupabase();
-    (from as any)._data_map = {
+    from._data_map = {
       profiles: { preferred_currency: 'USD' },
       exchange_rates: [{ target: 'PHP', rate: 50 }],
       incomes: [{ amount: 1000, currency: 'USD' }, { amount: 5000, currency: 'PHP' }],
@@ -38,7 +44,7 @@ describe('TransactionQuery', () => {
 
   it('should fetch filtered transactions with all options', async () => {
     const { from } = makeMockSupabase();
-    (from as any)._data = [{ id: '1', amount: 100, type: 'expense', date: '2026-05-01' }];
+    from._data = [{ id: '1', amount: 100, type: 'expense', date: '2026-05-01' }];
 
     const query = new TransactionQuery({ from } as any)
     const result = await query.getTransactionsFiltered('user-1', { 
@@ -54,7 +60,7 @@ describe('TransactionQuery', () => {
 
   it('should fetch spending by category', async () => {
     const { from } = makeMockSupabase();
-    (from as any)._data_map = {
+    from._data_map = {
       exchange_rates: [{ target: 'USD', rate: 1 }],
       expenses: [{ amount: 100, currency: 'USD', category: 'food' }, { amount: 200, currency: 'USD', category: null }]
     };
@@ -70,7 +76,7 @@ describe('TransactionQuery', () => {
   it('should fetch historical summaries with data', async () => {
     const { from } = makeMockSupabase();
     const today = new Date().toISOString().slice(0, 7);
-    (from as any)._data_map = {
+    from._data_map = {
       incomes: [{ amount: 1000, currency: 'USD', date: `${today}-01` }],
       expenses: [{ amount: 500, currency: 'USD', date: `${today}-01` }],
       exchange_rates: [],
@@ -86,7 +92,7 @@ describe('TransactionQuery', () => {
 
   it('should get all transactions combined', async () => {
     const { from } = makeMockSupabase();
-    (from as any)._data_map = {
+    from._data_map = {
       incomes: [{ id: 'i1', amount: 1000, date: '2026-05-01' }],
       expenses: [{ id: 'e1', amount: 500, date: '2026-05-02' }]
     };
@@ -99,7 +105,7 @@ describe('TransactionQuery', () => {
 
   it('should get transaction summary for a month', async () => {
     const { from } = makeMockSupabase();
-    (from as any)._data_map = {
+    from._data_map = {
       profiles: { preferred_currency: 'USD' },
       exchange_rates: [],
       incomes: [{ id: 'i1', amount: 1000, currency: 'USD', date: '2026-05-01' }],
@@ -114,8 +120,24 @@ describe('TransactionQuery', () => {
 
   it('should throw error if db fails', async () => {
     const { from } = makeMockSupabase();
-    (from as any)._error = { message: 'DB Error' };
+    from._error = { message: 'DB Error' };
     const query = new TransactionQuery({ from } as any);
     await expect(query.getIncomes('user-1')).rejects.toThrow('DB Error');
+  });
+
+  it('should fetch incomes', async () => {
+    const { from } = makeMockSupabase();
+    from._data = [{ id: '1', amount: 1000 }];
+    const query = new TransactionQuery({ from } as any);
+    const result = await query.getIncomes('user-1');
+    expect(result).toHaveLength(1);
+  });
+
+  it('should fetch expenses', async () => {
+    const { from } = makeMockSupabase();
+    from._data = [{ id: '1', amount: 500 }];
+    const query = new TransactionQuery({ from } as any);
+    const result = await query.getExpenses('user-1');
+    expect(result).toHaveLength(1);
   });
 })

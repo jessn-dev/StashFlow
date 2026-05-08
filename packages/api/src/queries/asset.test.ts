@@ -2,8 +2,15 @@ import { describe, it, expect, vi } from 'vitest';
 import { AssetQuery } from './asset';
 
 describe('AssetQuery', () => {
+  interface MockFrom {
+    (table: string): any;
+    _data?: any;
+    _error?: any;
+    _data_map?: Record<string, any>;
+  }
+
   const makeMockSupabase = () => {
-    const from = vi.fn().mockImplementation((table) => {
+    const from: MockFrom = vi.fn().mockImplementation((table) => {
       const chain = {} as any;
       ['select', 'eq', 'order', 'insert', 'update', 'delete', 'single', 'maybeSingle', 'limit'].forEach(m => {
         chain[m] = vi.fn().mockReturnValue(chain);
@@ -13,29 +20,30 @@ describe('AssetQuery', () => {
         return Promise.resolve({ data, error: from._error }).then(onFullfilled);
       };
       return chain;
-    });
-    (from as any)._data_map = {};
+    }) as MockFrom;
+    from._data_map = {};
     return { from };
   };
 
   it('should get all assets for a user', async () => {
     const { from } = makeMockSupabase();
-    (from as any)._data = [{ id: '1', name: 'Cash' }];
+    from._data = [{ id: '1', name: 'Cash' }];
     const query = new AssetQuery({ from } as any);
     const result = await query.getAll('user-1');
     expect(result).toHaveLength(1);
+    expect(result[0]?.name).toBe('Cash');
   });
 
   it('should throw error on getAll if db fails', async () => {
     const { from } = makeMockSupabase();
-    (from as any)._error = { message: 'DB Error' };
+    from._error = { message: 'DB Error' };
     const query = new AssetQuery({ from } as any);
     await expect(query.getAll('user-1')).rejects.toThrow('DB Error');
   });
 
   it('should create an asset', async () => {
     const { from } = makeMockSupabase();
-    (from as any)._data = { id: '2', name: 'Stock' };
+    from._data = { id: '2', name: 'Stock' };
     const query = new AssetQuery({ from } as any);
     const result = await query.create('user-1', { name: 'Stock', type: 'investment', balance: 1000, currency: 'USD' });
     expect(result.name).toBe('Stock');
@@ -43,7 +51,7 @@ describe('AssetQuery', () => {
 
   it('should update an asset', async () => {
     const { from } = makeMockSupabase();
-    (from as any)._data = { id: '1', balance: 2000 };
+    from._data = { id: '1', balance: 2000 };
     const query = new AssetQuery({ from } as any);
     const result = await query.update('1', 'user-1', { balance: 2000 });
     expect(result.balance).toBe(2000);

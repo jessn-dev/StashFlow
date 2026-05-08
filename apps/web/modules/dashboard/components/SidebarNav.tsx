@@ -40,7 +40,7 @@ const ANALYTICS: NavItem[] = [
 
 const SECONDARY: NavItem[] = [
   { href: '/dashboard/intelligence', label: 'Intelligence History', icon: Sparkles, disabled: true },
-  { href: '/dashboard/imports', label: 'Imports', icon: Download, disabled: true },
+  { href: '/dashboard/transactions/import', label: 'Imports', icon: Download },
   { href: '/dashboard/rules', label: 'Rules & Automation', icon: Zap, disabled: true },
 ];
 

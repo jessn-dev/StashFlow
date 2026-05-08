@@ -2,8 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { AssetQuery } from '@stashflow/api';
 import { formatCurrency, convertToBase } from '@stashflow/core';
 import { AssetCard } from '@/modules/assets/components/AssetCard';
+import { AssetPageActions } from '@/modules/assets/components/AssetPageActions';
 import { Wallet, Plus } from 'lucide-react';
-import Link from 'next/link';
 
 export default async function AssetsPage() {
   const supabase = await createClient();
@@ -36,14 +36,7 @@ export default async function AssetsPage() {
           <h1 className="text-3xl font-black tracking-tight text-gray-900">Assets</h1>
           <p className="text-gray-400 font-medium mt-1">Manage your holdings and track your wealth.</p>
         </div>
-        <button 
-          disabled
-          title="Coming soon"
-          className="flex items-center gap-2 px-5 h-12 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-all opacity-50 cursor-not-allowed"
-        >
-          <Plus size={18} />
-          Add Asset
-        </button>
+        <AssetPageActions />
       </div>
 
       {/* Summary Card */}

@@ -4,12 +4,12 @@
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "test": "turbo run test",
-    "test:coverage": "turbo run test:coverage",
-    "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint",
+    "dev": "NODE_OPTIONS='--max-old-space-size=8192' turbo run dev",
+    "build": "NODE_OPTIONS='--max-old-space-size=8192' turbo run build",
+    "test": "NODE_OPTIONS='--max-old-space-size=8192' turbo run test",
+    "test:coverage": "NODE_OPTIONS='--max-old-space-size=8192' turbo run test:coverage",
+    "typecheck": "NODE_OPTIONS='--max-old-space-size=8192' turbo run typecheck",
+    "lint": "NODE_OPTIONS='--max-old-space-size=8192' turbo run lint",
     "prepare": "husky",
     "gen:types": "supabase gen types typescript --local | tail -n +2 > packages/core/src/schema/database.types.ts"
   },

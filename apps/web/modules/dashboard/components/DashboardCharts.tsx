@@ -27,7 +27,7 @@ export function CashFlowChart({ data, currency }: { data: HistoricalSummary[], c
 
   return (
     <div className="w-full h-[250px]">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
           <XAxis 
@@ -65,7 +65,7 @@ export function SpendingPieChart({ data, currency }: { data: SpendingByCategory[
 
   return (
     <div className="w-full h-[250px]">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <PieChart>
           <Pie
             data={chartData}
@@ -99,7 +99,7 @@ export function NetWorthChart({ data, currency }: { data: { month: string, netWo
 
   return (
     <div className="w-full h-[250px]">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
           <XAxis 

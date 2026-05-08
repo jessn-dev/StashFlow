@@ -20,6 +20,7 @@ export type Document = Tables<'documents'>;
 
 // New P2-A Entities
 export type AssetType = 'cash' | 'investment' | 'property' | 'retirement' | 'other';
+export const ASSET_TYPES: AssetType[] = ['cash', 'investment', 'property', 'retirement', 'other'];
 
 export interface Asset {
   id: string;

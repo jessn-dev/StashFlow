@@ -97,12 +97,11 @@ export default function HomePage() {
               >
                 Start tracking for free
               </Link>
-              <Link 
-                href="/login" 
-                className="h-12 px-7 bg-white border border-[#E5E7EB] text-[#0A2540] rounded-full flex items-center justify-center font-semibold hover:border-gray-300 transition-colors"
+              <button 
+                className="h-12 px-7 bg-white border border-[#E5E7EB] text-[#0A2540] rounded-full flex items-center justify-center font-semibold hover:border-gray-300 transition-colors shadow-sm"
               >
-                See how it works →
-              </Link>
+                Join Waitlist
+              </button>
             </div>
 
             {/* Trust Line */}
@@ -370,11 +369,13 @@ export default function HomePage() {
                </Link>
             </div>
          </div>
-         <div className="max-w-7xl mx-auto px-6 mt-20 pt-8 flex justify-between items-center">
+         <div className="max-w-7xl mx-auto px-6 mt-20 pt-8 flex justify-between items-center border-t border-gray-100">
             <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">© 2026 StashFlow Inc.</p>
             <div className="flex gap-8 text-xs text-gray-400 font-bold uppercase tracking-widest">
-               <span className="hover:text-gray-900 cursor-pointer transition-colors">Privacy</span>
-               <span className="hover:text-gray-900 cursor-pointer transition-colors">Terms</span>
+               <Link href="/privacy" className="hover:text-gray-900 transition-colors">Privacy</Link>
+               <Link href="/terms" className="hover:text-gray-900 transition-colors">Terms</Link>
+               <Link href="/cookies" className="hover:text-gray-900 transition-colors">Cookies</Link>
+               <Link href="/data-deletion" className="hover:text-gray-900 transition-colors">Deletion</Link>
             </div>
          </div>
       </footer>

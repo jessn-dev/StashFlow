@@ -6,6 +6,47 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 
 ---
 
+## [0.18.0] - 2026-05-08
+
+### Added
+- **P3-B CI/CD Security Gates**
+  - **Automated RLS Testing**: Implemented 17 pgTAP database tests in `supabase/tests/rls_policies.sql` covering incomes, expenses, loans, assets, and sessions.
+  - **CI Wiring**: Integrated `supabase test db` into `.github/workflows/ci.yml`. Failed security policies now block PR merges.
+  - **CODEOWNERS**: Added `.github/CODEOWNERS` to enforce mandatory review on core math, security, and migration files.
+- **P3-C Ledger Integrity**
+  - **Cryptographic Ledger**: Implemented HMAC-SHA256 signing and verification in `@stashflow/core` to detect financial record tampering.
+  - **Live FX Feed**: Updated `sync-exchange-rates` edge function to fetch daily reference rates from the **Frankfurter API**. 
+  - **Cross-Rate Engine**: Edge function now automatically computes and stores bidirectional cross-rates (e.g., PHP ↔ SGD) via a USD bridge.
+  - **Integrity Verification Service**: Built `verify-ledger-integrity` edge function to scan the last 1,000 transactions for signature validity.
+  - **Security Settings UI**: Added a "Ledger Secure" status indicator in the web app to provide real-time integrity verification for users.
+- **P3-A Advanced Session Intelligence**
+  - **Anomaly Scoring Engine**: Developed a pure scoring algorithm in core to identify high-risk logins based on geographic shifts and unusual hours.
+  - **Session Event Logging**: Implemented a Supabase Auth Webhook (`log-session-event`) to capture immutable IP, country, and User-Agent metadata on login.
+  - **Session Management Dashboard**: Created `/dashboard/settings/sessions` allowing users to view risk scores per device and **revoke access** (force logout) for any session.
+
+### Fixed
+- **JavaScript Heap Out of Memory**: Resolved fatal memory errors by increasing the Node.js heap limit to **8GB** (`--max-old-space-size=8192`) across all core scripts (`dev`, `build`, `test`, `lint`, `typecheck`).
+- **Database Type Corruption**: Fixed a syntax error in `database.types.ts` caused by incorrect CLI output stripping.
+- **RLS Schema Mismatches**: Corrected column name errors in legacy database tests to align with current `@stashflow/core` schema.
+- **Chart Layout Noise**: Added `minWidth={0}` and `minHeight={0}` to all Recharts `ResponsiveContainer` instances to suppress negative dimension warnings in Next.js 16.
+- **Upsert Constraint Bug**: Fixed a bug in `sync-exchange-rates` where upserts would fail on multi-base pairs; updated to use `UNIQUE(base, target)` conflict target.
+
+### Documentation
+- **Production Deployment Guide**: Created `docs/DEPLOYMENT_GUIDE.md` centralizing all required environment variables, secrets management, and platform-specific configuration for Supabase, Vercel, and Google OAuth.
+- **Infrastructure Troubleshooting**: Added guidance for resolving memory-intensive monorepo build errors.
+- **Roadmap Update**: Marked Operations Preparation as completed and shifted focus to Final Launch Prep.
+
+---
+
+## [0.17.1] - 2026-05-15
+
+### Fixed
+- **Type cast cleanup:** Removed unnecessary `as any` on `txType` in `apps/web/app/dashboard/transactions/page.tsx:86`. Type was already correctly narrowed to `'all' | 'income' | 'expense'` by the preceding conditional.
+- **CLAUDE.md:** Updated stale milestone reference (was pointing to closed branch `feature/P2-B-signup-page-cleanup`).
+- **ROADMAP.md:** Added missing completed milestones P2-C, P2-D, P2-E to the milestones table; promoted P3 backlog to active sprint with detailed implementation specs.
+
+---
+
 ## [0.17.0] - 2026-05-15
 
 ### Added

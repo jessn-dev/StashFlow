@@ -329,6 +329,7 @@ export type Database = {
           id: string
           is_recurring: boolean | null
           notes: string | null
+          signature: string
           user_id: string
         }
         Insert: {
@@ -341,6 +342,7 @@ export type Database = {
           id?: string
           is_recurring?: boolean | null
           notes?: string | null
+          signature?: string
           user_id: string
         }
         Update: {
@@ -353,6 +355,7 @@ export type Database = {
           id?: string
           is_recurring?: boolean | null
           notes?: string | null
+          signature?: string
           user_id?: string
         }
         Relationships: [
@@ -418,6 +421,7 @@ export type Database = {
           frequency: Database["public"]["Enums"]["income_frequency"] | null
           id: string
           notes: string | null
+          signature: string
           source: string
           user_id: string
         }
@@ -429,6 +433,7 @@ export type Database = {
           frequency?: Database["public"]["Enums"]["income_frequency"] | null
           id?: string
           notes?: string | null
+          signature?: string
           source: string
           user_id: string
         }
@@ -440,6 +445,7 @@ export type Database = {
           frequency?: Database["public"]["Enums"]["income_frequency"] | null
           id?: string
           notes?: string | null
+          signature?: string
           source?: string
           user_id?: string
         }
@@ -773,6 +779,36 @@ export type Database = {
         }
         Relationships: []
       }
+      session_events: {
+        Row: {
+          country: string | null
+          created_at: string
+          id: string
+          ip: string
+          session_id: string | null
+          user_agent: string
+          user_id: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          id?: string
+          ip: string
+          session_id?: string | null
+          user_agent: string
+          user_id: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          id?: string
+          ip?: string
+          session_id?: string | null
+          user_agent?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       system_audit_logs: {
         Row: {
           action: string
@@ -818,16 +854,16 @@ export type Database = {
     Views: {
       unified_transactions: {
         Row: {
-          id: string
-          user_id: string
-          amount: number
-          currency: string
-          description: string
-          date: string
-          notes: string | null
-          type: string
+          amount: number | null
           category: Database["public"]["Enums"]["expense_category"] | null
-          created_at: string
+          created_at: string | null
+          currency: string | null
+          date: string | null
+          description: string | null
+          id: string | null
+          notes: string | null
+          type: string | null
+          user_id: string | null
         }
         Relationships: []
       }

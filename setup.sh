@@ -364,7 +364,7 @@ cmd_db_jwt() {
 cmd_db_types() {
   require_supabase
   info "Regenerating TypeScript types from local schema..."
-  supabase gen types typescript --local > packages/core/src/schema/database.types.ts
+  supabase gen types typescript --local | tail -n +2 > packages/core/src/schema/database.types.ts
   success "Types updated → packages/core/src/schema/database.types.ts"
 }
 

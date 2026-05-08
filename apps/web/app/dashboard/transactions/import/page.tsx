@@ -60,13 +60,22 @@ export default function TransactionImportPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // Fetch user's preferred currency
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('preferred_currency')
+      .eq('id', user.id)
+      .single();
+
+    const userCurrency = profile?.preferred_currency || 'USD';
+
     // Filter into incomes and expenses
     const incomes = mappedData.filter(d => d.type === 'income').map(d => ({
       user_id: user.id,
       amount: Math.abs(d.amount),
       source: d.description,
       date: d.date,
-      currency: 'USD', // TODO: Allow currency selection
+      currency: userCurrency,
       frequency: 'one-time' as const
     }));
 
@@ -75,7 +84,7 @@ export default function TransactionImportPage() {
       amount: Math.abs(d.amount),
       description: d.description,
       date: d.date,
-      currency: 'USD',
+      currency: userCurrency,
       category: 'other' as const
     }));
 

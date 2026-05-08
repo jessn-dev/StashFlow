@@ -83,7 +83,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
         filters={{
           dateFrom,
           dateTo,
-          type: txType as any,
+          type: txType,
           search,
         }}
       />

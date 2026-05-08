@@ -35,4 +35,77 @@ describe('dashboard analysis', () => {
     expect(result.dtiRatio).toBe(0.1); // 500 / 5000
     expect(result.dtiHealthy).toBe(true);
   });
+
+  it('should handle multi-currency aggregation', () => {
+    const incomes: Partial<Income>[] = [
+      { amount: 5000, currency: 'USD' },
+      { amount: 50000, currency: 'PHP' }
+    ];
+    const rates = { USD: 1, PHP: 50 }; // 1 USD = 50 PHP
+
+    const result = aggregateDashboardData({
+      incomes: incomes as Income[],
+      expenses: [],
+      loans: [],
+      assets: [],
+      goals: [],
+      rates,
+      region: 'US',
+      currency: 'USD',
+    });
+
+    expect(result.monthlyCashFlow).toBe(6000); // 5000 + (50000 / 50)
+  });
+
+  it('should handle zero income for DTI', () => {
+    const loans: Partial<Loan>[] = [
+      { principal: 10000, installment_amount: 500, currency: 'USD', status: 'active' }
+    ];
+
+    const result = aggregateDashboardData({
+      incomes: [],
+      expenses: [],
+      loans: loans as Loan[],
+      assets: [],
+      goals: [],
+      rates: { USD: 1 },
+      region: 'US',
+      currency: 'USD',
+    });
+
+    expect(result.dtiRatio).toBe(1);
+    expect(result.dtiHealthy).toBe(false);
+  });
+
+  it('should handle missing currency rate by defaulting to 1', () => {
+    const incomes: Partial<Income>[] = [
+      { amount: 5000, currency: 'UNKNOWN' }
+    ];
+    const expenses: Partial<Expense>[] = [
+      { amount: 1000, currency: 'UNKNOWN' }
+    ];
+    const loans: Partial<Loan>[] = [
+      { principal: 10000, installment_amount: 500, currency: 'UNKNOWN', status: 'active' }
+    ];
+    const assets: Partial<Asset>[] = [
+      { balance: 20000, currency: 'UNKNOWN' }
+    ];
+
+    const result = aggregateDashboardData({
+      incomes: incomes as Income[],
+      expenses: expenses as Expense[],
+      loans: loans as Loan[],
+      assets: assets as Asset[],
+      goals: [],
+      rates: { USD: 1 },
+      region: 'US',
+      currency: 'USD',
+    });
+
+    expect(result.monthlyCashFlow).toBe(4000); // 5000 - 1000
+    expect(result.netWorth).toBe(10000); // 20000 - 10000
+    expect(result.totalAssets).toBe(20000);
+    expect(result.totalLiabilities).toBe(10000);
+    expect(result.dtiRatio).toBe(0.1); // 500 / 5000
+  });
 });

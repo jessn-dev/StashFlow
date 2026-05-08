@@ -9,18 +9,18 @@ export class AssetQuery extends BaseQuery implements IAssetQuery {
   }
 
   async getAll(userId: string): Promise<Asset[]> {
-    const { data, error } = await (this.client as any)
+    const { data, error } = await this.client
       .from('assets')
       .select('*')
       .eq('user_id', userId)
       .order('name', { ascending: true });
 
     if (error) throw error;
-    return (data as any) || [];
+    return (data as Asset[]) || [];
   }
 
   async create(userId: string, input: AssetInput): Promise<Asset> {
-    const { data, error } = await (this.client as any)
+    const { data, error } = await this.client
       .from('assets')
       .insert({
         user_id: userId,
@@ -30,11 +30,11 @@ export class AssetQuery extends BaseQuery implements IAssetQuery {
       .single();
 
     if (error) throw error;
-    return data as any;
+    return data as Asset;
   }
 
   async update(assetId: string, userId: string, updates: Partial<AssetInput>): Promise<Asset> {
-    const { data, error } = await (this.client as any)
+    const { data, error } = await this.client
       .from('assets')
       .update(updates)
       .eq('id', assetId)
@@ -43,11 +43,11 @@ export class AssetQuery extends BaseQuery implements IAssetQuery {
       .single();
 
     if (error) throw error;
-    return data as any;
+    return data as Asset;
   }
 
   async delete(assetId: string, userId: string): Promise<void> {
-    const { error } = await (this.client as any)
+    const { error } = await this.client
       .from('assets')
       .delete()
       .eq('id', assetId)

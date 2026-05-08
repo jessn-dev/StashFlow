@@ -148,6 +148,26 @@ User preferences and global settings. One-to-one with auth.users.
 
 ---
 
+## Views
+
+### `unified_transactions` (New in v0.17.0)
+Unified read-only view of `incomes` and `expenses`. Uses `security_invoker = true` to respect RLS.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `UUID` | Original record PK |
+| `user_id` | `UUID` | |
+| `amount` | `NUMERIC(18,6)` | |
+| `currency` | `TEXT` | |
+| `description` | `TEXT` | Maps from `incomes.source` or `expenses.description` |
+| `date` | `DATE` | |
+| `type` | `TEXT` | 'income' or 'expense' |
+| `category` | `TEXT` | NULL for incomes |
+| `notes` | `TEXT` | |
+| `created_at` | `TIMESTAMPTZ` | |
+
+---
+
 ## Documents & OCR
 
 ### `documents`

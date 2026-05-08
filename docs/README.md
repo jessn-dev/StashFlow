@@ -85,6 +85,8 @@ StashFlow/
 ├── packages/
 │   ├── core/                 # @stashflow/core — pure TS, zero deps, Deno-compatible
 │   ├── api/                  # @stashflow/api  — Supabase queries, service layer (web/Node only)
+│   ├── db/                   # @stashflow/db   — platform-specific client factories (browser/server/mobile)
+│   ├── auth/                 # @stashflow/auth — server-side session helpers
 │   ├── ui/                   # @stashflow/ui   — shared component primitives
 │   └── theme/                # @stashflow/theme — design tokens
 │

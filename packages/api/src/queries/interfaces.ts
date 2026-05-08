@@ -27,6 +27,7 @@ export interface TransactionFilterOpts {
   type?: 'all' | 'income' | 'expense';
   search?: string;
   limit?: number;
+  cursor?: string | undefined;
 }
 
 export interface PeriodSummary extends TransactionSummary {

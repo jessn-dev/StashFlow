@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { UnifiedTransaction, formatCurrency, convertToBase } from '@stashflow/core';
+import { TransactionQuery } from '@stashflow/api';
 import { createClient } from '@/lib/supabase/client';
 import { TransactionDrawer } from './TransactionDrawer';
 
@@ -274,15 +275,64 @@ function TransactionRow({
 }
 
 interface Props {
-  transactions: UnifiedTransaction[];
+  initialTransactions: UnifiedTransaction[];
   rates: Record<string, number>;
   baseCurrency: string;
   isFiltered: boolean;
+  userId: string;
+  filters: {
+    dateFrom?: string;
+    dateTo?: string;
+    type?: 'all' | 'income' | 'expense';
+    search?: string;
+  };
 }
 
-export function TransactionTimeline({ transactions, rates, baseCurrency, isFiltered }: Props) {
+export function TransactionTimeline({
+  initialTransactions,
+  rates,
+  baseCurrency,
+  isFiltered,
+  userId,
+  filters,
+}: Props) {
+  const [transactions, setTransactions] = useState(initialTransactions);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(initialTransactions.length >= 100);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<UnifiedTransaction | null>(null);
+
+  useEffect(() => {
+    setTransactions(initialTransactions);
+    setHasMore(initialTransactions.length >= 100);
+  }, [initialTransactions]);
+
+  async function handleLoadMore() {
+    if (loading || !hasMore) return;
+    setLoading(true);
+
+    try {
+      const last = transactions[transactions.length - 1];
+      const cursor = last ? `${last.date}|${last.id}` : undefined;
+
+      const supabase = createClient();
+      const query = new TransactionQuery(supabase);
+      const more = await query.getTransactionsFiltered(userId, {
+        ...filters,
+        cursor,
+        limit: 50,
+      });
+
+      if (more.length < 50) {
+        setHasMore(false);
+      }
+      setTransactions((prev) => [...prev, ...more]);
+    } catch (err) {
+      console.error('Failed to load more transactions:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function handleToggle(id: string) {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -359,6 +409,25 @@ export function TransactionTimeline({ transactions, rates, baseCurrency, isFilte
             </div>
           </div>
         ))}
+
+        {hasMore && (
+          <div className="p-6 border-t border-gray-100 flex justify-center">
+            <button
+              onClick={handleLoadMore}
+              disabled={loading}
+              className="px-6 py-2.5 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                'Load More Transactions'
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       <TransactionDrawer

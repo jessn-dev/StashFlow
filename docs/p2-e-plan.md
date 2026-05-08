@@ -1,4 +1,7 @@
-P2-E: Extract packages/db + packages/auth
+# P2-E: Extract packages/db + packages/auth
+
+> **Status: Completed (2026-05-14)**
+> **P2-F Extension (Feed Scaling) Completed: 2026-05-15**
 
 Context
 

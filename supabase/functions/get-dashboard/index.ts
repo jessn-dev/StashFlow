@@ -23,10 +23,11 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return new Response('Unauthorized', { status: 401, headers: corsHeaders })
 
-    const [incomes, expenses, loans, goals, rates, profile] = await Promise.all([
+    const [incomes, expenses, loans, assets, goals, rates, profile] = await Promise.all([
       supabase.from('incomes').select('*').eq('user_id', user.id),
       supabase.from('expenses').select('*').eq('user_id', user.id),
       supabase.from('loans').select('*').eq('user_id', user.id),
+      supabase.from('assets').select('*').eq('user_id', user.id),
       supabase.from('goals').select('*').eq('user_id', user.id),
       supabase.from('exchange_rates').select('target, rate'),
       supabase.from('profiles').select('*').eq('id', user.id).single()
@@ -41,6 +42,7 @@ Deno.serve(async (req) => {
       incomes: incomes.data || [],
       expenses: expenses.data || [],
       loans: loans.data || [],
+      assets: assets.data || [],
       goals: goals.data || [],
       rates: ratesMap,
       region: getRegionByCurrency(profile.data?.preferred_currency || 'USD'),

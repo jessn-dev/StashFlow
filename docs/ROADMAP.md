@@ -3,7 +3,7 @@
 > Strategic direction, production-readiness goals, and architectural evolution.
 > For a record of what shipped, see `docs/CHANGELOG.md`.
 >
-> Last updated: 2026-05-11
+> Last updated: 2026-05-15
 > Active branch: `develop`
 
 ---
@@ -124,8 +124,8 @@ Deep drilldown pages for Cash Flow and DTI Simulator as requested in P3 backlog.
 - Dead code removed: `apps/web/utils/supabase/` (unused), `packages/api/src/client.ts` (unused externally).
 - `packages/api` cleaned: `@supabase/ssr` dep and `createStashFlowClient` export removed.
 
-### P2-F — Realtime & Feed Scaling
-- Transition unified timeline to pagination-first architecture.
+### P2-F — Realtime & Feed Scaling ✅
+- Transition unified timeline to pagination-first architecture. (Completed: Cursor-based pagination + infinite loading timeline).
 
 ---
 
@@ -165,3 +165,4 @@ Deep drilldown pages for Cash Flow and DTI Simulator as requested in P3 backlog.
 | Analytics Drilldown & P1-C | Cash Flow drilldown, interactive DTI Simulator, core logic consolidation | 2026-05-12 |
 | Asset Tracking & P2-A | Multi-currency asset tracking, Net Worth Trend chart, historical snapshots | 2026-05-13 |
 | Signup Cleanup & P2-B | Unified auth UI, shared icon module, email confirmation fix, stale dep removal | 2026-05-13 |
+| Feed Scaling (P2-F) | Unified transaction view, cursor pagination, infinite timeline | 2026-05-15 |

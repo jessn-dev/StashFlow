@@ -66,11 +66,14 @@ Via `@stashflow/api TransactionQuery.getTransactionsFiltered(userId, opts)`:
 interface TransactionFilterOpts {
   dateFrom?: string    // ISO date
   dateTo?: string      // ISO date
-  type?: 'income' | 'expense'
+  type?: 'all' | 'income' | 'expense'
   search?: string      // matches description/source
-  limit?: number
+  limit?: number       // defaults to 100
+  cursor?: string      // Format: "date|id" for stable pagination
 }
 ```
+
+This method queries the `unified_transactions` view. Sorting is always `date DESC, id DESC`.
 
 ### Period summary
 
@@ -237,6 +240,20 @@ Via `NetWorthSnapshotQuery.getAll(userId)`.
 ### Get latest snapshot
 
 Via `NetWorthSnapshotQuery.getLatest(userId)`.
+
+### Create snapshot
+
+Via `NetWorthSnapshotQuery.create(userId, snapshot)`:
+
+```typescript
+interface SnapshotInput {
+  snapshot_date: string;
+  total_assets: number;
+  total_liabilities: number;
+  net_worth: number;
+  currency: string;
+}
+```
 
 ---
 

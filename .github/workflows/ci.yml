@@ -40,9 +40,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # tsc --noEmit on @stashflow/core and @stashflow/api
+      # tsc --noEmit on all packages
       - name: Typecheck packages
-        run: turbo run typecheck
+        run: pnpm typecheck
 
       # apps/web lint script is also tsc --noEmit (no ESLint config yet)
       - name: Lint

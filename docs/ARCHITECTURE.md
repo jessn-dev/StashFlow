@@ -38,12 +38,14 @@ StashFlow/
 ├── packages/
 │   ├── core/                 # @stashflow/core — pure TS, zero deps, Deno-compatible
 │   ├── api/                  # @stashflow/api  — Supabase queries, service layer (web/Node only)
+│   ├── db/                   # @stashflow/db   — platform-specific client factories (browser/server/mobile)
+│   ├── auth/                 # @stashflow/auth — server-side session helpers
 │   ├── ui/                   # @stashflow/ui   — shared component primitives
 │   └── theme/                # @stashflow/theme — design tokens
 │
 ├── supabase/
 │   ├── functions/            # Deno edge functions
-│   └── migrations/           # Versioned SQL migrations (16+)
+│   └── migrations/           # Versioned SQL migrations (20+)
 │
 ├── deno.json                 # Deno workspace root
 ├── turbo.json                # Turborepo pipeline
@@ -59,10 +61,12 @@ Strictly enforced. No violations permitted.
 ```
 @stashflow/theme   ← no deps
 @stashflow/core    ← no deps
+@stashflow/db      ← core + supabase-js
+@stashflow/auth    ← core + supabase-js
 @stashflow/ui      ← theme
-@stashflow/api     ← core + supabase-js
-apps/web           ← api, ui, theme
-apps/mobile        ← core, ui, theme  (never api)
+@stashflow/api     ← core + db
+apps/web           ← api, auth, db, ui, theme
+apps/mobile        ← db, ui, theme  (never api)
 supabase/functions ← @stashflow/core via Deno workspace
 ```
 
@@ -72,23 +76,25 @@ supabase/functions ← @stashflow/core via Deno workspace
 |---------|-----------|---------------|
 | `@stashflow/core` | nothing | everything |
 | `@stashflow/theme` | nothing | everything |
+| `@stashflow/db` | core, supabase-js | everything else |
+| `@stashflow/auth` | core, supabase-js | everything else |
 | `@stashflow/ui` | theme | core, api, supabase |
-| `@stashflow/api` | core, supabase-js | ui, Next.js internals |
-| `apps/web` | api, ui, theme | react-native |
-| `apps/mobile` | core, ui, theme | api, next |
+| `@stashflow/api` | core, db | ui, Next.js internals |
+| `apps/web` | api, auth, db, ui, theme | react-native |
+| `apps/mobile` | db, ui, theme | api, next |
 | `supabase/functions` | core (Deno workspace) | api, ui |
 
 **Mobile never imports `@stashflow/api`** — it contains React browser APIs incompatible with React Native. Mobile talks directly to Supabase and imports `@stashflow/core` for business logic.
 
 ---
-
 ## Domain Boundaries
 
 Each domain owns its schemas, services, business logic, and validation.
 
 ```
-transactions/   → incomes + expenses unified timeline
+transactions/   → unified timeline via unified_transactions view (incomes + expenses)
 loans/          → loan lifecycle, amortization, documents
+...
 assets/         → asset tracking, multi-currency holdings
 plans/          → goals + budgets
 dashboard/      → aggregated financial snapshot

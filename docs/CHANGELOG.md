@@ -16,6 +16,11 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
   - **Context-Aware Filters**: Updated the transactions page to pass full filter context to the timeline, ensuring pagination respects active search and date parameters.
 
 ### Fixed
+- **Typecheck Failure**: Resolved issues in `@stashflow/document-parser` by updating its `tsconfig.json` to support Deno-style `.ts` imports and web globals (`fetch`, `console`).
+- **Dashboard Integrity**: Fixed a missing `assets` property in the mobile app's `useDashboardData` hook and the `get-dashboard` edge function, ensuring compatibility with the updated `aggregateDashboardData` engine.
+- **Monorepo Consistency**: Added `typecheck` scripts to `apps/web` and `apps/mobile` for unified CI validation via Turborepo.
+
+### Fixed
 - **Technical Debt (TD-1)**: Resolved all `as any` casts in `TransactionForm.tsx`. Component now uses proper `ExpenseCategory` and `IncomeFrequency` enums from `@stashflow/core`.
 - **Technical Debt (TD-6)**: Resolved API query type errors and removed unnecessary `as any` casts in `AssetQuery`, `NetWorthSnapshotQuery`, and `TransactionQuery`.
 - **Database Type Safety**: Updated `database.types.ts` in `@stashflow/core` to include the `unified_transactions` view, enabling end-to-end type safety for paginated queries.

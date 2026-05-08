@@ -59,4 +59,15 @@ describe('loan math', () => {
     expect(result.entries[0]?.interestPayment).toBe(100);
     expect(result.monthlyPayment).toBeCloseTo(933.33, 1);
   });
+
+  it('should handle 0% interest loan', () => {
+    const result = generateAmortizationSchedule({
+      ...baseParams,
+      annualInterestRate: 0,
+      interestType: 'Standard Amortized',
+    });
+
+    expect(result.monthlyPayment).toBe(10000 / 12);
+    expect(result.totalInterest).toBe(0);
+  });
 });

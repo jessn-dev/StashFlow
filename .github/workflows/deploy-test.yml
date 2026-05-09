@@ -16,7 +16,7 @@ jobs:
       
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: "2.98.2"
 
       - name: Link to Supabase Project (Test)
         run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }} -p ${{ secrets.SUPABASE_DB_PASSWORD_TEST }}

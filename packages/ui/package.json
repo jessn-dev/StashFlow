@@ -19,10 +19,13 @@
     "react-native": "*"
   },
   "peerDependenciesMeta": {
-    "react-native": { "optional": true }
+    "react-native": {
+      "optional": true
+    }
   },
   "devDependencies": {
-    "@types/react": "^19",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "19.0.0",
     "react": "^19.2.5",
     "typescript": "^6.0.3"
   }

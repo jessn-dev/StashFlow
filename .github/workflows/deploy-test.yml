@@ -27,16 +27,25 @@ jobs:
         run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }} -p ${{ secrets.SUPABASE_DB_PASSWORD_TEST }}
 
       - name: Set Supabase Secrets (Test)
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_VISION_API_KEY: ${{ secrets.GOOGLE_VISION_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          LEDGER_SECRET: ${{ secrets.LEDGER_SECRET }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          PARSE_LOAN_WEBHOOK_SECRET: ${{ secrets.PARSE_LOAN_WEBHOOK_SECRET }}
         run: |
           supabase secrets set \
-            GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} \
-            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} \
-            ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }} \
-            GOOGLE_VISION_API_KEY=${{ secrets.GOOGLE_VISION_API_KEY }} \
-            FRED_API_KEY=${{ secrets.FRED_API_KEY }} \
-            LEDGER_SECRET=${{ secrets.LEDGER_SECRET }} \
-            CRON_SECRET=${{ secrets.CRON_SECRET }} \
-            PARSE_LOAN_WEBHOOK_SECRET=${{ secrets.PARSE_LOAN_WEBHOOK_SECRET }} \
+            GROQ_API_KEY="$GROQ_API_KEY" \
+            GEMINI_API_KEY="$GEMINI_API_KEY" \
+            ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+            GOOGLE_VISION_API_KEY="$GOOGLE_VISION_API_KEY" \
+            FRED_API_KEY="$FRED_API_KEY" \
+            LEDGER_SECRET="$LEDGER_SECRET" \
+            CRON_SECRET="$CRON_SECRET" \
+            PARSE_LOAN_WEBHOOK_SECRET="$PARSE_LOAN_WEBHOOK_SECRET" \
             --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }}
 
       - name: Deploy Edge Functions (Test)

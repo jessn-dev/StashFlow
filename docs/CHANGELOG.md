@@ -9,6 +9,11 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 ## [0.19.0] - 2026-05-18
 
 ### Added
+- **Gated CI/CD Pipeline Architecture**
+  - **Manual Approval Gates**: Implemented GitHub Environments for `test` and `production` with mandatory reviewer sign-off for deployments.
+  - **Backend-First Deployment**: Re-engineered workflows to ensure Supabase secrets and Edge Functions are fully deployed before the Vercel frontend goes live.
+  - **Automated Backend Release**: Integrated `supabase secrets set` and `supabase functions deploy` into the CI/CD pipeline.
+  - **Production Rollback Pipeline**: Created a manual `rollback-prod.yml` workflow for near-instant reversion to stable deployment IDs in case of critical production failures.
 - **pnpm Lockfile Security Gates**
   - **Husky pre-commit hook**: Implemented mandatory `pnpm install --lockfile-only --frozen-lockfile` check to prevent out-of-sync lockfiles from reaching CI.
   - **lint-staged rule**: Added targeted validation for `**/package.json` changes to enforce lockfile integrity.
@@ -16,6 +21,7 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
   - **`db:clean`**: New command to stop and prune all local Supabase Docker resources (containers, volumes, networks).
   - **Enhanced `clean`**: Now performs a deep clean of both build artifacts (`.next`, `.turbo`, `dist`) and database resources.
   - **Robust `install`**: Standardized workspace dependency synchronization and lockfile health checks.
+  - **Environment Injection**: Updated `db:env` and `env:init` to automatically manage `supabase/.env` and the `SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI` for local dev.
 - **Vivid Liquid Prism Background**
   - **Modern Animation Stack**: Installed `framer-motion` and refactored the legacy CSS/JS background.
   - **Mesh Gradient**: Implemented a hardware-accelerated "Liquid Prism" effect with 5 animated color blobs (Indigo, Rose, Emerald, Amber, Cyan) using `mix-blend-multiply` and `opacity` for organic color bleeding.
@@ -37,6 +43,7 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 - **Text Readability Overhaul**: Performed a site-wide audit to replace low-contrast gray text with higher-contrast alternatives (`#4B5563`, `#0A2540`).
 - **Compliance Alignment**: Replaced "Tax Residency Optimizers" with "Advanced Savings Goal Automations" to avoid regulated advice implications.
 - **Style Consolidation**: Removed redundant `globals.css` files and ~100 lines of legacy animation code to unify the styling engine.
+- **Typecheck Hardening**: Resolved 10+ TypeScript errors across `@stashflow/core`, `@stashflow/api`, and `web`, ensuring monorepo-wide type safety.
 
 ### Removed
 - **Branding cleanup**: Removed all explicit "AI" and "Parsing" terminology from marketing copy in favor of "automated" benefit-driven language.

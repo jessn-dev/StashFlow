@@ -30,9 +30,36 @@
 
 ---
 
-## 2. Platform Setup Guides
+## 2. Infrastructure as Code (Terraform)
 
-StashFlow uses a three-tier environment strategy. Daily development happens in **Local (Dev)**. MVP validation occurs in **Test (MVP)**. Full-scale release happens in **Prod (Post-MVP)**.
+StashFlow uses Terraform to automate the provisioning of cloud resources (Supabase & Vercel) and keep them synchronized.
+
+### **Initial Setup**
+1.  **Install Terraform**: Ensure you have Terraform installed (`brew install terraform`).
+2.  **Generate Tokens**:
+    *   **Supabase**: [Access Token](https://supabase.com/dashboard/account/tokens)
+    *   **Vercel**: [API Token](https://vercel.com/account/tokens)
+3.  **Prepare Variables**: 
+    ```bash
+    cd terraform
+    cp test.tfvars.example test.tfvars
+    # Edit test.tfvars with your actual tokens and secrets
+    ```
+
+### **Deployment Steps**
+1.  **Initialize**: `terraform init`
+2.  **Plan**: `terraform plan -var-file="test.tfvars"`
+3.  **Apply**: `terraform apply -var-file="test.tfvars"`
+
+### **What this automates**
+*   Creates a new Supabase Project.
+*   Configures Google OAuth (including the Redirect URI).
+*   Creates a Vercel Project linked to your GitHub repo.
+*   **Auto-Sync**: Injects the `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` directly into Vercel.
+
+---
+
+## 3. Platform Setup Guides (Manual Fallback)
 
 ### Platform Specifics (Apply to both Test and Prod)
 

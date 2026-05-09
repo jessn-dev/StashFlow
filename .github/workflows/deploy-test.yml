@@ -1,0 +1,63 @@
+name: Deploy to Test (MVP)
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  # 1. Supabase Deployment (Backend & Keys First)
+  deploy-supabase-test:
+    name: Deploy Supabase (Test)
+    runs-on: ubuntu-latest
+    environment: test
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link to Supabase Project (Test)
+        run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }} -p ${{ secrets.SUPABASE_DB_PASSWORD_TEST }}
+
+      - name: Set Supabase Secrets (Test)
+        run: |
+          supabase secrets set \
+            GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} \
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} \
+            ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }} \
+            GOOGLE_VISION_API_KEY=${{ secrets.GOOGLE_VISION_API_KEY }} \
+            FRED_API_KEY=${{ secrets.FRED_API_KEY }} \
+            LEDGER_SECRET=${{ secrets.LEDGER_SECRET }} \
+            CRON_SECRET=${{ secrets.CRON_SECRET }} \
+            PARSE_LOAN_WEBHOOK_SECRET=${{ secrets.PARSE_LOAN_WEBHOOK_SECRET }} \
+            --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }}
+
+      - name: Deploy Edge Functions (Test)
+        run: supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }}
+
+  # 2. Vercel Deployment (Frontend Second)
+  deploy-test:
+    name: Deploy to Vercel (Test)
+    needs: deploy-supabase-test
+    runs-on: ubuntu-latest
+    environment: test
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+          
+      - name: Install Vercel CLI
+        run: npm install --global vercel
+
+      - name: Build and Deploy to Vercel (Test)
+        run: |
+          vercel deploy --token=${{ secrets.VERCEL_TOKEN }} \
+            --name=stashflow-test \
+            --scope=${{ secrets.VERCEL_ORG_ID }} \
+            --project=${{ secrets.VERCEL_PROJECT_ID_TEST }} \
+            --prod

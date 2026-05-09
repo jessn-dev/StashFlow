@@ -83,5 +83,9 @@ jobs:
       - name: Build Project Artifacts
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
+      - name: Debug Large Files
+        run: |
+          find .vercel/output -type f -size +50M -exec du -h {} + || echo "No files > 50MB found"
+
       - name: Deploy Project Artifacts to Vercel
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}

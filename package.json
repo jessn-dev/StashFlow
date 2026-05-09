@@ -31,7 +31,9 @@
       "next": "^15.5.15",
       "postcss": "^8.5.10",
       "@babel/plugin-transform-modules-systemjs": "^7.29.4",
-      "@xmldom/xmldom": "^0.8.13"
+      "@xmldom/xmldom": "^0.8.13",
+      "react": "19.0.0",
+      "react-dom": "19.0.0"
     }
   }
 }

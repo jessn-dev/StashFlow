@@ -32,6 +32,9 @@
     "recharts": "2.15.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^10.0.1",
+    "@next/eslint-plugin-next": "^16.2.6",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.2.4",
     "@types/node": "^22",
@@ -41,6 +44,8 @@
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^4.1.5",
     "autoprefixer": "latest",
+    "eslint": "^10.3.0",
+    "eslint-config-next": "^16.2.6",
     "jsdom": "^26.0.0",
     "postcss": "latest",
     "tailwindcss": "4.2.4",

@@ -27,7 +27,7 @@ export function calculateAnomalyScore(
   }
 
   // 1. Check for country change (High Risk)
-  const lastCountry = history[0].country;
+  const lastCountry = history[0]?.country;
   if (newEvent.country && lastCountry && newEvent.country !== lastCountry) {
     score += 0.7;
     reasons.push('geographic_shift');

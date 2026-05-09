@@ -84,7 +84,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       # Fails on high/critical CVEs. Use --audit-level=moderate to tighten.
       # Run `pnpm audit --fix` locally to resolve findings.

@@ -8,7 +8,7 @@ import type { Asset, AssetType } from '@stashflow/core';
 
 interface AssetFormProps {
   onSuccess?: () => void;
-  initialData?: Asset;
+  initialData?: Asset | undefined;
 }
 
 export function AssetForm({ onSuccess, initialData }: AssetFormProps) {

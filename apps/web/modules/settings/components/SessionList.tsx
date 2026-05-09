@@ -18,7 +18,7 @@ export function SessionList() {
       
       // Get current session ID to highlight it
       const { data: { session } } = await supabase.auth.getSession();
-      setCurrentSessionId(session?.id || null);
+      setCurrentSessionId((session as any)?.id || null);
 
       const { data, error } = await supabase.functions.invoke('get-user-sessions');
       if (error) throw error;

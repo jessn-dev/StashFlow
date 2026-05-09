@@ -1,5 +1,5 @@
-import { Region } from '../schema';
-import { REGIONAL_THRESHOLDS } from '../math/dti';
+import { Region } from '../schema/index.ts';
+import { REGIONAL_THRESHOLDS } from '../math/dti.ts';
 
 export interface RegionalStrategy {
   region: Region;

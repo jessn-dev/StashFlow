@@ -1,4 +1,4 @@
-import { ExpenseCategory, Constants } from '../schema';
+import { ExpenseCategory, Constants } from '../schema/index.ts';
 
 export interface BudgetRecommendation {
   category: ExpenseCategory;

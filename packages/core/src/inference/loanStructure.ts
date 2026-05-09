@@ -1,4 +1,4 @@
-import { LoanInterestType } from '../schema';
+import { LoanInterestType } from '../schema/index.ts';
 
 export interface LoanInferenceInput {
   principal: number | null;

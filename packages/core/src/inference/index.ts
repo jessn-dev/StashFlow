@@ -1,2 +1,2 @@
-export { inferLoanStructure, computeAddOnEIR } from './loanStructure';
-export type { LoanInferenceInput, LoanInferenceResult, LoanInferenceAlternative } from './loanStructure';
+export { inferLoanStructure, computeAddOnEIR } from './loanStructure.ts';
+export type { LoanInferenceInput, LoanInferenceResult, LoanInferenceAlternative } from './loanStructure.ts';

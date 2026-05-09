@@ -1,5 +1,5 @@
-import { Loan } from '../schema';
-import { convertToBase } from '../math/currency';
+import { Loan } from '../schema/index.ts';
+import { convertToBase } from '../math/currency.ts';
 
 export interface LoanAggregates {
   totalDebt: number;

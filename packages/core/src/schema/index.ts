@@ -1,4 +1,4 @@
-import { type Json, Database, Tables, Enums, Constants } from './database.types';
+import { type Json, Database, Tables, Enums, Constants } from './database.types.ts';
 
 export type { Database, Json };
 export { Constants };

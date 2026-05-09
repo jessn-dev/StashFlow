@@ -1,6 +1,6 @@
-import { Income, Expense, Loan, Asset, Goal, Region, DashboardPayload, ActivityItem } from '../schema';
-import { calculateDTIRatio } from '../math/dti';
-import { convertToBase } from '../math/currency';
+import { Income, Expense, Loan, Asset, Goal, Region, DashboardPayload, ActivityItem } from '../schema/index.ts';
+import { calculateDTIRatio } from '../math/dti.ts';
+import { convertToBase } from '../math/currency.ts';
 
 export function aggregateDashboardData(params: {
   incomes: Income[];

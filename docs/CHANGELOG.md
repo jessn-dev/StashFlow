@@ -44,6 +44,7 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 - **Compliance Alignment**: Replaced "Tax Residency Optimizers" with "Advanced Savings Goal Automations" to avoid regulated advice implications.
 - **Style Consolidation**: Removed redundant `globals.css` files and ~100 lines of legacy animation code to unify the styling engine.
 - **Typecheck Hardening**: Resolved 10+ TypeScript errors across `@stashflow/core`, `@stashflow/api`, and `web`, ensuring monorepo-wide type safety.
+- **Supabase CI Fix**: Resolved `supabase start` parsing errors in GitHub Actions by removing unsupported `config.toml` keys (`health_timeout`, `db.migrations.enabled`) and providing dummy OAuth environment variables for database testing.
 
 ### Removed
 - **Branding cleanup**: Removed all explicit "AI" and "Parsing" terminology from marketing copy in favor of "automated" benefit-driven language.

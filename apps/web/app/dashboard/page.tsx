@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import {
   TransactionQuery,
@@ -241,13 +242,12 @@ export default async function OverviewPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            disabled
-            title="Coming soon"
-            className="px-4 py-2 text-sm font-semibold text-gray-300 border border-gray-200 rounded-xl cursor-not-allowed"
+          <Link
+            href="/dashboard/transactions/import"
+            className="px-4 py-2 text-sm font-bold text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-900 rounded-xl transition-all"
           >
             Import
-          </button>
+          </Link>
           <button
             disabled
             title="Coming soon"

@@ -153,6 +153,7 @@ $$ LANGUAGE plpgsql;
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 DECLARE
+  id_test uuid := gen_random_uuid();
   id_us uuid := gen_random_uuid();
   id_ph uuid := gen_random_uuid();
   id_sg uuid := gen_random_uuid();
@@ -168,6 +169,7 @@ INSERT INTO auth.users (
   email_change_token_current, phone_change_token, reauthentication_token
 )
 VALUES
+  (id_test, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'test@stashflow.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Test User"}', now(), now(), false, '', '', '', '', '', '', ''),
   (id_us, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'us@stashflow.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Sam (USA)"}', now(), now(), false, '', '', '', '', '', '', ''),
   (id_ph, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ph@stashflow.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Pilar (PH)"}', now(), now(), false, '', '', '', '', '', '', ''),
   (id_sg, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'sg@stashflow.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Liling (SG)"}', now(), now(), false, '', '', '', '', '', '', ''),
@@ -178,6 +180,7 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, preferred_currency, budgeting_enabled)
 VALUES
+  (id_test, 'test@stashflow.com', 'Test User', 'USD', TRUE),
   (id_us, 'us@stashflow.com', 'Sam (USA)', 'USD', TRUE),
   (id_ph, 'ph@stashflow.com', 'Pilar (PH)', 'PHP', TRUE),
   (id_sg, 'sg@stashflow.com', 'Liling (SG)', 'SGD', TRUE),
@@ -189,6 +192,7 @@ ON CONFLICT (id) DO NOTHING;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- PERSONA-BASED DATA SEEDING
 -- ─────────────────────────────────────────────────────────────────────────────
+PERFORM public.seed_realistic_data(id_test, 'USD', 5000, 'improving');
 PERFORM public.seed_realistic_data(id_us, 'USD', 6500, 'balanced');
 PERFORM public.seed_realistic_data(id_ph, 'PHP', 45000, 'overspender');
 PERFORM public.seed_realistic_data(id_sg, 'SGD', 7200, 'improving');
@@ -207,6 +211,7 @@ VALUES
 
 INSERT INTO public.goals (user_id, name, target_amount, current_amount, type, currency)
 VALUES
+    (id_test, 'Emergency Fund', 15000, 4500, 'savings', 'USD'),
     (id_us, 'Emergency Fund', 20000, 9000, 'savings', 'USD'),
     (id_ph, 'Emergency Fund', 100000, 15000, 'savings', 'PHP'),
     (id_sg, 'Emergency Fund', 15000, 5000, 'savings', 'SGD'),

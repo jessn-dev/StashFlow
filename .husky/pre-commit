@@ -1,1 +1,2 @@
+pnpm install --lockfile-only --frozen-lockfile || (echo "❌ Lockfile is out of sync. Run 'pnpm install' locally." && exit 1)
 npx lint-staged

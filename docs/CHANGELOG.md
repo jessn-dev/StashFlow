@@ -6,6 +6,92 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 
 ---
 
+## [0.19.0] - 2026-05-18
+
+### Added
+- **Gated CI/CD Pipeline Architecture**
+  - **Manual Approval Gates**: Implemented GitHub Environments for `test` and `production` with mandatory reviewer sign-off for deployments.
+  - **Backend-First Deployment**: Re-engineered workflows to ensure Supabase secrets and Edge Functions are fully deployed before the Vercel frontend goes live.
+  - **Automated Backend Release**: Integrated `supabase secrets set` and `supabase functions deploy` into the CI/CD pipeline.
+  - **Production Rollback Pipeline**: Created a manual `rollback-prod.yml` workflow for near-instant reversion to stable deployment IDs in case of critical production failures.
+- **pnpm Lockfile Security Gates**
+  - **Husky pre-commit hook**: Implemented mandatory `pnpm install --lockfile-only --frozen-lockfile` check to prevent out-of-sync lockfiles from reaching CI.
+  - **lint-staged rule**: Added targeted validation for `**/package.json` changes to enforce lockfile integrity.
+- **Setup Automation (`setup.sh`)**
+  - **`db:clean`**: New command to stop and prune all local Supabase Docker resources (containers, volumes, networks).
+  - **Enhanced `clean`**: Now performs a deep clean of both build artifacts (`.next`, `.turbo`, `dist`) and database resources.
+  - **Robust `install`**: Standardized workspace dependency synchronization and lockfile health checks.
+  - **Environment Injection**: Updated `db:env` and `env:init` to automatically manage `supabase/.env` and the `SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI` for local dev.
+- **Vivid Liquid Prism Background**
+  - **Modern Animation Stack**: Installed `framer-motion` and refactored the legacy CSS/JS background.
+  - **Mesh Gradient**: Implemented a hardware-accelerated "Liquid Prism" effect with 5 animated color blobs (Indigo, Rose, Emerald, Amber, Cyan) using `mix-blend-multiply` and `opacity` for organic color bleeding.
+  - **Geometric Slant**: Used a large skewed container (`-skew-y-12`) to create a professional "Stripe-style" hero transition that frames the device mockup.
+- **Interactive Navbar**
+  - **Dynamic Background**: Header now transitions to solid white with a subtle shadow upon hover.
+  - **Unified Actions**: Styled "Sign in" and "Contact Us" as consistent rounded-pill actions with dark backgrounds.
+  - **Product Roadmap**: Added a new section and footer link showcasing "Shipped" and "Active Development" features.
+- **Custom Notification System**
+  - **Physics-based Toasts**: Implemented `AnimatePresence` managed "Coming Soon" notifications for placeholder features (Mobile App, Support).
+  - **State-Managed Messaging**: Dynamic title/message system to manage user expectations for post-MVP functionality.
+
+### Fixed
+- **Google OAuth Validation**: Resolved the `missing redirect URI` error by externalizing the `redirect_uri` to an environment variable (`SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI`) and automating its injection via `setup.sh`.
+- **Database Seeding Integrity**: Fixed a configuration mismatch in `config.toml` where empty `sql_paths` caused `seed.sql` to be ignored during reset.
+- **Universal Test Account**: Added `test@stashflow.com` (password: `password123`) to `seed.sql` with 6 months of realistic persona data to ensure a consistent testing baseline.
+- **Tree Hydration Errors**: Resolved critical SSR/CSR mismatches caused by browser extension attribute injection (fixed via `suppressHydrationWarning` in `layout.tsx`) and invalid HTML nesting (replaced nested `<p>` with `<div>`).
+- **UI Flickering**: Eliminated the Hero section "pop-in" by making it visible on the initial paint and replacing JS-driven reveal logic with Framer Motion.
+- **Text Readability Overhaul**: Performed a site-wide audit to replace low-contrast gray text with higher-contrast alternatives (`#4B5563`, `#0A2540`).
+- **Compliance Alignment**: Replaced "Tax Residency Optimizers" with "Advanced Savings Goal Automations" to avoid regulated advice implications.
+- **Style Consolidation**: Removed redundant `globals.css` files and ~100 lines of legacy animation code to unify the styling engine.
+- **Typecheck Hardening**: Resolved 10+ TypeScript errors across `@stashflow/core`, `@stashflow/api`, and `web`, ensuring monorepo-wide type safety.
+- **Supabase CI Hardening**: Standardized on **PostgreSQL 17** across all environments. Resolved parsing errors by pinning the Supabase CLI to version **2.98.2** and injecting real repository secrets into the CI environment.
+
+### Removed
+- **Branding cleanup**: Removed all explicit "AI" and "Parsing" terminology from marketing copy in favor of "automated" benefit-driven language.
+
+---
+
+## [0.18.0] - 2026-05-08
+
+### Added
+- **P3-B CI/CD Security Gates**
+  - **Automated RLS Testing**: Implemented 17 pgTAP database tests in `supabase/tests/rls_policies.sql` covering incomes, expenses, loans, assets, and sessions.
+  - **CI Wiring**: Integrated `supabase test db` into `.github/workflows/ci.yml`. Failed security policies now block PR merges.
+  - **CODEOWNERS**: Added `.github/CODEOWNERS` to enforce mandatory review on core math, security, and migration files.
+- **P3-C Ledger Integrity**
+  - **Cryptographic Ledger**: Implemented HMAC-SHA256 signing and verification in `@stashflow/core` to detect financial record tampering.
+  - **Live FX Feed**: Updated `sync-exchange-rates` edge function to fetch daily reference rates from the **Frankfurter API**. 
+  - **Cross-Rate Engine**: Edge function now automatically computes and stores bidirectional cross-rates (e.g., PHP ↔ SGD) via a USD bridge.
+  - **Integrity Verification Service**: Built `verify-ledger-integrity` edge function to scan the last 1,000 transactions for signature validity.
+  - **Security Settings UI**: Added a "Ledger Secure" status indicator in the web app to provide real-time integrity verification for users.
+- **P3-A Advanced Session Intelligence**
+  - **Anomaly Scoring Engine**: Developed a pure scoring algorithm in core to identify high-risk logins based on geographic shifts and unusual hours.
+  - **Session Event Logging**: Implemented a Supabase Auth Webhook (`log-session-event`) to capture immutable IP, country, and User-Agent metadata on login.
+  - **Session Management Dashboard**: Created `/dashboard/settings/sessions` allowing users to view risk scores per device and **revoke access** (force logout) for any session.
+
+### Fixed
+- **JavaScript Heap Out of Memory**: Resolved fatal memory errors by increasing the Node.js heap limit to **8GB** (`--max-old-space-size=8192`) across all core scripts (`dev`, `build`, `test`, `lint`, `typecheck`).
+- **Database Type Corruption**: Fixed a syntax error in `database.types.ts` caused by incorrect CLI output stripping.
+- **RLS Schema Mismatches**: Corrected column name errors in legacy database tests to align with current `@stashflow/core` schema.
+- **Chart Layout Noise**: Added `minWidth={0}` and `minHeight={0}` to all Recharts `ResponsiveContainer` instances to suppress negative dimension warnings in Next.js 16.
+- **Upsert Constraint Bug**: Fixed a bug in `sync-exchange-rates` where upserts would fail on multi-base pairs; updated to use `UNIQUE(base, target)` conflict target.
+
+### Documentation
+- **Production Deployment Guide**: Created `docs/DEPLOYMENT_GUIDE.md` centralizing all required environment variables, secrets management, and platform-specific configuration for Supabase, Vercel, and Google OAuth.
+- **Infrastructure Troubleshooting**: Added guidance for resolving memory-intensive monorepo build errors.
+- **Roadmap Update**: Marked Operations Preparation as completed and shifted focus to Final Launch Prep.
+
+---
+
+## [0.17.1] - 2026-05-15
+
+### Fixed
+- **Type cast cleanup:** Removed unnecessary `as any` on `txType` in `apps/web/app/dashboard/transactions/page.tsx:86`. Type was already correctly narrowed to `'all' | 'income' | 'expense'` by the preceding conditional.
+- **CLAUDE.md:** Updated stale milestone reference (was pointing to closed branch `feature/P2-B-signup-page-cleanup`).
+- **ROADMAP.md:** Added missing completed milestones P2-C, P2-D, P2-E to the milestones table; promoted P3 backlog to active sprint with detailed implementation specs.
+
+---
+
 ## [0.17.0] - 2026-05-15
 
 ### Added

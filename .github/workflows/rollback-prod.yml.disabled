@@ -1,0 +1,24 @@
+name: Rollback Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_id:
+        description: 'The ID of the deployment to roll back to (found in Vercel Dashboard)'
+        required: true
+
+jobs:
+  rollback:
+    name: Rollback Prod
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Install Vercel CLI
+        run: npm install --global vercel
+
+      - name: Revert Production via Vercel
+        run: |
+          vercel alias set ${{ github.event.inputs.deployment_id }} stashflow.com \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --scope=${{ secrets.VERCEL_ORG_ID }}

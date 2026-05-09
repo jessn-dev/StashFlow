@@ -48,9 +48,11 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 - **Edge Function Modernization**: Refactored dependency management for Supabase Edge Functions. Replaced deprecated `--import-map` flags with a unified `supabase/functions/deno.json` configuration.
 - **Monorepo Bundling Fix**: Resolved a critical "failed to create the graph" deployment error by implementing a **Local Proxy Strategy**. The CI pipeline now automatically bridges the isolated Supabase Docker context with the monorepo's shared packages (`@stashflow/core`) during deployment.
 - **Vercel Prebuilt Strategy**: Adopted the `vercel pull` -> `vercel build` -> `vercel deploy --prebuilt` workflow. This ensures that the exact same artifacts that pass CI are deployed to the web, resolving flag errors and improving deployment reliability for monorepos.
+- **Product Monitoring**: Integrated **@vercel/analytics** and **@vercel/speed-insights** into the root layout to track user engagement and Core Web Vitals in real-time.
+- **Dependency Security Hardening**: Resolved **15 vulnerabilities** (including 2 Critical and 2 High) by applying surgical pnpm overrides for `next`, `postcss`, `@babel/plugin-transform-modules-systemjs`, and `@xmldom/xmldom`.
 
 ### Fixed
-- **Edge Runtime Stability**: Resolved a critical `MIDDLEWARE_INVOCATION_FAILED` (ReferenceError: __dirname is not defined) error on Vercel by standardizing the project on stable versions: **Next.js 15.1.0**, **React 19.0.0**, and **Framer Motion 11.15.0**. This eliminated incompatible Node.js globals leaking into the Edge Runtime.
+- **Edge Runtime Stability**: Resolved a critical `MIDDLEWARE_INVOCATION_FAILED` (ReferenceError: __dirname is not defined) error on Vercel by standardizing the project on stable, secure versions: **Next.js 15.5.18**, **React 19.0.0**, and **Framer Motion 11.15.0**. This eliminated incompatible Node.js globals leaking into the Edge Runtime.
 - **Monorepo Type Unification**: Standardized `@types/react` and `@types/react-dom` across all packages (`web`, `mobile`, `api`, `ui`), resolving JSX component type mismatches and unblocking the workspace build.
 - **Deno Module Resolution**: Refactored the entire `@stashflow/core` package to use explicit `.ts` extensions in all internal imports. Enabled `allowImportingTsExtensions` in TypeScript configs to maintain compatibility with Next.js and Expo while satisfying Deno's strict requirements for Supabase Edge Functions.
 

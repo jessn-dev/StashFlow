@@ -45,7 +45,8 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 - **Style Consolidation**: Removed redundant `globals.css` files and ~100 lines of legacy animation code to unify the styling engine.
 - **Typecheck Hardening**: Resolved 10+ TypeScript errors across `@stashflow/core`, `@stashflow/api`, and `web`, ensuring monorepo-wide type safety.
 - **Supabase CI Hardening**: Standardized on **PostgreSQL 17** across all environments. Resolved parsing errors by pinning the Supabase CLI to version **2.98.2** and injecting real repository secrets into the CI environment.
-- **Edge Function Modernization**: Refactored dependency management for Supabase Edge Functions. Replaced deprecated `--import-map` flags with a unified `supabase/functions/deno.json` configuration, resolving deployment failures and ensuring compatibility with the latest Supabase CLI standards.
+- **Edge Function Modernization**: Refactored dependency management for Supabase Edge Functions. Replaced deprecated `--import-map` flags with a unified `supabase/functions/deno.json` configuration.
+- **Monorepo Bundling Fix**: Resolved a critical "failed to create the graph" deployment error by implementing a **Local Proxy Strategy**. The CI pipeline now automatically bridges the isolated Supabase Docker context with the monorepo's shared packages (`@stashflow/core`) during deployment.
 
 ### Removed
 - **Branding cleanup**: Removed all explicit "AI" and "Parsing" terminology from marketing copy in favor of "automated" benefit-driven language.

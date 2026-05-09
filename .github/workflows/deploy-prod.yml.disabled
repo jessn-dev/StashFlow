@@ -24,6 +24,12 @@ jobs:
           version: "2.98.2"
 
       - name: Link to Supabase Project (Prod)
+
+      - name: Setup shared core logic for Supabase
+        run: |
+          mkdir -p supabase/functions/_shared
+          rm -rf supabase/functions/_shared/core
+          cp -R packages/core supabase/functions/_shared/core
         run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_PROD }} -p ${{ secrets.SUPABASE_DB_PASSWORD_PROD }}
 
       - name: Set Supabase Secrets (Prod)

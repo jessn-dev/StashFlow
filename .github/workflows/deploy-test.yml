@@ -26,6 +26,12 @@ jobs:
       - name: Link to Supabase Project (Test)
         run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }} -p ${{ secrets.SUPABASE_DB_PASSWORD_TEST }}
 
+      - name: Setup shared core logic for Supabase
+        run: |
+          mkdir -p supabase/functions/_shared
+          rm -rf supabase/functions/_shared/core
+          cp -R packages/core supabase/functions/_shared/core
+
       - name: Set Supabase Secrets (Test)
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}

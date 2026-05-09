@@ -103,7 +103,26 @@ Add these in **GitHub > Settings > Secrets and variables > Actions**:
 
 ---
 
-## 3. Infrastructure Troubleshooting
+## 4. Monorepo Edge Function Strategy
+
+Supabase Edge Functions are deployed in an isolated Docker container. To allow these functions to use shared code from `packages/core` in a monorepo, we use a **Local Proxy Strategy**.
+
+### **How it works**
+1.  **Shared Path**: All functions import from `@stashflow/core`, which is mapped to `./_shared/core/src/index.ts` in `supabase/functions/deno.json`.
+2.  **Local Dev**: A symlink connects `supabase/functions/_shared/core` to the real `packages/core` for real-time updates.
+3.  **CI/CD**: The GitHub Actions pipeline (`deploy-test.yml`) automatically **copies** the `packages/core` folder into the `supabase/` directory before deployment. This allows the Supabase bundler to see the code while maintaining strict container isolation.
+
+### **Manual Deployment (Emergency)**
+If you ever need to deploy functions manually from your Mac:
+```bash
+mkdir -p supabase/functions/_shared
+cp -R packages/core supabase/functions/_shared/core
+supabase functions deploy --project-ref <REF>
+```
+
+---
+
+## 5. Infrastructure Troubleshooting
 
 ### JavaScript Heap Out of Memory
 Large builds with Turbopack or complex TypeScript types can exceed Node's default memory limit.

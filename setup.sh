@@ -12,6 +12,7 @@
 #   db:start                  Start local Supabase (Docker)
 #   db:stop                   Stop local Supabase
 #   db:reset                  Reset DB — reapply all migrations + seed data
+#   db:clean                  Stop and prune all local Supabase containers and volumes
 #   db:functions              Serve Edge Functions locally with .env loading
 #   db:status                 Show running Supabase service URLs & ports
 #   db:port <port>            Change the local Supabase API port
@@ -132,6 +133,7 @@ cmd_help() {
   echo -e "    db:start                   Start local Supabase instance (Docker)"
   echo -e "    db:stop                    Stop local Supabase instance"
   echo -e "    db:reset                   Drop + reapply migrations + seed data"
+  echo -e "    db:clean                   Stop and prune all local Supabase containers and volumes"
   echo -e "    db:functions               Serve Edge Functions locally with .env loading"
   echo -e "    db:status                  Show service URLs and running status"
   echo -e "    db:port <port>             Change the Supabase API port (config.toml)"
@@ -324,6 +326,11 @@ cmd_db_env() {
   upsert_env_var supabase/functions/.env SUPABASE_URL      "http://supabase_kong_StashFlow:8000"
   upsert_env_var supabase/functions/.env SUPABASE_ANON_KEY "$anon_key"
   success "Updated supabase/functions/.env"
+
+  # ── Supabase CLI (Local Dev) ──────────────────────────────────────────────
+  touch supabase/.env
+  upsert_env_var supabase/.env SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI "http://127.0.0.1:54321/auth/v1/callback"
+  success "Updated supabase/.env"
 }
 
 cmd_db_jwt() {
@@ -403,6 +410,37 @@ cmd_typecheck() {
   success "Typecheck passed."
 }
 
+cmd_db_clean() {
+  if command -v supabase &>/dev/null; then
+    info "Stopping Supabase containers..."
+    supabase stop --no-backup 2>/dev/null || true
+  fi
+
+  if command -v docker &>/dev/null; then
+    info "Pruning local Supabase Docker resources..."
+    local containers
+    containers=$(docker ps -a --filter "name=supabase" --format "{{.ID}}")
+    if [ -n "$containers" ]; then
+      echo "$containers" | xargs docker rm -f 2>/dev/null || true
+    fi
+
+    local volumes
+    volumes=$(docker volume ls --filter "name=supabase" --format "{{.Name}}")
+    if [ -n "$volumes" ]; then
+      echo "$volumes" | xargs docker volume rm 2>/dev/null || true
+    fi
+
+    local networks
+    networks=$(docker network ls --filter "name=supabase" --format "{{.ID}}")
+    if [ -n "$networks" ]; then
+      echo "$networks" | xargs docker network rm 2>/dev/null || true
+    fi
+    success "Supabase Docker resources pruned."
+  else
+    warn "Docker not found — skipping container cleanup."
+  fi
+}
+
 cmd_clean() {
   info "Cleaning monorepo build artifacts..."
   find . -type d -name ".next"       -not -path "*/node_modules/*" -exec rm -rf {} + 2>/dev/null || true
@@ -412,22 +450,7 @@ cmd_clean() {
   find . -type d -name "node_modules"                              -exec rm -rf {} + 2>/dev/null || true
   success "Build artifacts removed."
 
-  # ── Docker / Supabase cleanup ─────────────────────────────────────────────
-  if command -v supabase &>/dev/null; then
-    info "Stopping Supabase containers..."
-    supabase stop --no-backup 2>/dev/null || true
-    success "Supabase containers stopped."
-  fi
-
-  if command -v docker &>/dev/null; then
-    info "Pruning stopped Supabase Docker containers..."
-    docker ps -a --filter "name=supabase" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null || true
-    info "Pruning dangling Docker volumes..."
-    docker volume ls --filter "name=supabase" --format "{{.Name}}" | xargs -r docker volume rm 2>/dev/null || true
-    success "Docker cleanup complete."
-  else
-    warn "Docker not found — skipping container cleanup."
-  fi
+  cmd_db_clean
 
   success "Workspace fully clean. Run ./setup.sh install to rebuild."
 }
@@ -456,6 +479,17 @@ cmd_env_init() {
     else
       touch supabase/functions/.env
       info "Created supabase/functions/.env"
+    fi
+    created=1
+  fi
+
+  if [ ! -f "supabase/.env" ]; then
+    if [ -f "supabase/.env.example" ]; then
+      cp supabase/.env.example supabase/.env
+      info "Created supabase/.env from .env.example"
+    else
+      touch supabase/.env
+      info "Created supabase/.env"
     fi
     created=1
   fi
@@ -496,6 +530,10 @@ cmd_env_init() {
   upsert_env_var supabase/functions/.env SUPABASE_ANON_KEY "$anon_key"
   success "Updated supabase/functions/.env"
 
+  # ── Supabase CLI (Local Dev) ──────────────────────────────────────────────
+  upsert_env_var supabase/.env SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI "http://127.0.0.1:54321/auth/v1/callback"
+  success "Updated supabase/.env"
+
   success "All env files ready."
 }
 
@@ -509,6 +547,7 @@ case "$1" in
   db:start)     cmd_db_start ;;
   db:stop)      supabase stop ;;
   db:reset)     cmd_db_reset ;;
+  db:clean)     cmd_db_clean ;;
   db:functions) cmd_db_functions ;;
   db:status)    cmd_db_status ;;
   db:port)      cmd_db_port "$2" ;;

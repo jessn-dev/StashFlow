@@ -18,7 +18,7 @@ export function FeatureCard({
       </div>
 
       <h4 className="text-xl font-bold text-[#0A2540] tracking-tight">{title}</h4>
-      <p className="mt-3 text-sm text-gray-500 leading-relaxed font-medium">{description}</p>
+      <p className="mt-3 text-sm text-[#4B5563] leading-relaxed font-bold">{description}</p>
     </div>
   );
 }

@@ -33,6 +33,7 @@ Build a calm financial command center powered by invisible intelligence and secu
 
 | Phase | Milestone | Description | Date |
 |-------|-----------|-------------|------|
+| **DevOps** | **Workflow Security** | pnpm lockfile gates (Husky/lint-staged) + setup automation (`db:clean`) | 2026-05-18 |
 | P1/P2 | Stability & Scaling | Multi-currency, unified feed, AI parser hardening, architectural consolidation | 2026-05-15 |
 | **P3-A** | **Session Intel** | Active session revocation UI + anomaly scoring webhook | 2026-05-08 |
 | **P3-B** | **CI/CD Security** | pgTAP RLS tests, CODEOWNERS, automated audit gates | 2026-05-08 |
@@ -53,14 +54,14 @@ Build a calm financial command center powered by invisible intelligence and secu
 
 ### Operations & Deployment ✅
 
-**Goal:** Transition from local development to production-grade infrastructure.
+**Goal:** Establish a secure, repeatable three-tier environment strategy (Local, Test, Prod).
 
 | Item | Task | Notes | Status |
 |------|------|-------|--------|
-| Production DB | Migration Push | Safe triggers & stubs created for production deployment | ✅ |
-| Web Vercel | Production Build | Configuration guide centralized in `docs/DEPLOYMENT_GUIDE.md` | ✅ |
-| Stability | Memory Heap | Increased to 8GB for all lifecycle scripts | ✅ |
-| Documentation | Setup Guide | Full env var and platform setup guide created | ✅ |
+| Environments | 3-Tier Setup | Local (Dev), Test (MVP Launch), and Prod (Post-MVP) | ✅ |
+| CI/CD | Branch Targeting | `develop` targets Test; `main` targets Prod | ✅ |
+| Security | Vulnerability Fixes | High-severity CVEs resolved via pnpm audit fix | ✅ |
+| Documentation | Setup Guide | `docs/DEPLOYMENT_GUIDE.md` updated with multi-env guide | ✅ |
 
 ---
 
@@ -70,5 +71,5 @@ Build a calm financial command center powered by invisible intelligence and secu
 |---|---------|-------|-------------|
 | 1 | Bank Feed Integration | `/dashboard/bank/connect` | Legal Entity + Regional Compliance |
 | 2 | Mobile App (Expo) | `apps/mobile/` | MVP Web Stable |
-| 3 | FX Snapshots | Immutable rate triggers | Multi-currency scale-up |
+| 3 | Advanced Goal Automations | `/dashboard/plans` | Multi-currency Goal Logic |
 | 4 | P3-D Observability | Transaction spike alerts | Bank feed volume |

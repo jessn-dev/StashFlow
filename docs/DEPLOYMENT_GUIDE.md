@@ -15,6 +15,7 @@
 | `SUPABASE_SERVICE_ROLE_KEY` | Web (Server Only) | Admin key for bypass-RLS operations (e.g. initial profile creation). | Supabase Dashboard -> Settings -> API |
 | `GOOGLE_CLIENT_ID` | Auth (Web/Mobile) | OAuth 2.0 Client ID for Google login. | Google Cloud Console -> APIs & Services |
 | `GOOGLE_CLIENT_SECRET` | Auth (Web/Server) | OAuth 2.0 Client Secret. | Google Cloud Console -> APIs & Services |
+| `SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI` | Auth (Supabase) | Explicit callback URI for Google OAuth handshake. | `https://<ref>.supabase.co/auth/v1/callback` |
 
 ### Edge Function Contexts (`supabase secrets set`)
 
@@ -31,34 +32,34 @@
 
 ## 2. Platform Setup Guides
 
-### Supabase (Production)
-1.  **Create Project:** Create a new project. Select region closest to your users.
+StashFlow uses a three-tier environment strategy. Daily development happens in **Local (Dev)**. MVP validation occurs in **Test (MVP)**. Full-scale release happens in **Prod (Post-MVP)**.
+
+### Platform Specifics (Apply to both Test and Prod)
+
+#### Supabase
+1.  **Create Project:** Create a new project (e.g., `StashFlow-Test` or `StashFlow-Prod`).
 2.  **Enable pg_net:** Go to **Database -> Extensions** and enable `pg_net`.
 3.  **Apply Migrations:** Run `supabase db push` from your local CLI after linking.
 4.  **Configure Auth:**
     *   **External Providers:** Enable Google. Paste Client ID and Secret.
     *   **Redirect URI:** Ensure `https://<project-ref>.supabase.co/auth/v1/callback` is authorized in Google Cloud Console.
-5.  **Post-Deploy Wiring:** Run `supabase/snippets/production_wiring.sql` in the SQL Editor to activate the production document parser.
+5.  **Post-Deploy Wiring:** Run `supabase/snippets/production_wiring.sql` in the SQL Editor to activate the parser.
 
-### Vercel (Production)
+#### Vercel
 1.  **Import Project:** Import the monorepo.
 2.  **Root Directory:** Set to `apps/web`.
 3.  **Build Settings:** 
     *   Framework: Next.js
-    *   Build Command: `cd ../.. && pnpm build` (Vercel automatically handles monorepo roots if configured correctly).
-4.  **Environment Variables:** Add all variables from the "Application Contexts" table above.
-5.  **Custom Domain:** Add your production domain in Settings -> Domains.
+    *   Build Command: `cd ../.. && pnpm build`
+4.  **Environment Variables:** Add all variables from the "Application Contexts" table above for each specific environment.
 
 ### GitHub Actions (CI/CD)
-The pipeline is defined in `.github/workflows/ci.yml`. To enable automated deployment:
+The pipeline is defined in `.github/workflows/ci.yml`. 
 
-1.  **Repository Secrets:** Go to **Settings -> Secrets and variables -> Actions** and add:
-    *   `VERCEL_TOKEN`: Your Vercel Personal Access Token.
-    *   `VERCEL_ORG_ID`: Your Vercel Team ID.
-    *   `VERCEL_PROJECT_ID`: The Project ID from Vercel settings.
-    *   `NEXT_PUBLIC_SUPABASE_URL`: (Used for E2E tests).
-    *   `NEXT_PUBLIC_SUPABASE_ANON_KEY`: (Used for E2E tests).
-2.  **Enable Deploy Job:** In `ci.yml`, uncomment the actual Vercel CLI commands in the `deploy` job.
+1.  **Repository Secrets:** Add secrets for each environment (e.g., `TEST_VERCEL_TOKEN`, `PROD_VERCEL_TOKEN`).
+2.  **Branch Targeting:** 
+    *   Pushes to `develop` trigger a deployment to the **Test** environment.
+    *   Pushes to `main` trigger a deployment to the **Production** environment.
 
 ---
 

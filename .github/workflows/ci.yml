@@ -165,14 +165,21 @@ jobs:
       - name: Run pgTAP tests
         run: supabase test db
 
-  # ─── Deployment (Phase 7 Stub) ──────────────────────────────────────────────
-  # Gated to main branch pushes. Requires VERCEL_TOKEN, ORG_ID, PROJECT_ID.
+  # ─── Deployment ─────────────────────────────────────────────────────────────
+  # Targets Test (MVP) for develop branch, Production for main branch.
   deploy:
-    name: Deploy to Production
+    name: Deploy to ${{ github.ref == 'refs/heads/main' && 'Production' || 'Test' }}
     needs: [test, security, rls-tests]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') && github.event_name == 'push'
     runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ github.ref == 'refs/heads/main' && secrets.PROD_VERCEL_TOKEN || secrets.TEST_VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ github.ref == 'refs/heads/main' && secrets.PROD_VERCEL_ORG_ID || secrets.TEST_VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ github.ref == 'refs/heads/main' && secrets.PROD_VERCEL_PROJECT_ID || secrets.TEST_VERCEL_PROJECT_ID }}
+
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy (Stub)
-        run: echo "Production deployment triggered. Follow Phase 7 of docs/OPERATIONS.md to finalize wiring."
+      - name: Install Vercel CLI
+        run: npm install --global vercel
+      - name: Deploy to Vercel
+        run: vercel deploy --prebuilt --token=${{ env.VERCEL_TOKEN }}

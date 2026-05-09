@@ -8,9 +8,9 @@
 
 | Environment | Purpose | URL |
 |-------------|---------|-----|
-| Local | Development and testing | `http://localhost:3000` (web), `http://localhost:8081` (mobile) |
-| Staging | Pre-production validation | Planned (Vercel preview + Supabase staging project) |
-| Production | Live user traffic | Planned (Vercel + Supabase production project) |
+| Local (Dev) | Daily feature development and experimentation. | `http://localhost:3000` (web), `http://localhost:8081` (mobile) |
+| Test (MVP) | **Active Milestone.** Production-grade preview for the MVP launch. Used for final validation before public release. | `https://test.stashflow.com` (planned) |
+| Prod (Post-MVP) | Full-scale production. Deployed after Legal/Mobile MVP completion. | `https://stashflow.com` (planned) |
 
 ---
 

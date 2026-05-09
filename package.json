@@ -22,6 +22,9 @@
     "typescript": "^6.0.3"
   },
   "lint-staged": {
+    "**/package.json": [
+      "pnpm install --lockfile-only --frozen-lockfile"
+    ],
     "*.{ts,tsx}": [
       "bash -c 'pnpm test --filter=...[HEAD]'"
     ]

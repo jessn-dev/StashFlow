@@ -6,6 +6,43 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 
 ---
 
+## [0.19.0] - 2026-05-18
+
+### Added
+- **pnpm Lockfile Security Gates**
+  - **Husky pre-commit hook**: Implemented mandatory `pnpm install --lockfile-only --frozen-lockfile` check to prevent out-of-sync lockfiles from reaching CI.
+  - **lint-staged rule**: Added targeted validation for `**/package.json` changes to enforce lockfile integrity.
+- **Setup Automation (`setup.sh`)**
+  - **`db:clean`**: New command to stop and prune all local Supabase Docker resources (containers, volumes, networks).
+  - **Enhanced `clean`**: Now performs a deep clean of both build artifacts (`.next`, `.turbo`, `dist`) and database resources.
+  - **Robust `install`**: Standardized workspace dependency synchronization and lockfile health checks.
+- **Vivid Liquid Prism Background**
+  - **Modern Animation Stack**: Installed `framer-motion` and refactored the legacy CSS/JS background.
+  - **Mesh Gradient**: Implemented a hardware-accelerated "Liquid Prism" effect with 5 animated color blobs (Indigo, Rose, Emerald, Amber, Cyan) using `mix-blend-multiply` and `opacity` for organic color bleeding.
+  - **Geometric Slant**: Used a large skewed container (`-skew-y-12`) to create a professional "Stripe-style" hero transition that frames the device mockup.
+- **Interactive Navbar**
+  - **Dynamic Background**: Header now transitions to solid white with a subtle shadow upon hover.
+  - **Unified Actions**: Styled "Sign in" and "Contact Us" as consistent rounded-pill actions with dark backgrounds.
+  - **Product Roadmap**: Added a new section and footer link showcasing "Shipped" and "Active Development" features.
+- **Custom Notification System**
+  - **Physics-based Toasts**: Implemented `AnimatePresence` managed "Coming Soon" notifications for placeholder features (Mobile App, Support).
+  - **State-Managed Messaging**: Dynamic title/message system to manage user expectations for post-MVP functionality.
+
+### Fixed
+- **Google OAuth Validation**: Resolved the `missing redirect URI` error by externalizing the `redirect_uri` to an environment variable (`SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI`) and automating its injection via `setup.sh`.
+- **Database Seeding Integrity**: Fixed a configuration mismatch in `config.toml` where empty `sql_paths` caused `seed.sql` to be ignored during reset.
+- **Universal Test Account**: Added `test@stashflow.com` (password: `password123`) to `seed.sql` with 6 months of realistic persona data to ensure a consistent testing baseline.
+- **Tree Hydration Errors**: Resolved critical SSR/CSR mismatches caused by browser extension attribute injection (fixed via `suppressHydrationWarning` in `layout.tsx`) and invalid HTML nesting (replaced nested `<p>` with `<div>`).
+- **UI Flickering**: Eliminated the Hero section "pop-in" by making it visible on the initial paint and replacing JS-driven reveal logic with Framer Motion.
+- **Text Readability Overhaul**: Performed a site-wide audit to replace low-contrast gray text with higher-contrast alternatives (`#4B5563`, `#0A2540`).
+- **Compliance Alignment**: Replaced "Tax Residency Optimizers" with "Advanced Savings Goal Automations" to avoid regulated advice implications.
+- **Style Consolidation**: Removed redundant `globals.css` files and ~100 lines of legacy animation code to unify the styling engine.
+
+### Removed
+- **Branding cleanup**: Removed all explicit "AI" and "Parsing" terminology from marketing copy in favor of "automated" benefit-driven language.
+
+---
+
 ## [0.18.0] - 2026-05-08
 
 ### Added

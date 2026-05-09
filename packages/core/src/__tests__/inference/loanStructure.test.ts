@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { inferLoanStructure, computeAddOnEIR } from '../../inference/loanStructure';
+import { inferLoanStructure, computeAddOnEIR } from '../../inference/loanStructure.ts';
 
 // Benchmark payments for P=500000, rate=12%, n=36
 // Amortized: ~16607, Add-on: ~22222, Interest-only: 5000

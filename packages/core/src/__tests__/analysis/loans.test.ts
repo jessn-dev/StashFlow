@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { aggregateLoanFinancials } from '../../analysis/loans';
-import { Loan } from '../../schema';
+import { aggregateLoanFinancials } from '../../analysis/loans.ts';
+import { Loan } from '../../schema/index.ts';
 
 describe('loan analysis', () => {
   it('should aggregate loan financials correctly', () => {

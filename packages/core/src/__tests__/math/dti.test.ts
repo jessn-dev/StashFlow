@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateDTIRatio, simulateDTI } from '../../math/dti';
+import { calculateDTIRatio, simulateDTI } from '../../math/dti.ts';
 
 describe('DTI math', () => {
   describe('calculateDTIRatio', () => {

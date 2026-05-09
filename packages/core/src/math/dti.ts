@@ -1,4 +1,4 @@
-import { Region, DTIRatioResult } from '../schema';
+import { Region, DTIRatioResult } from '../schema/index.ts';
 
 export const REGIONAL_THRESHOLDS: Record<Region, number> = {
   US: 0.36, // Standard 36% rule

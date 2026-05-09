@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateAmortizationSchedule } from '../../math/loans';
+import { generateAmortizationSchedule } from '../../math/loans.ts';
 
 describe('loan math', () => {
   const baseParams = {

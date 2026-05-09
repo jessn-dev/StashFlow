@@ -1,4 +1,4 @@
-import { Database } from './database.types'
+import { Database } from './database.types.ts'
 export type { Database }
 
 export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']

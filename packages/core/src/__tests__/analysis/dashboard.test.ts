@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { aggregateDashboardData } from '../../analysis/dashboard';
-import { Income, Expense, Loan, Asset } from '../../schema';
+import { aggregateDashboardData } from '../../analysis/dashboard.ts';
+import { Income, Expense, Loan, Asset } from '../../schema/index.ts';
 
 describe('dashboard analysis', () => {
   it('should aggregate data correctly', () => {

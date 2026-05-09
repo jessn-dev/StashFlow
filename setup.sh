@@ -208,7 +208,6 @@ cmd_dev() {
   info "Launching local Edge Functions server..."
   supabase functions serve \
     --env-file supabase/functions/.env \
-    --import-map supabase/functions/import_map.json \
     --no-verify-jwt &
   FUNC_PID=$!
 
@@ -272,7 +271,6 @@ cmd_db_functions() {
   info "Serving Edge Functions locally..."
   supabase functions serve \
     --env-file supabase/functions/.env \
-    --import-map supabase/functions/import_map.json \
     --no-verify-jwt
 }
 

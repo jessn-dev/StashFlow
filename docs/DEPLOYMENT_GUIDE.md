@@ -83,8 +83,21 @@ StashFlow uses Terraform to automate the provisioning of cloud resources (Supaba
 ### GitHub Actions (CI/CD)
 The pipeline is defined in `.github/workflows/ci.yml`. 
 
-1.  **Repository Secrets:** Add secrets for each environment (e.g., `TEST_VERCEL_TOKEN`, `PROD_VERCEL_TOKEN`).
-2.  **Branch Targeting:** 
+#### **Required Repository Secrets**
+Add these in **GitHub > Settings > Secrets and variables > Actions**:
+
+| Secret Name | Description | Source |
+| :--- | :--- | :--- |
+| `SUPABASE_ACCESS_TOKEN` | Personal Access Token for CLI auth. | [Supabase Dashboard](https://supabase.com/dashboard/account/tokens) |
+| `VERCEL_TOKEN` | Master API token for Vercel. | [Vercel Account Settings](https://vercel.com/account/tokens) |
+| `VERCEL_ORG_ID` | Your Vercel Team/Org ID. | Vercel Project Settings |
+| `VERCEL_PROJECT_ID_TEST` | Project ID for the **Test** project. | Vercel Project Settings |
+| `SUPABASE_PROJECT_REF_TEST` | The 20-char Ref for **Test** project. | Supabase Project Settings |
+| `SUPABASE_DB_PASSWORD_TEST` | Database password for **Test** project. | Your chosen password |
+| `GOOGLE_CLIENT_ID` | OAuth Client ID. | Google Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | OAuth Client Secret. | Google Cloud Console |
+
+1.  **Branch Targeting:** 
     *   Pushes to `develop` trigger a deployment to the **Test** environment.
     *   Pushes to `main` trigger a deployment to the **Production** environment.
 

@@ -10,6 +10,11 @@ jobs:
     name: Deploy Supabase (Test)
     runs-on: ubuntu-latest
     environment: test
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI }}
     
     steps:
       - uses: actions/checkout@v4

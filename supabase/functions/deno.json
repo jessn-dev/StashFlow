@@ -1,7 +1,9 @@
 {
   "imports": {
-    "@stashflow/core": "./_shared/core/src/index.ts",
+    "@stashflow/core": "./_shared/core/src/mod.ts",
+    "@stashflow/document-parser": "./_shared/document-parser/src/mod.ts",
     "zod": "npm:zod@3",
-    "@supabase/functions-js": "jsr:@supabase/functions-js@^2"
+    "@supabase/functions-js": "jsr:@supabase/functions-js@^2",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2"
   }
 }

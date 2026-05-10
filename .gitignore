@@ -38,6 +38,7 @@ ios/
 # Supabase local dev
 supabase/.branches
 supabase/.temp
+supabase/functions/_shared/
 
 # Docs — committed: governance suite (SECURITY, OPERATIONS, API, CONTRIBUTING,
 # ROADMAP, CHANGELOG, README) + reference triad (ARCHITECTURE, DATA_MODEL, DECISIONS).
@@ -51,5 +52,4 @@ docs/reference/
 CLAUDE.md
 
 .idea/
-.claudesupabase/functions/_shared/core
 .claude

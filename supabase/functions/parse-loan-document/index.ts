@@ -1,12 +1,12 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.104.1"
+import { createClient } from "@supabase/supabase-js"
 import {
   inspectFile,
   extractPdfText,
   runVisionOCR,
   parseLoan,
   scoreResult,
-} from "../_shared/document-parser/index.ts"
-import type { ProcessingError, ExtractedLoanData, MultiLoanExtractedData } from "../_shared/document-parser/index.ts"
+} from "@stashflow/document-parser"
+import type { ProcessingError, ExtractedLoanData, MultiLoanExtractedData } from "@stashflow/document-parser"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

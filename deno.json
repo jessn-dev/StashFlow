@@ -1,7 +1,7 @@
 {
   "workspace": ["packages/core", "packages/document-parser"],
   "imports": {
-    "@stashflow/core": "./packages/core/src/index.ts",
+    "@stashflow/core": "./packages/core/src/mod.ts",
     "zod": "npm:zod@3",
     "@supabase/functions-js": "jsr:@supabase/functions-js@^2"
   }

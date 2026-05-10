@@ -1,4 +1,4 @@
-import { LoanInterestType } from '../schema/index.ts';
+import { LoanInterestType } from '../schema/mod.ts';
 
 export interface LoanInferenceInput {
   principal: number | null;
@@ -178,7 +178,7 @@ export function inferLoanStructure(input: LoanInferenceInput): LoanInferenceResu
   return {
     interest_type: winner.type,
     confidence: boostedConf,
-    reason: EXPLANATIONS[winner.type],
+    reason: EXPLANATIONS[winner.type] || 'Inferred based on payment patterns.',
     alternatives: candidates
       .slice(1)
       .map(c => ({

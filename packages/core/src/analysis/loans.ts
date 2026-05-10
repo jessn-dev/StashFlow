@@ -1,4 +1,4 @@
-import { Loan } from '../schema/index.ts';
+import { Loan } from '../schema/mod.ts';
 import { convertToBase } from '../math/currency.ts';
 
 export interface LoanAggregates {

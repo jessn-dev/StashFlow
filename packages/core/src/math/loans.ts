@@ -1,4 +1,4 @@
-import { LoanInterestType, LoanInterestBasis } from '../schema/index.ts';
+import { LoanInterestType, LoanInterestBasis } from '../schema/mod.ts';
 
 export interface AmortizationEntry {
   period: number;

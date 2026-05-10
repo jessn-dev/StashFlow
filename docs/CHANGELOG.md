@@ -56,6 +56,7 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 - **Edge Runtime Stability**: Resolved a critical `MIDDLEWARE_INVOCATION_FAILED` (ReferenceError: __dirname is not defined) error on Vercel by standardizing the project on stable, secure versions: **Next.js 15.5.18**, **React 19.0.0**, and **Framer Motion 11.15.0**. This eliminated incompatible Node.js globals leaking into the Edge Runtime.
 - **Monorepo Type Unification**: Standardized `@types/react` and `@types/react-dom` across all packages (`web`, `mobile`, `api`, `ui`), resolving JSX component type mismatches and unblocking the workspace build.
 - **Deno Module Resolution**: Refactored the entire `@stashflow/core` package to use explicit `.ts` extensions in all internal imports. Enabled `allowImportingTsExtensions` in TypeScript configs to maintain compatibility with Next.js and Expo while satisfying Deno's strict requirements for Supabase Edge Functions.
+- **Git Hygiene**: Resolved "beyond a symbolic link" commit blockers by properly ignoring and untracking the `supabase/functions/_shared/` directory, which contains local symlinks for Deno compatibility.
 
 ### Removed
 - **Branding cleanup**: Removed all explicit "AI" and "Parsing" terminology from marketing copy in favor of "automated" benefit-driven language.

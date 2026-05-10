@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.104.1"
+import { createClient } from "@supabase/supabase-js"
 
 Deno.serve(async (req) => {
   // 1. Security: Validate CRON_SECRET

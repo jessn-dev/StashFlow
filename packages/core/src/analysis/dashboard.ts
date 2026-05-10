@@ -1,4 +1,4 @@
-import { Income, Expense, Loan, Asset, Goal, Region, DashboardPayload, ActivityItem } from '../schema/index.ts';
+import { Income, Expense, Loan, Asset, Goal, Region, DashboardPayload, ActivityItem } from '../schema/mod.ts';
 import { calculateDTIRatio } from '../math/dti.ts';
 import { convertToBase } from '../math/currency.ts';
 

@@ -1,4 +1,4 @@
-import { Region } from '../schema/index.ts';
+import { Region } from '../schema/mod.ts';
 import { REGIONAL_THRESHOLDS } from '../math/dti.ts';
 
 export interface RegionalStrategy {

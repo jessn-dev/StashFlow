@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRegionalStrategy, USStrategy, PHStrategy, SGStrategy, getRegionByCurrency } from '../../regional/index.ts';
+import { getRegionalStrategy, USStrategy, PHStrategy, SGStrategy, getRegionByCurrency } from '../../regional/mod.ts';
 
 describe('regional strategies', () => {
   it('should return correct strategy for US', () => {

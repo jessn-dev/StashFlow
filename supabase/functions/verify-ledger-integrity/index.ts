@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.104.1"
+import { createClient } from "@supabase/supabase-js"
 // Note: We'll use a local copy of the logic since edge functions can't easily import from packages/core yet
 // in a local dev environment without complex volume mapping or bundling.
 // For now, we'll implement the verify logic directly or via a shared utility in supabase/functions/_shared.

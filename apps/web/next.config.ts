@@ -12,11 +12,6 @@ const nextConfig: NextConfig = {
   ],
   // Prevent heavy source maps in production
   productionBrowserSourceMaps: false,
-  // Optimization: ignore linting/typechecking during the Vercel build phase 
-  // (since our CI already does this in a separate job)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },

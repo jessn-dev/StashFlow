@@ -83,11 +83,17 @@ jobs:
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Build Project Artifacts
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Prune Build Artifacts
+        run: |
+          rm -rf apps/web/.next/cache
+          rm -rf .turbo
+          echo "Pruned cache to stay under 100MB limit"
 
       - name: Debug Large Files
         run: |
-          find .vercel/output -type f -size +50M -exec du -h {} + || echo "No files > 50MB found"
+          find .vercel/output -type f -size +30M -exec du -h {} + || echo "No files > 30MB found"
 
       - name: Deploy Project Artifacts to Vercel
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --prebuilt --prod --yes --token=${{ secrets.VERCEL_TOKEN }}

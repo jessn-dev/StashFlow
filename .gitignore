@@ -38,7 +38,8 @@ ios/
 # Supabase local dev
 supabase/.branches
 supabase/.temp
-supabase/functions/_shared/
+supabase/functions/_shared/core
+supabase/functions/_shared/document-parser
 
 # Docs — committed: governance suite (SECURITY, OPERATIONS, API, CONTRIBUTING,
 # ROADMAP, CHANGELOG, README) + reference triad (ARCHITECTURE, DATA_MODEL, DECISIONS).

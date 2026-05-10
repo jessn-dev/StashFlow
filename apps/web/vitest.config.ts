@@ -3,13 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [
-    react({
-      babel: {
-        plugins: [],
-      },
-    }),
-  ],
+  plugins: [react()],
   test: {
     globals: true,
     environment: 'jsdom',
@@ -17,7 +11,6 @@ export default defineConfig({
     exclude: ['e2e/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',
-      all: false,
       reporter: ['text', 'lcov', 'html'],
       include: [],
       exclude: ['**/*.d.ts'],

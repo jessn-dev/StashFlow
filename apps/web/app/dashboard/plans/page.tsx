@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '~/lib/supabase/server';
 import { GoalQuery, BudgetQuery } from '@stashflow/api';
-import { PlansClient } from '@/modules/plans';
+import { PlansClient } from '~/modules/plans';
 
 export default async function PlansPage() {
   const supabase = await createClient();

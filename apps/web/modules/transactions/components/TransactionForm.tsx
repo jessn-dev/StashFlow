@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '~/lib/supabase/client';
 import { EXPENSE_CATEGORIES, CURRENCIES } from '@stashflow/core';
 import type { UnifiedTransaction, ExpenseCategory, IncomeFrequency } from '@stashflow/core';
 

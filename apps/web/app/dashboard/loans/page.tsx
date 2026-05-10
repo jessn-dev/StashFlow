@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '~/lib/supabase/server';
 import { LoansServiceFactory } from '@stashflow/api';
 import { formatCurrency, generateAmortizationSchedule, Loan, LoanInterestType, LoanMetrics } from '@stashflow/core';
 import Link from 'next/link';
-import { AddLoanButton } from '@/modules/loans/components/AddLoanButton';
-import { LoanUploadZone } from '@/modules/loans/components/LoanUploadZone';
+import { AddLoanButton } from '~/modules/loans/components/AddLoanButton';
+import { LoanUploadZone } from '~/modules/loans/components/LoanUploadZone';
 
 function buildSparkline(loan: Loan): string {
   try {

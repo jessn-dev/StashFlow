@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Papa from 'papaparse';
-import { SecureImportZone } from '@/modules/import/components/SecureImportZone';
-import { CsvMapper } from '@/modules/import/components/CsvMapper';
-import { createClient } from '@/lib/supabase/client';
+import { SecureImportZone } from '~/modules/import/components/SecureImportZone';
+import { CsvMapper } from '~/modules/import/components/CsvMapper';
+import { createClient } from '~/lib/supabase/client';
 import { ArrowLeft, CheckCircle2, ChevronRight, LayoutDashboard, History } from 'lucide-react';
 import Link from 'next/link';
 

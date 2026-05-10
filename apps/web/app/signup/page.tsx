@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
-import { GoogleIcon, EyeIcon, EyeOffIcon } from '@/modules/auth';
+import { createClient } from '~/lib/supabase/client';
+import { GoogleIcon, EyeIcon, EyeOffIcon } from '~/modules/auth';
 
 type FieldError = { email?: string; password?: string; confirmPassword?: string; general?: string };
 

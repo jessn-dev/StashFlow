@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, ShieldAlert } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '~/lib/supabase/client';
 
 export function MfaNudgeBanner() {
   const [show, setShow] = useState(false);

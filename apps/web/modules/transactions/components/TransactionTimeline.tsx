@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { UnifiedTransaction, formatCurrency, convertToBase } from '@stashflow/core';
 import { TransactionQuery } from '@stashflow/api';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '~/lib/supabase/client';
 import { TransactionDrawer } from './TransactionDrawer';
 
 interface Group {

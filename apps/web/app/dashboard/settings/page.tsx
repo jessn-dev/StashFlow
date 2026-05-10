@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '~/lib/supabase/server';
 import { ProfileQuery } from '@stashflow/api';
-import { MfaManager } from '@/modules/settings/components/MfaManager';
-import { ProfileEditForm } from '@/modules/settings/components/ProfileEditForm';
-import { DeleteAccountButton } from '@/modules/settings/components/DeleteAccountButton';
-import { LedgerHealthIndicator } from '@/modules/settings/components/LedgerHealthIndicator';
+import { MfaManager } from '~/modules/settings/components/MfaManager';
+import { ProfileEditForm } from '~/modules/settings/components/ProfileEditForm';
+import { DeleteAccountButton } from '~/modules/settings/components/DeleteAccountButton';
+import { LedgerHealthIndicator } from '~/modules/settings/components/LedgerHealthIndicator';
 import { ShieldCheck, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 

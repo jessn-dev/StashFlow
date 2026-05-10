@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '~/lib/supabase/server';
 import { TransactionQuery, ExchangeRateQuery } from '@stashflow/api';
-import { TransactionSummaryStrip } from '@/modules/transactions/components/TransactionSummaryStrip';
-import { TransactionFiltersBar } from '@/modules/transactions/components/TransactionFiltersBar';
-import { TransactionTimeline } from '@/modules/transactions/components/TransactionTimeline';
-import { TransactionPageActions } from '@/modules/transactions/components/TransactionPageActions';
+import { TransactionSummaryStrip } from '~/modules/transactions/components/TransactionSummaryStrip';
+import { TransactionFiltersBar } from '~/modules/transactions/components/TransactionFiltersBar';
+import { TransactionTimeline } from '~/modules/transactions/components/TransactionTimeline';
+import { TransactionPageActions } from '~/modules/transactions/components/TransactionPageActions';
 
 interface Props {
   searchParams: Promise<{

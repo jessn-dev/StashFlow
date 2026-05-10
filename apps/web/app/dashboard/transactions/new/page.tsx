@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TransactionForm } from '@/modules/transactions/components/TransactionForm';
+import { TransactionForm } from '~/modules/transactions/components/TransactionForm';
 
 export default function NewTransactionPage() {
   return (

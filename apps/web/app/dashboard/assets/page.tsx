@@ -1,8 +1,8 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '~/lib/supabase/server';
 import { AssetQuery } from '@stashflow/api';
 import { formatCurrency, convertToBase } from '@stashflow/core';
-import { AssetCard } from '@/modules/assets/components/AssetCard';
-import { AssetPageActions } from '@/modules/assets/components/AssetPageActions';
+import { AssetCard } from '~/modules/assets/components/AssetCard';
+import { AssetPageActions } from '~/modules/assets/components/AssetPageActions';
 import { Wallet, Plus } from 'lucide-react';
 
 export default async function AssetsPage() {

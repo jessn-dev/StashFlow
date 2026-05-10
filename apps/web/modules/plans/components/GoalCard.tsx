@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '~/lib/supabase/client';
 import { GoalQuery } from '@stashflow/api';
 import { formatCurrency } from '@stashflow/core';
 import { GoalDrawer } from './GoalDrawer';

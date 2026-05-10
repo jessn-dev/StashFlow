@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LoanForm } from '@/modules/loans/components/LoanForm';
+import { LoanForm } from '~/modules/loans/components/LoanForm';
 
 export default function NewLoanPage() {
   return (

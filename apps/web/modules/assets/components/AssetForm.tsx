@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '~/lib/supabase/client';
 import { ASSET_TYPES, CURRENCIES } from '@stashflow/core';
 import type { Asset, AssetType } from '@stashflow/core';
 

@@ -1,8 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { SecureImportZone } from '@/modules/import';
+import { createClient } from '~/lib/supabase/client';
+import { SecureImportZone } from '~/modules/import';
 
 export function LoanUploadZone() {
   const router = useRouter();

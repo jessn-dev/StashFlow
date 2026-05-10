@@ -1,4 +1,4 @@
-import { LegalLayout } from '@/components/legal/LegalLayout';
+import { LegalLayout } from '~/components/legal/LegalLayout';
 import Link from 'next/link';
 
 export default function DataDeletionPage() {

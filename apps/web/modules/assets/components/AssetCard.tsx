@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Asset, formatCurrency } from '@stashflow/core';
 import { Wallet, Landmark, Home, Briefcase, HelpCircle, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { AssetDrawer } from './AssetDrawer';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '~/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
 const TYPE_ICONS = {

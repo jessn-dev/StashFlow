@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '~/lib/supabase/client';
 import { ShieldCheck, ShieldAlert, Loader2 } from 'lucide-react';
 
 export function LedgerHealthIndicator() {

@@ -1,7 +1,7 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '~/lib/supabase/server';
 import { LoanQuery, ExchangeRateQuery, TransactionQuery } from '@stashflow/api';
 import { aggregateLoanFinancials, convertToBase, getRegionByCurrency } from '@stashflow/core';
-import { DtiSimulator } from '@/modules/dashboard/components/DtiSimulator';
+import { DtiSimulator } from '~/modules/dashboard/components/DtiSimulator';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 

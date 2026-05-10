@@ -1,6 +1,6 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '~/lib/supabase/server';
 import { TransactionQuery } from '@stashflow/api';
-import { CashFlowChart } from '@/modules/dashboard/components/DashboardCharts';
+import { CashFlowChart } from '~/modules/dashboard/components/DashboardCharts';
 import { formatCurrency } from '@stashflow/core';
 import Link from 'next/link';
 import { ArrowLeft, TrendingUp, TrendingDown, Minus } from 'lucide-react';

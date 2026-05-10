@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { EyeIcon, EyeOffIcon } from '@/modules/auth';
+import { createClient } from '~/lib/supabase/client';
+import { EyeIcon, EyeOffIcon } from '~/modules/auth';
 
 export default function UpdatePasswordPage() {
   const router = useRouter();

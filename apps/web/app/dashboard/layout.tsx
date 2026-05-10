@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '~/lib/supabase/server';
 import { getUser } from '@stashflow/auth';
-import { SidebarNav } from '@/modules/dashboard/components/SidebarNav';
-import { MfaNudgeBanner } from '@/modules/settings/components/MfaNudgeBanner';
+import { SidebarNav } from '~/modules/dashboard/components/SidebarNav';
+import { MfaNudgeBanner } from '~/modules/settings/components/MfaNudgeBanner';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '~/lib/supabase/server';
 import {
   TransactionQuery,
   LoanQuery,
@@ -16,13 +16,13 @@ import {
   formatCurrency,
   generateAmortizationSchedule,
 } from '@stashflow/core';
-import type { DebtPayoffPoint } from '@/modules/dashboard/components/DebtPayoffChart';
+import type { DebtPayoffPoint } from '~/modules/dashboard/components/DebtPayoffChart';
 import type { Loan } from '@stashflow/core';
-import { FinancialSnapshotStrip } from '@/modules/dashboard/components/FinancialSnapshotStrip';
-import { IntelligenceFeed } from '@/modules/dashboard/components/IntelligenceFeed';
-import { RightUtilityRail } from '@/modules/dashboard/components/RightUtilityRail';
-import { AnalyticsSection } from '@/modules/dashboard/components/AnalyticsSection';
-import type { IntelligenceItem } from '@/modules/dashboard/components/IntelligenceFeed';
+import { FinancialSnapshotStrip } from '~/modules/dashboard/components/FinancialSnapshotStrip';
+import { IntelligenceFeed } from '~/modules/dashboard/components/IntelligenceFeed';
+import { RightUtilityRail } from '~/modules/dashboard/components/RightUtilityRail';
+import { AnalyticsSection } from '~/modules/dashboard/components/AnalyticsSection';
+import type { IntelligenceItem } from '~/modules/dashboard/components/IntelligenceFeed';
 
 function computeDebtPayoff(loans: Loan[], rates: Record<string, number>): DebtPayoffPoint[] {
   const active = loans.filter((l) => l.status === 'active');

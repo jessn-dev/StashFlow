@@ -48,7 +48,8 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 - **Edge Function Modernization**: Refactored dependency management for Supabase Edge Functions. Replaced deprecated `--import-map` flags with a unified `supabase/functions/deno.json` configuration.
 - **Monorepo Bundling Fix**: Resolved a critical "failed to create the graph" deployment error by implementing a **Local Proxy Strategy**. The CI pipeline now automatically bridges the isolated Supabase Docker context with the monorepo's shared packages (`@stashflow/core`) during deployment.
 - **Vercel Prebuilt Strategy**: Adopted the `vercel pull` -> `vercel build` -> `vercel deploy --prebuilt` workflow. This ensures that the exact same artifacts that pass CI are deployed to the web, resolving flag errors and improving deployment reliability for monorepos.
-- **Build Stability Hardening**: Resolved a fatal `TypeError: useRef` error during static generation by standardizing **React** and **react-dom** to **v19.0.0** across the entire monorepo. This eliminates the "multiple React instances" conflict in monorepo builds.
+- **Build Stability Hardening**: Resolved a fatal `TypeError: useRef` error during static generation by standardizing **React** and **react-dom** to **v19.0.0** across the entire monorepo.
+- **Path Alias Migration**: Migrated the web application from `@/` to `~/` path aliases. This resolves a critical "Module not found" collision between internal aliases and scoped npm packages (`@stashflow/*`) in the Vercel/Linux build environment.
 - **Product Monitoring**: Integrated **@vercel/analytics** and **@vercel/speed-insights** into the root layout to track user engagement and Core Web Vitals in real-time.
 - **Dependency Security Hardening**: Resolved **15 vulnerabilities** (including 2 Critical and 2 High) by applying surgical pnpm overrides for `next`, `postcss`, `@babel/plugin-transform-modules-systemjs`, and `@xmldom/xmldom`.
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '~/lib/supabase/client';
 import { SessionCard } from './SessionCard';
 import { Loader2, RefreshCcw } from 'lucide-react';
 

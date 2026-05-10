@@ -1,4 +1,4 @@
-import { SessionList } from '@/modules/settings/components/SessionList';
+import { SessionList } from '~/modules/settings/components/SessionList';
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 

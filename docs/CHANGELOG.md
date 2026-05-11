@@ -6,6 +6,26 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 
 ---
 
+## [0.20.0] - 2026-05-11
+
+### Added
+- **Tech Stack Modernization & Stabilization**
+  - **Node.js 24**: Standardized the workspace on Node.js 24. Added `.node-version` and `volta` configuration in root `package.json` for team consistency.
+  - **React 19.2.0**: Updated React and React-DOM across the entire monorepo. Implemented workspace-wide `pnpm.overrides` to prevent duplicate installs and hook failures.
+  - **Python 3.12 Downgrade**: Stabilized the intelligence layer by downgrading from Python 3.14 to 3.12 in `apps/backend-py/Dockerfile` and `pyproject.toml`.
+  - **TypeScript 5.9.0**: Downgraded from TypeScript 6.0.3 to 5.9.0 across the workspace for improved stability and ecosystem compatibility.
+  - **Expo & React Native Alignment**: Updated `expo` to `~55.0.23` and `react-native` to `0.83.6`. Used `npx expo install --fix` to ensure all native modules are perfectly aligned.
+  - **Terraform Provider Pinning**: Updated provider versions to `vercel ~> 5.2` and `supabase ~> 1.8` for more predictable infrastructure deployments.
+  - **Static Analysis**: Integrated `mypy` into the Python backend development workflow to enforce type safety in financial extraction schemas and AI pipelines.
+- **Comprehensive Testing & Coverage Expansion**
+  - **Python Unit Testing**: Introduced a robust test suite in `apps/backend-py/tests/` achieving **85% statement coverage**. Covers health checks, PDF document extraction (with OCR fallback), transaction categorization, and statistical anomaly detection.
+  - **Web Unit Testing**: Created a unit testing suite for the web application covering `middleware.ts`, Supabase client factories, and PDF utilities.
+  - **Expanded Core Logic Tests**: Improved `packages/core` coverage to **97% statements** and **90% branches** by adding happy/sad path tests for multi-currency triangulation, 0% interest loans, and complex inference edge cases.
+  - **Local E2E Validation**: Added Playwright E2E tests covering the core Authentication Flow (Home → Login → Signup). Verified successful local execution with Chromium.
+  - **Coverage Enforcement**: Configured `fail_under` thresholds in `pyproject.toml` and updated Vitest configs to ensure high quality standards are maintained.
+
+---
+
 ## [0.19.0] - 2026-05-18
 
 ### Added

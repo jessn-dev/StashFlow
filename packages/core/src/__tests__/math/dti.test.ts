@@ -16,11 +16,11 @@ describe('DTI math', () => {
       expect(result.isHealthy).toBe(false);
     });
 
-    it('should calculate healthy ratio for SG with higher threshold', () => {
+    it('should calculate unhealthy ratio for SG with higher threshold', () => {
       const result = calculateDTIRatio(500, 1000, 'SG');
       expect(result.ratio).toBe(0.50);
-      expect(result.isHealthy).toBe(true);
-      expect(result.threshold).toBe(0.55);
+      expect(result.isHealthy).toBe(false);
+      expect(result.threshold).toBe(0.45);
     });
 
     it('should handle zero income gracefully', () => {

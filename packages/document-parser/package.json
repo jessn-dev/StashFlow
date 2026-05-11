@@ -8,9 +8,12 @@
     ".": "./src/mod.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "gen:schemas": "json2ts -i schemas/loan_schema.json -o src/generated_loan_schema.ts && json2ts -i schemas/transaction_schema.json -o src/generated_transaction_schema.ts && json2ts -i schemas/anomaly_schema.json -o src/generated_anomaly_schema.ts && json2ts -i schemas/unified_document_schema.json -o src/generated_unified_schema.ts",
+    "gen:types": "pnpm run gen:schemas"
   },
   "devDependencies": {
-    "typescript": "^6.0.3"
+    "json-schema-to-typescript": "^15.0.4",
+    "typescript": "^5.9.0"
   }
 }

@@ -36,6 +36,7 @@ User preferences and global settings. One-to-one with auth.users.
 | `source` | `TEXT` | e.g., 'Salary' |
 | `frequency` | `TEXT` | enum: 'one-time', 'weekly', 'monthly' |
 | `date` | `DATE` | |
+| `signature` | `TEXT` | HMAC-SHA256 ledger integrity signature |
 
 ### `expenses`
 | Column | Type | Notes |
@@ -48,6 +49,7 @@ User preferences and global settings. One-to-one with auth.users.
 | `category` | `TEXT` | enum: housing, food, transport, etc. |
 | `date` | `DATE` | |
 | `is_recurring` | `BOOLEAN` | |
+| `signature` | `TEXT` | HMAC-SHA256 ledger integrity signature |
 
 ---
 
@@ -129,10 +131,21 @@ User preferences and global settings. One-to-one with auth.users.
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | `UUID` | PK |
-| `from_currency` | `TEXT` | Base currency (usually USD) |
-| `to_currency` | `TEXT` | Target currency |
-| `rate` | `NUMERIC(18,6)` | 1 From = X To |
+| `base` | `TEXT` | Base currency (usually USD) |
+| `target` | `TEXT` | Target currency |
+| `rate` | `NUMERIC(18,6)` | 1 Base = X Target |
 | `updated_at` | `TIMESTAMPTZ` | |
+
+### `session_events` (New in v0.18.0)
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `UUID` | PK |
+| `user_id` | `UUID` | references `auth.users(id)` |
+| `session_id` | `UUID` | Optional |
+| `ip` | `TEXT` | IP address from auth event |
+| `country` | `TEXT` | ISO 3166-1 alpha-2 code |
+| `user_agent` | `TEXT` | |
+| `created_at` | `TIMESTAMPTZ` | |
 
 ### `system_audit_logs`
 | Column | Type | Notes |
@@ -182,10 +195,10 @@ Unified read-only view of `incomes` and `expenses`. Uses `security_invoker = tru
 | `processing_status` | `TEXT` | enum: pending, processing, success, error_rate_limit, error_generic |
 | `processing_error` | `JSONB` | Structured error details |
 | `ocr_telemetry` | `JSONB` | { confidence_before, confidence_after, ocr_text_length, ocr_error, duration_ms } |
-| `extraction_source` | `TEXT` | pdfjs, vision, ai |
-| `extracted_data` | `JSONB` | Extracted loan fields |
-| `inferred_type` | `TEXT` | |
-| `loan_id` | `UUID` | |
+| `extraction_source` | `TEXT` | enum: pdfjs, vision, ai |
+| `extracted_data` | `JSONB` | Structured AI output (Loan or Statement data) |
+| `inferred_type` | `TEXT` | Classified type (e.g., 'Loan', 'Bank Statement') |
+| `loan_id` | `UUID` | Linked loan record (if applicable) |
 | `processing_attempts` | `INTEGER` | |
 | `last_processed_at` | `TIMESTAMPTZ` | |
 | `created_at` | `TIMESTAMPTZ` | |

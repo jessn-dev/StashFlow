@@ -1,9 +1,10 @@
 import { Region, DTIRatioResult } from '../schema/mod.ts';
 
-export const REGIONAL_THRESHOLDS: Record<Region, number> = {
-  US: 0.36, // Standard 36% rule
-  PH: 0.40, // Local banks usually allow up to 40%
-  SG: 0.55, // TDSR (Total Debt Servicing Ratio) is capped at 55%
+export const REGIONAL_THRESHOLDS: Record<Region, { healthy: number; max: number }> = {
+  US: { healthy: 0.36, max: 0.43 },
+  PH: { healthy: 0.30, max: 0.40 },
+  SG: { healthy: 0.45, max: 0.55 },
+  JPY: { healthy: 0.30, max: 0.45 },
 };
 
 /**
@@ -24,19 +25,19 @@ export function calculateDTIRatio(
     return {
       ratio: totalMonthlyDebts > 0 ? 1 : 0, // 100% or 0% depending on debt
       isHealthy,
-      threshold: REGIONAL_THRESHOLDS[region],
+      threshold: REGIONAL_THRESHOLDS[region].healthy,
       label: 'No income',
     };
   }
 
   const ratio = totalMonthlyDebts / totalGrossMonthlyIncome;
-  const threshold = REGIONAL_THRESHOLDS[region];
-  const isHealthy = ratio <= threshold;
+  const limits = REGIONAL_THRESHOLDS[region];
+  const isHealthy = ratio <= limits.healthy;
 
   return {
     ratio,
     isHealthy,
-    threshold,
+    threshold: limits.healthy,
     label: `${(ratio * 100).toFixed(1)}%`,
   };
 }

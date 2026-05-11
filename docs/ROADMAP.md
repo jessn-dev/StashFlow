@@ -38,6 +38,7 @@ Build a calm financial command center powered by invisible intelligence and secu
 | **P3-A** | **Session Intel** | Active session revocation UI + anomaly scoring webhook | 2026-05-08 |
 | **P3-B** | **CI/CD Security** | pgTAP RLS tests, CODEOWNERS, automated audit gates | 2026-05-08 |
 | **P3-C** | **Ledger Integrity** | Cryptographic ledger signatures + Live Frankfurter FX Feed | 2026-05-08 |
+| **P3-D** | **MVP Observability** | Native Logs strategy (Supabase + Vercel) implemented; Sentry dropped to reduce MVP billing dependencies | 2026-05-18 |
 
 ---
 

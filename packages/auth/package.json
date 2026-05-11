@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "@stashflow/core": "workspace:*",
-    "@supabase/supabase-js": "^2.104.1"
+    "@supabase/supabase-js": "^2.105.4"
   },
   "devDependencies": {
-    "typescript": "^6.0.3"
+    "typescript": "^5.9.0"
   }
 }

@@ -20,6 +20,8 @@ Data entry is manual or via PDF upload. The AI pipeline extracts loan terms from
 - **Loan management** — Supports Standard Amortized, Add-on Interest, Interest-Only, and Fixed Principal loan types. Generates full amortization schedules. Tracks payment status.
 - **AI loan document parsing** — Upload a loan contract PDF; the 3-tier pipeline (regex → OCR → LLM) extracts principal, rate, term, and payment structure automatically.
 - **Intelligent loan modeling** — Numerical inference engine classifies loan type from principal/payment/rate/term without asking technical questions.
+- **Cryptographic ledger integrity** — HMAC-SHA256 signatures on financial records to detect unauthorized tampering.
+- **Session anomaly detection** — Monitors login patterns and geographic shifts to identify and block potential account takeovers.
 - **DTI health** — Debt-to-income ratio with regional thresholds (PH 40%, US 36%, SG 55%). Zero-income edge case handled correctly.
 - **Plans** — Savings and debt goals with progress tracking. Per-category budgets with monthly spend snapshots.
 - **Transaction timeline** — Unified income + expense feed with URL-driven filtering, inline edit/delete, and date-range presets.
@@ -56,21 +58,22 @@ For full architecture detail: `docs/ARCHITECTURE.md`
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Language | TypeScript | 6.0.3 |
-| Web framework | Next.js | 16.2.4 |
-| UI runtime | React | 19.2.5 |
-| Mobile | Expo SDK | 55.0.17 |
+| Language | TypeScript | 5.9.0 |
+| Web framework | Next.js | 16.2.6 |
+| UI runtime | React | 19.2.0 |
+| Mobile | Expo SDK | ~55.0.23 |
 | Styling (web) | Tailwind CSS | 4.2.4 |
-| Styling (mobile) | NativeWind | latest stable |
+| Styling (mobile) | NativeWind | ^4.1.23 |
+| Backend | Python (Intelligence) | 3.12 |
 | Component library | shadcn/ui | latest |
-| Database + Auth | Supabase | — |
-| Supabase JS | @supabase/supabase-js | 2.104.1 |
-| SSR auth | @supabase/ssr | 0.10.2 |
-| Unit testing | Vitest | 4.1.5 |
-| E2E testing | Playwright | 1.59.1 |
-| Monorepo | Turborepo | 2.9.6 |
+| Database + Auth | Supabase | Postgres 17 |
+| Supabase JS | @supabase/supabase-js | ^2.105.4 |
+| SSR auth | @supabase/ssr | ^0.10.3 |
+| Unit testing | Vitest / Pytest | ^4.1.5 / latest |
+| E2E testing | Playwright | ^1.59.1 |
+| Monorepo | Turborepo | 2.9.12 |
 | Package manager | pnpm | 10.33.2 |
-| Edge functions | Deno | — |
+| Edge functions | Deno | 2 |
 
 ---
 
@@ -80,7 +83,8 @@ For full architecture detail: `docs/ARCHITECTURE.md`
 StashFlow/
 ├── apps/
 │   ├── web/                  # Next.js 16, App Router, RSC, Tailwind 4, shadcn/ui
-│   └── mobile/               # Expo SDK 55, React Native, NativeWind
+│   ├── mobile/               # Expo SDK 55, React Native, NativeWind
+│   └── backend-py/           # FastAPI, Python 3.12, ML, OCR
 │
 ├── packages/
 │   ├── core/                 # @stashflow/core — pure TS, zero deps, Deno-compatible
@@ -92,9 +96,10 @@ StashFlow/
 │
 ├── supabase/
 │   ├── functions/            # Deno edge functions
-│   └── migrations/           # Versioned SQL migrations (16+)
+│   └── migrations/           # Versioned SQL migrations (20+)
 │
 ├── docs/                     # Engineering documentation
+├── .node-version             # Node.js 24
 ├── deno.json                 # Deno workspace root
 ├── turbo.json                # Turborepo pipeline
 └── pnpm-workspace.yaml
@@ -106,9 +111,10 @@ StashFlow/
 
 ### Prerequisites
 
-- Node.js 22 LTS
+- Node.js 24 LTS
 - Docker Desktop
 - pnpm 10
+- Python 3.12 (via uv)
 
 ### Setup
 
@@ -169,7 +175,8 @@ Coverage thresholds enforced in CI:
 |---------|----------|
 | `@stashflow/core` | 90% |
 | `@stashflow/api` | 70% |
-| `apps/web` | 20% |
+| `apps/web` | 30% |
+| `apps/backend-py` | 80% |
 
 ---
 
@@ -226,3 +233,10 @@ See `docs/OPERATIONS.md` for deployment procedures.
 ## License
 
 MIT. See `LICENSE.md`.
+
+
+
+
+
+
+

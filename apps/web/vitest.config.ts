@@ -12,13 +12,13 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
-      include: [],
-      exclude: ['**/*.d.ts'],
+      include: ['app/**/*.ts', 'lib/**/*.ts', 'middleware.ts'],
+      exclude: ['**/*.d.ts', 'app/**/layout.tsx', 'app/**/page.tsx'],
       thresholds: {
-        lines: 0,
-        functions: 0,
-        branches: 0,
-        statements: 0,
+        lines: 30, // Starting low since we only have one test
+        functions: 30,
+        branches: 30,
+        statements: 30,
       },
     },
   },

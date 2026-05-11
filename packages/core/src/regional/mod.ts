@@ -13,7 +13,7 @@ export const US_MORTGAGE_THRESHOLD = 0.43;
 export class USStrategy implements RegionalStrategy {
   region: Region = 'US';
   currency = 'USD';
-  dtiThreshold = REGIONAL_THRESHOLDS.US;
+  dtiThreshold = REGIONAL_THRESHOLDS.US.healthy;
 
   getRationale(ratio: number): string {
     if (ratio <= this.dtiThreshold) return 'Healthy debt-to-income ratio by US standards.';
@@ -25,7 +25,7 @@ export class USStrategy implements RegionalStrategy {
 export class PHStrategy implements RegionalStrategy {
   region: Region = 'PH';
   currency = 'PHP';
-  dtiThreshold = REGIONAL_THRESHOLDS.PH;
+  dtiThreshold = REGIONAL_THRESHOLDS.PH.healthy;
 
   getRationale(ratio: number): string {
     if (ratio <= this.dtiThreshold) return 'Within standard Philippine bank limits for debt servicing.';
@@ -36,7 +36,7 @@ export class PHStrategy implements RegionalStrategy {
 export class SGStrategy implements RegionalStrategy {
   region: Region = 'SG';
   currency = 'SGD';
-  dtiThreshold = REGIONAL_THRESHOLDS.SG;
+  dtiThreshold = REGIONAL_THRESHOLDS.SG.healthy;
 
   getRationale(ratio: number): string {
     if (ratio <= this.dtiThreshold) return 'Within Singapore TDSR (Total Debt Servicing Ratio) limits.';

@@ -28,8 +28,11 @@
     "lint": {
       "dependsOn": ["^lint"]
     },
+    "gen:schemas": {
+      "outputs": ["src/generated_*.ts", "schemas/*.json"]
+    },
     "typecheck": {
-      "dependsOn": ["^typecheck"]
+      "dependsOn": ["^typecheck", "gen:schemas"]
     }
   }
 }

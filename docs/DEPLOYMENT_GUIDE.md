@@ -32,30 +32,30 @@
 
 ## 2. Infrastructure as Code (Terraform)
 
-StashFlow uses Terraform to automate the provisioning of cloud resources (Supabase & Vercel) and keep them synchronized.
+StashFlow uses a modular Terraform architecture to automate the provisioning of cloud resources (Supabase, Vercel, and Upstash) and keep them synchronized across environments.
 
-### **Initial Setup**
+### **Architecture**
+The infrastructure is organized into reusable modules:
+*   `infra/terraform/modules/supabase`: Manages the database, Auth (Google OAuth), and Storage buckets.
+*   `infra/terraform/modules/vercel`: Manages the Next.js project and environment variable syncing.
+*   `infra/terraform/modules/upstash`: Provisions the serverless Redis database for the async queue.
+
+### **Deployment Pipeline Integration**
+Terraform is integrated directly into the GitHub Actions pipeline (`.github/workflows/deploy-test.yml`). Every push to the target branch automatically triggers a `terraform apply` before application code is deployed, ensuring the infrastructure state is always correct.
+
+### **Manual Execution (Local)**
+If you need to run Terraform locally:
 1.  **Install Terraform**: Ensure you have Terraform installed (`brew install terraform`).
-2.  **Generate Tokens**:
-    *   **Supabase**: [Access Token](https://supabase.com/dashboard/account/tokens)
-    *   **Vercel**: [API Token](https://vercel.com/account/tokens)
-3.  **Prepare Variables**: 
+2.  **Navigate to Environment**:
     ```bash
-    cd terraform
-    cp test.tfvars.example test.tfvars
-    # Edit test.tfvars with your actual tokens and secrets
+    cd infra/terraform/environments/test
     ```
-
-### **Deployment Steps**
-1.  **Initialize**: `terraform init`
-2.  **Plan**: `terraform plan -var-file="test.tfvars"`
-3.  **Apply**: `terraform apply -var-file="test.tfvars"`
-
-### **What this automates**
-*   Creates a new Supabase Project.
-*   Configures Google OAuth (including the Redirect URI).
-*   Creates a Vercel Project linked to your GitHub repo.
-*   **Auto-Sync**: Injects the `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` directly into Vercel.
+3.  **Deploy**:
+    ```bash
+    terraform init
+    terraform plan
+    terraform apply
+    ```
 
 ---
 

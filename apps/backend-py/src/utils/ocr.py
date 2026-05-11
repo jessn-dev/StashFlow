@@ -1,6 +1,5 @@
 import pytesseract
 from pdf2image import convert_from_bytes
-import io
 
 def extract_text_with_ocr(pdf_bytes: bytes, password: str | None = None) -> str:
     """
@@ -9,7 +8,7 @@ def extract_text_with_ocr(pdf_bytes: bytes, password: str | None = None) -> str:
     """
     try:
         # Convert PDF to list of PIL images
-        images = convert_from_bytes(pdf_bytes, userpw=password)
+        images = convert_from_bytes(pdf_bytes, userpw=password or "")
         
         full_text = ""
         for i, image in enumerate(images):

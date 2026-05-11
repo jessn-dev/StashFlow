@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
+import * as Sentry from "npm:@sentry/deno"
 import { inspectFile, validateMagicBytes } from "../_shared/document-parser/src/mod.ts"
 import type { ProcessingError, MultiLoanExtractedData, UnifiedDocumentResult } from "../_shared/document-parser/src/mod.ts"
 
@@ -7,13 +8,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret, x-document-password',
 }
 
+const SENTRY_DSN          = Deno.env.get('SENTRY_DSN')
 const WEBHOOK_SECRET      = Deno.env.get('PARSE_LOAN_WEBHOOK_SECRET')
 const PYTHON_BACKEND_URL  = Deno.env.get('PYTHON_BACKEND_URL') || 'http://host.docker.internal:8008'
+
+if (SENTRY_DSN) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    tracesSampleRate: 1.0,
+  })
+}
 
 type ProcessingStatus = 'pending' | 'processing' | 'success' | 'error_rate_limit' | 'error_generic'
 
 // deno-lint-ignore no-explicit-any
 type SupabaseClient = any
+
+async function auditLog(
+  supabase: SupabaseClient,
+  userId: string | undefined,
+  eventType: string,
+  action: string,
+  metadata: any,
+  severity: 'info' | 'low' | 'medium' | 'high' | 'critical' = 'info'
+): Promise<void> {
+  const { error } = await supabase.from('system_audit_logs').insert({
+    user_id: userId,
+    event_type: eventType,
+    action,
+    metadata,
+    severity
+  })
+  if (error) console.error('[parse-document] auditLog failed:', error)
+}
 
 async function storeSuccess(
   supabase: SupabaseClient,
@@ -22,6 +49,8 @@ async function storeSuccess(
   inferredType: string,
   ocrTelemetry?: any,
 ): Promise<void> {
+  const { data: doc } = await supabase.from('documents').select('user_id').eq('id', documentId).single()
+  
   const { error } = await supabase.from('documents').update({
     extracted_data: data,
     inferred_type: inferredType,
@@ -35,6 +64,8 @@ async function storeSuccess(
     console.error(`[parse-document] [${documentId}] storeSuccess failed:`, error)
     throw error
   }
+
+  await auditLog(supabase, doc?.user_id, 'document.parse', 'completed', { document_id: documentId, type: inferredType })
 }
 
 async function storeFailed(
@@ -42,6 +73,8 @@ async function storeFailed(
   documentId: string,
   error: ProcessingError,
 ): Promise<void> {
+  const { data: doc } = await supabase.from('documents').select('user_id').eq('id', documentId).single()
+
   const { error: updateError } = await supabase.from('documents').update({
     processing_status: 'error_generic' satisfies ProcessingStatus,
     processing_error: error,
@@ -50,6 +83,15 @@ async function storeFailed(
   if (updateError) {
     console.error(`[parse-document] [${documentId}] storeFailed failed:`, updateError)
   }
+
+  await auditLog(
+    supabase, 
+    doc?.user_id, 
+    'document.parse', 
+    'failed', 
+    { document_id: documentId, error_code: error.code, stage: error.stage },
+    error.retryable ? 'low' : 'medium'
+  )
 }
 
 async function processUnified(
@@ -79,6 +121,8 @@ async function processUnified(
     log('already-completed — skip')
     return
   }
+
+  await auditLog(supabase, docRecord.user_id, 'document.parse', 'started', { document_id: documentId })
 
   // Track attempt
   await supabase.from('documents').update({
@@ -264,6 +308,7 @@ Deno.serve(async (req) => {
     })
   } catch (err: unknown) {
     console.error('[parse-document] unhandled error', err)
+    if (SENTRY_DSN) Sentry.captureException(err)
     return new Response(JSON.stringify({ error: 'Processing failed' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

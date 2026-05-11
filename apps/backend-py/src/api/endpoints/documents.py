@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import fitz  # PyMuPDF
 import instructor
 from litellm import completion
-from src.schemas.financial import LoanExtractionSchema, StatementExtractionSchema, UnifiedDocumentResponse
+from src.schemas.financial import UnifiedDocumentResponse
 from src.core.config import settings
 from src.utils.ocr import extract_text_with_ocr
 from src.core.logger import get_logger

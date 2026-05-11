@@ -90,6 +90,12 @@ export type Confidence2 = number;
  * Reasoning for classification
  */
 export type Reasoning2 = string;
+/**
+ * Technical metadata about the extraction process (char counts, method)
+ */
+export type OcrTelemetry = {
+  [k: string]: unknown;
+} | null;
 
 /**
  * Polymorphic response for unified document processing.
@@ -106,6 +112,7 @@ export interface UnifiedDocumentResponse {
   statement_data?: StatementExtractionSchema | null;
   confidence?: Confidence2;
   reasoning?: Reasoning2;
+  ocr_telemetry?: OcrTelemetry;
   [k: string]: unknown;
 }
 /**

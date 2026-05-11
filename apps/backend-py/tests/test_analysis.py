@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from datetime import datetime
 
 @pytest.mark.asyncio
 async def test_detect_anomalies_empty(client):

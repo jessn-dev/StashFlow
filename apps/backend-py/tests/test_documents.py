@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from io import BytesIO
 
 @pytest.mark.asyncio
 async def test_extract_document_unsupported_type(client):

@@ -12,6 +12,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.52.0",
     "@stashflow/api": "workspace:*",
     "@stashflow/auth": "workspace:*",
     "@stashflow/core": "workspace:*",

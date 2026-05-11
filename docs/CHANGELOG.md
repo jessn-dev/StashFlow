@@ -6,6 +6,40 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 
 ---
 
+## [0.21.0] - 2026-05-19
+
+### Added
+- **Centralized Local Observability**
+  - **Local Logging Stack**: Implemented a lightweight **GlitchTip** stack (Sentry-compatible) via Docker Compose for local centralized logging.
+  - **SDK Integration**: Integrated `@sentry/nextjs` into the web app (client, server, edge) and `npm:@sentry/deno` into Edge Functions.
+  - **Automated Lifecycle**: Updated `./setup.sh` to automatically launch logging during `dev` and inject `SENTRY_DSN` into all `.env` files.
+- **Idempotent Ingestion Pipeline (P0)**
+  - **Content Hashing**: Added `content_hash` (SHA-256) to the `documents` table to prevent duplicate file ingestion.
+  - **Upload Verification**: Updated the `upload-document` Edge Function to verify hashes before proceeding with storage or processing.
+- **Financial Integrity & Reconciliation (P0)**
+  - **Integrity Monitor**: Created the `monitor-financial-integrity` Edge Function to detect anomalous balance shifts (5+ std dev) and unsupported currency usage.
+  - **Immutable Audit Logging**: Extended audit trails to cover the full document parsing lifecycle (started, completed, failed) in `system_audit_logs`.
+- **Security & Resilience**
+  - **Hardened RLS Testing**: Expanded the RLS penetration suite to 23 tests, including "hostile" scenarios like cross-user data hijacking and unauthorized log access.
+  - **Import Replay Tooling**: Created `disaster_recovery_replay.sql` snippet for manual and batch re-triggering of failed document parsing.
+- **Unified Developer CLI**
+  - **`check:all` Command**: A single command to run workspace-wide typechecking, linting (ESLint + Ruff), and unit tests with coverage for both TS and Python.
+  - **`shutdown` Command**: Comprehensive system cleanup — stops all Docker services, prunes volumes, and clears all build/pnpm/Python caches.
+  - **`lint` and `py:check`**: Granular CLI commands for language-specific quality gates.
+
+### Fixed
+- **Type Safety**:
+  - Resolved `ExchangeRate` export ambiguity in `@stashflow/core`.
+  - Fixed `parseLoan` non-nullable return type violations in `@stashflow/document-parser`.
+  - Addressed React 19 type conflicts in `LegalLayout.tsx` via safe component casting.
+- **Python Stability**:
+  - Fixed MyPy type errors in OCR utilities and structured logging configuration.
+  - Corrected `pytest-cov` runtime failures by explicitly adding `coverage` to dev dependencies.
+- **Regional Logic**: Implemented missing `JPYStrategy` and updated registry to support Japanese Yen calculations.
+- **CLI Robustness**: Rewrote `setup.sh` command dispatcher to use relative `pnpm` paths, avoiding `turbo: command not found` errors.
+
+---
+
 ## [0.20.0] - 2026-05-11
 
 ### Added

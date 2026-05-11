@@ -2,10 +2,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
 import pandas as pd
-import numpy as np
 import instructor
 from litellm import completion
-from src.schemas.financial import TransactionRecord, AnomalyReportSchema, AnomalyInsight, AnomalySeverity
+from src.schemas.financial import TransactionRecord, AnomalyReportSchema
 from src.core.config import settings
 from src.core.logger import get_logger
 

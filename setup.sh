@@ -153,21 +153,31 @@ cmd_help() {
   echo -e "    schema:sync                Sync AI schemas from Python to TypeScript"
   echo ""
 
+  echo -e "  ${CYAN}Logging (Sentry/GlitchTip)${RESET}"
+  echo -e "    logging:start              Start local GlitchTip logging stack (Docker)"
+  echo -e "    logging:stop               Stop local GlitchTip logging stack"
+  echo ""
+
   echo -e "  ${CYAN}Python Backend${RESET}"
 
   echo -e "    py:docker                  Build the Python backend Docker container for local testing"
   echo ""
-  echo -e "  ${CYAN}Testing${RESET}"
-  echo -e "    test                       Run all package unit tests"
-  echo -e "    test <pkg>                 Run unit tests for one package (e.g. @stashflow/core)"
-  echo -e "    test coverage              Run all unit tests with coverage (enforces thresholds)"
-  echo -e "    test <pkg> coverage        Run coverage for one package"
-  echo -e "    test:e2e                   Run Playwright E2E tests against local web server"
-  echo -e "    typecheck                  TypeScript typecheck across all packages"
+  echo -e "  ${CYAN}Testing & Quality${RESET}"
+    echo -e "    check:all                  Run ALL quality gates (typecheck, lint, tests + coverage)"
+    echo -e "    lint                       Run ESLint across all packages"
+    echo -e "    typecheck                  Run TypeScript typecheck across all packages"
+    echo -e "    test                       Run all package unit tests"
+    echo -e "    test <pkg>                 Run unit tests for one package (e.g. @stashflow/core)"
+    echo -e "    test coverage              Run all unit tests with coverage (enforces thresholds)"
+    echo -e "    test <pkg> coverage        Run coverage for one package"
+    echo -e "    test:e2e                   Run Playwright E2E tests against local web server"
+    echo -e "    py:check                   Run Python quality gates (ruff, mypy, pytest + coverage)"
   echo ""
+
   echo -e "  ${CYAN}Maintenance${RESET}"
-    echo -e "    docker:clean               Stop and remove all project containers (Supabase + Python)"
+    echo -e "    docker:clean               Stop and remove all project containers (Supabase + Python + Logging)"
     echo -e "    clean                      Remove build artifacts + stop & prune Supabase/Docker"
+    echo -e "    shutdown                   Full cleanup: Stop all services, prune Docker, clear caches"
   echo ""
 }
 
@@ -201,6 +211,27 @@ cmd_py_docker() {
   success "Docker image built: stashflow-backend-py"
 }
 
+cmd_logging_start() {
+  if ! command -v docker &>/dev/null; then
+    die "Docker is required for logging."
+  fi
+  info "Checking local logging stack (GlitchTip)..."
+  if ! docker ps --filter "name=glitchtip" | grep -q "glitchtip"; then
+    info "Starting GlitchTip..."
+    docker-compose -f docker-compose.logging.yml up -d
+    success "GlitchTip is running at http://localhost:8000"
+    info "Default SENTRY_DSN for local dev: http://local-public-key@localhost:8000/1"
+  else
+    info "GlitchTip is already running."
+  fi
+}
+
+cmd_logging_stop() {
+  info "Stopping local logging stack..."
+  docker-compose -f docker-compose.logging.yml stop
+  success "Logging stack stopped."
+}
+
 cmd_dev() {
   local target=$1
   local clean=0
@@ -226,6 +257,12 @@ cmd_dev() {
     info "Supabase is not running. Starting it now..."
     cmd_db_start
   fi
+
+  # ── Preflight: Logging must be running ─────────────────────────────────────
+  cmd_logging_start
+
+  # ── Preflight: Sync environment variables ──────────────────────────────────
+  cmd_db_env
 
   # ── Preflight: edge function env must exist ────────────────────────────────
   if [ ! -f "supabase/functions/.env" ]; then
@@ -354,6 +391,7 @@ cmd_db_env() {
   upsert_env_var apps/web/.env.local NEXT_PUBLIC_SUPABASE_URL      "$api_url"
   upsert_env_var apps/web/.env.local NEXT_PUBLIC_SUPABASE_ANON_KEY "$anon_key"
   upsert_env_var apps/web/.env.local SUPABASE_SERVICE_ROLE_KEY     "$service_key"
+  upsert_env_var apps/web/.env.local NEXT_PUBLIC_SENTRY_DSN        "http://local-public-key@localhost:8000/1"
   success "Updated apps/web/.env.local"
 
   # ── Mobile ────────────────────────────────────────────────────────────────
@@ -468,8 +506,48 @@ cmd_test_e2e() {
 cmd_typecheck() {
   require_pnpm
   info "Typechecking all packages..."
-  turbo run typecheck
+  pnpm typecheck
   success "Typecheck passed."
+}
+
+cmd_lint() {
+  require_pnpm
+  info "Linting all packages..."
+  pnpm lint
+  success "Linting passed."
+}
+
+cmd_py_check() {
+  require_uv
+  info "Running Python quality gates for backend-py..."
+  cd apps/backend-py
+  
+  info "[1/3] Linting with Ruff..."
+  uv run ruff check .
+  
+  info "[2/3] Typechecking with MyPy..."
+  uv run mypy src
+  
+  info "[3/3] Running tests..."
+  uv run pytest
+  
+  cd ../..
+  success "Python quality gates passed."
+}
+
+cmd_check_all() {
+  divider
+  info "STARTING FULL MONOREPO QUALITY GATE"
+  divider
+  
+  cmd_typecheck
+  cmd_lint
+  cmd_test coverage
+  cmd_py_check
+  
+  divider
+  success "FULL QUALITY GATE PASSED"
+  divider
 }
 
 cmd_docker_clean() {
@@ -482,6 +560,9 @@ cmd_docker_clean() {
   # Stop and remove Python backend container
   docker stop stashflow-backend-py 2>/dev/null || true
   docker rm stashflow-backend-py 2>/dev/null || true
+
+  # Stop and remove logging stack
+  docker-compose -f docker-compose.logging.yml down 2>/dev/null || true
 
   if command -v docker &>/dev/null; then
     # Prune anything with 'supabase' or project labels
@@ -500,19 +581,19 @@ cmd_db_clean() {
   cmd_docker_clean
 
   if command -v docker &>/dev/null; then
-    info "Pruning local Supabase volumes and networks..."
+    info "Pruning local Supabase and Logging volumes..."
     local volumes
-    volumes=$(docker volume ls --filter "name=supabase" --format "{{.Name}}")
+    volumes=$(docker volume ls --filter "name=supabase" --filter "name=glitchtip" --format "{{.Name}}")
     if [ -n "$volumes" ]; then
       echo "$volumes" | xargs docker volume rm 2>/dev/null || true
     fi
 
     local networks
-    networks=$(docker network ls --filter "name=supabase" --format "{{.ID}}")
+    networks=$(docker network ls --filter "name=supabase" --filter "name=stashflow-logging" --format "{{.ID}}")
     if [ -n "$networks" ]; then
       echo "$networks" | xargs docker network rm 2>/dev/null || true
     fi
-    success "Supabase Docker resources pruned."
+    success "Docker resources pruned."
   else
     warn "Docker not found — skipping container cleanup."
   fi
@@ -530,6 +611,21 @@ cmd_clean() {
   cmd_db_clean
 
   success "Workspace fully clean. Run ./setup.sh install to rebuild."
+}
+
+cmd_shutdown() {
+  warn "This will perform a FULL CLEANUP: stopping all services, pruning Docker, and clearing all caches."
+  read -p "   Are you sure? [y/N] " confirm
+  if [[ $confirm == [yY] ]]; then
+    cmd_clean
+    info "Pruning Docker system..."
+    docker system prune -f --volumes
+    info "Clearing pnpm store..."
+    pnpm store prune
+    success "Full shutdown and cleanup complete."
+  else
+    info "Shutdown cancelled."
+  fi
 }
 
 cmd_env_init() {
@@ -605,6 +701,7 @@ cmd_env_init() {
   # Edge functions run inside Docker — must use Docker-internal Kong URL, not the host-mapped port
   upsert_env_var supabase/functions/.env SUPABASE_URL      "http://supabase_kong_StashFlow:8000"
   upsert_env_var supabase/functions/.env SUPABASE_ANON_KEY "$anon_key"
+  upsert_env_var supabase/functions/.env SENTRY_DSN        "http://local-public-key@localhost:8000/1"
   success "Updated supabase/functions/.env"
 
   # ── Supabase CLI (Local Dev) ──────────────────────────────────────────────
@@ -635,10 +732,16 @@ case "$1" in
   db:shared)    cmd_db_shared ;;
   schema:sync)  cmd_schema_sync ;;
   py:docker)    cmd_py_docker ;;
+  py:check)     cmd_py_check ;;
+  logging:start) cmd_logging_start ;;
+  logging:stop)  cmd_logging_stop ;;
   docker:clean) cmd_docker_clean ;;
   test)         cmd_test "$2" "$3" ;;
   test:e2e)     cmd_test_e2e ;;
+  lint)         cmd_lint ;;
   typecheck)    cmd_typecheck ;;
+  check:all)    cmd_check_all ;;
   clean)        cmd_clean ;;
+  shutdown)     cmd_shutdown ;;
   help|*)       cmd_help ;;
 esac

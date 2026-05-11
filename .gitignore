@@ -35,6 +35,16 @@ ios/
 *.log
 *.tsbuildinfo
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+
 # Supabase local dev
 supabase/.branches
 supabase/.temp

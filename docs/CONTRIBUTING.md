@@ -172,14 +172,39 @@ pnpm exec playwright test
 - Each feature module in `apps/web/modules/<feature>/` exposes only `index.ts` as public API
 - No cross-feature imports: `modules/loans` cannot import from `modules/transactions`
 
-### Comments
+### Documentation & Readability (Mandatory)
 
-Write comments only when the *why* is non-obvious — a hidden constraint, a workaround, a subtle invariant. Never describe what code does. Never reference the current task or PR.
+We implement a three-layer documentation strategy to ensure the codebase remains maintainable and educational.
+
+1. **High-Level Docstrings**: 
+   - Every class, function, and exported module MUST have a TSDoc (TypeScript) or Google-style (Python) docstring.
+   - Must define purpose, all parameters (with types), return values, and potential exceptions.
+2. **Algorithmic Pseudocode**:
+   - Before any major logic block or complex algorithm, include a human-readable outline prefixed with `PSEUDOCODE:`.
+   - Goal: Explain the logic flow without requiring the reader to parse code syntax first.
+3. **Strategic Inline Comments**:
+   - Focus on the **"WHY"**, not the "WHAT".
+   - Explain edge cases, business rules, or non-obvious workarounds.
+   - Avoid commenting on self-explanatory code; prioritize clear variable naming (self-documenting code).
 
 ```typescript
-// Divide by 100: DB stores interest_rate as percentage (12 = 12%); math expects decimal (0.12)
-annualInterestRate: loan.interest_rate / 100
+/**
+ * Calculates the final loan balance after applying a one-time principal payment.
+ * @param balance - Current outstanding principal.
+ * @param payment - The extra payment amount.
+ * @returns The new balance.
+ */
+export function applyExtraPayment(balance: number, payment: number): number {
+  // PSEUDOCODE: 
+  // 1. Ensure payment doesn't exceed current balance.
+  // 2. Subtract payment and return.
+  
+  // BUSINESS RULE: Extra payments cannot result in a negative balance.
+  const cappedPayment = Math.min(payment, balance);
+  return balance - cappedPayment;
+}
 ```
+
 
 ### RSC vs Client Components
 

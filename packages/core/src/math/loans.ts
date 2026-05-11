@@ -1,29 +1,58 @@
 import { LoanInterestType, LoanInterestBasis } from '../schema/mod.ts';
 
+/**
+ * Represents a single payment period in an amortization schedule.
+ */
 export interface AmortizationEntry {
+  /** The period number (usually month) */
   period: number;
+  /** Amount of the payment applied to the principal balance */
   principalPayment: number;
+  /** Amount of the payment applied to interest */
   interestPayment: number;
+  /** The balance remaining after this payment is applied */
   remainingBalance: number;
+  /** The expected date for this payment in YYYY-MM-DD format */
   dueDate: string;
 }
 
+/**
+ * Represents the complete results of an amortization calculation.
+ */
 export interface AmortizationSchedule {
+  /** The periodic payment amount (may vary for some loan types) */
   monthlyPayment: number;
+  /** The total interest paid over the life of the loan */
   totalInterest: number;
+  /** The total amount paid (principal + interest) */
   totalPayment: number;
+  /** The detailed period-by-period breakdown */
   entries: AmortizationEntry[];
 }
 
 /**
- * Generates an amortization schedule for a loan.
+ * Generates an amortization schedule for a loan based on various interest calculation methods.
+ * 
+ * Supports:
+ * - Standard Amortized: Traditional level-payment mortgage style.
+ * - Interest-Only: Payments cover only interest until the final period.
+ * - Add-on Interest: Interest is calculated upfront on the original principal.
+ * - Fixed Principal: Principal is split equally; interest decreases over time.
+ * 
+ * @param params - Calculation parameters including principal, rate, and duration.
+ * @returns A complete AmortizationSchedule object containing the monthly breakdown.
  */
 export function generateAmortizationSchedule(params: {
   principal: number;
-  annualInterestRate: number; // e.g., 0.05 for 5%
+  /** Annual interest rate as a decimal (e.g., 0.05 for 5%) */
+  annualInterestRate: number;
+  /** Total number of months for the loan term */
   durationMonths: number;
+  /** The start date of the loan in ISO format */
   startDate: string;
+  /** The method used to calculate interest and payments */
   interestType: LoanInterestType;
+  /** The day-count convention (reserved for future use) */
   interestBasis?: LoanInterestBasis;
 }): AmortizationSchedule {
   const { principal, annualInterestRate, durationMonths, startDate, interestType } = params;
@@ -34,7 +63,14 @@ export function generateAmortizationSchedule(params: {
   let monthlyPayment = 0;
 
   if (interestType === 'Standard Amortized') {
-    // Formula: P * (r(1+r)^n) / ((1+r)^n - 1)
+    // PSEUDOCODE: Standard Amortization (Level Payment)
+    // 1. Calculate a fixed monthly payment using the annuity formula: P * (r(1+r)^n) / ((1+r)^n - 1)
+    // 2. For each period:
+    //    a. Interest for period = Current Balance * Monthly Rate
+    //    b. Principal for period = Fixed Monthly Payment - Period Interest
+    //    c. Update Balance = Current Balance - Period Principal
+    //    d. Record entry and accumulate total interest.
+
     if (monthlyRate === 0) {
       monthlyPayment = principal / durationMonths;
     } else {
@@ -58,6 +94,15 @@ export function generateAmortizationSchedule(params: {
       });
     }
   } else if (interestType === 'Interest-Only') {
+    // PSEUDOCODE: Interest-Only Loan
+    // 1. Monthly payment is strictly the interest on the full principal: P * r
+    // 2. For every period except the last:
+    //    a. Principal payment is 0.
+    //    b. Balance remains the original principal.
+    // 3. In the final period:
+    //    a. Principal payment is the full original principal (Balloon Payment).
+    //    b. Balance becomes 0.
+
     monthlyPayment = principal * monthlyRate;
     let balance = principal;
     for (let i = 1; i <= durationMonths; i++) {
@@ -74,8 +119,14 @@ export function generateAmortizationSchedule(params: {
         dueDate: addMonths(startDate, i),
       });
     }
-    // Last payment includes principal
   } else if (interestType === 'Add-on Interest') {
+    // PSEUDOCODE: Add-on Interest
+    // 1. Calculate total interest upfront on the full principal for the full term: P * r * t
+    // 2. Total amount to be repaid = Principal + Total Interest
+    // 3. Divide this total by duration to get a fixed monthly payment.
+    // 4. Principal is repaid in equal monthly installments: P / n.
+    // 5. Interest is also "repaid" in equal monthly installments: Total Interest / n.
+
     const totalInterestForPeriod = principal * annualInterestRate * (durationMonths / 12);
     monthlyPayment = (principal + totalInterestForPeriod) / durationMonths;
     const monthlyPrincipal = principal / durationMonths;
@@ -94,6 +145,11 @@ export function generateAmortizationSchedule(params: {
       });
     }
   } else if (interestType === 'Fixed Principal') {
+    // PSEUDOCODE: Fixed Principal (Decreasing Payment)
+    // 1. Principal repayment is constant: P / n.
+    // 2. Monthly payment = Constant Principal + (Current Balance * Monthly Rate).
+    // 3. Because the balance decreases, the interest (and total payment) decreases each month.
+
     const principalPayment = principal / durationMonths;
     let balance = principal;
     for (let i = 1; i <= durationMonths; i++) {
@@ -102,8 +158,8 @@ export function generateAmortizationSchedule(params: {
       balance -= principalPayment;
       totalInterest += interestPayment;
 
-      // In Fixed Principal, the monthlyPayment varies, so we just set the first one or average?
-      // Usually, we'd return the first payment or handle it as a schedule.
+      // In Fixed Principal, the monthlyPayment varies. We return the first payment
+      // as the 'representative' monthly payment for summary displays.
       if (i === 1) monthlyPayment = currentMonthlyPayment;
 
       entries.push({
@@ -124,8 +180,17 @@ export function generateAmortizationSchedule(params: {
   };
 }
 
+/**
+ * Offsets a date by a given number of months.
+ * 
+ * @param dateStr - Base date in YYYY-MM-DD or ISO format.
+ * @param months - Number of months to add.
+ * @returns Date string in YYYY-MM-DD format.
+ */
 function addMonths(dateStr: string, months: number): string {
   const date = new Date(dateStr);
   date.setMonth(date.getMonth() + months);
   return date.toISOString().split('T')[0]!;
 }
+
+

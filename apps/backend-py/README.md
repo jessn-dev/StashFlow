@@ -15,6 +15,17 @@ This is the Python Intelligence Layer for StashFlow as outlined in the integrati
 brew install tesseract poppler
 ```
 
+---
+
+## Engineering Standards
+
+This service adheres to the project-wide **Three-Layer Documentation** strategy:
+1.  **High-Level Docstrings**: Google-style documentation for all functions and classes.
+2.  **Algorithmic Pseudocode**: Logic outlines prefixed with `PSEUDOCODE:` for complex flows.
+3.  **Strategic Inline Comments**: Focused on the "Why" behind AI prompts and logic.
+
+---
+
 ## Setup
 
 ```bash

@@ -29,6 +29,18 @@ Data entry is manual or via PDF upload. The AI pipeline extracts loan terms from
 
 ---
 
+## Engineering Standards
+
+We maintain high standards for code readability and maintainability. All contributions must adhere to our **Three-Layer Documentation** mandate:
+
+1.  **High-Level Docstrings**: TSDoc or Google-style documentation for all classes and functions.
+2.  **Algorithmic Pseudocode**: Human-readable logic outlines prefixed with `PSEUDOCODE:` before complex blocks.
+3.  **Strategic Inline Comments**: Focused on the "Why" behind non-obvious logic, business rules, and workarounds.
+
+Detailed guidelines can be found in **[docs/CONTRIBUTING.md](./CONTRIBUTING.md)** and the project-wide **`GEMINI.md`**.
+
+---
+
 ## Architecture
 
 Domain-driven monorepo. Pure business logic in `@stashflow/core` → service layer in `@stashflow/api` → Next.js web app + Expo mobile app. Supabase handles database, auth, storage, and edge functions.

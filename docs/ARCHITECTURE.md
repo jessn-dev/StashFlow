@@ -58,6 +58,18 @@ StashFlow/
 
 ---
 
+## Development & Readability Standards
+
+Maintainability is treated as a first-class architectural requirement. StashFlow mandates a **Three-Layer Documentation** strategy for all logic:
+
+1.  **High-Level Docstrings**: Comprehensive TSDoc/Google-style documentation for all public APIs, defining intent, parameters, and results.
+2.  **Algorithmic Pseudocode**: Human-readable logic outlines (`PSEUDOCODE:`) before complex algorithms to lower the barrier for understanding.
+3.  **Strategic Inline Comments**: Explanations for the "Why" behind non-obvious business rules or technical workarounds.
+
+This approach ensures the system remains "self-documenting" and accessible to both human contributors and AI agents.
+
+---
+
 ## Dependency Hierarchy
 
 Strictly enforced. No violations permitted.

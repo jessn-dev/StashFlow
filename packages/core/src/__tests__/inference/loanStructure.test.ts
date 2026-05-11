@@ -140,6 +140,29 @@ describe('inferLoanStructure', () => {
       expect(Array.isArray(result.alternatives)).toBe(true);
     });
   });
+
+  describe('sad paths', () => {
+    it('should handle zero or negative principal', () => {
+      const result = inferLoanStructure({
+        principal: 0,
+        monthly_payment: 100,
+        interest_rate_annual: 10,
+        term_months: 12,
+      });
+      expect(result.confidence).toBe(0.5);
+      expect(result.interest_type).toBe('Standard Amortized');
+    });
+
+    it('should handle zero term', () => {
+      const result = inferLoanStructure({
+        principal: 10000,
+        monthly_payment: 1000,
+        interest_rate_annual: 10,
+        term_months: 0,
+      });
+      expect(result.confidence).toBe(0.5);
+    });
+  });
 });
 
 describe('computeAddOnEIR', () => {
@@ -157,5 +180,10 @@ describe('computeAddOnEIR', () => {
   it('24% flat over 24 months → EIR significantly higher than 24%', () => {
     const eir = computeAddOnEIR(24, 24);
     expect(eir).toBeGreaterThan(35); // flat rate overstates true cost
+  });
+
+  it('should handle extreme interest rates', () => {
+    const eir = computeAddOnEIR(1000, 12);
+    expect(eir).toBeGreaterThan(1000);
   });
 });

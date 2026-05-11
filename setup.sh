@@ -77,6 +77,14 @@ require_supabase() {
   return 0
 }
 
+require_uv() {
+  command -v uv &>/dev/null || {
+    info "uv is not installed. Installing uv..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  }
+  return 0
+}
+
 load_supabase_env() {
   local env_file="apps/web/.env.local"
   if [ -f "$env_file" ]; then
@@ -141,6 +149,13 @@ cmd_help() {
   echo -e "    db:env                     Overwrite .env files with current local Supabase keys"
   echo -e "    db:jwt                     Regenerate dev service_role JWT and update pg_net trigger"
   echo -e "    db:types                   Regenerate TypeScript types from local schema"
+  echo -e "    db:shared                  Sync monorepo packages to Supabase _shared directory"
+  echo -e "    schema:sync                Sync AI schemas from Python to TypeScript"
+  echo ""
+
+  echo -e "  ${CYAN}Python Backend${RESET}"
+
+  echo -e "    py:docker                  Build the Python backend Docker container for local testing"
   echo ""
   echo -e "  ${CYAN}Testing${RESET}"
   echo -e "    test                       Run all package unit tests"
@@ -151,13 +166,15 @@ cmd_help() {
   echo -e "    typecheck                  TypeScript typecheck across all packages"
   echo ""
   echo -e "  ${CYAN}Maintenance${RESET}"
-  echo -e "    clean                      Remove build artifacts + stop & prune Supabase/Docker"
+    echo -e "    docker:clean               Stop and remove all project containers (Supabase + Python)"
+    echo -e "    clean                      Remove build artifacts + stop & prune Supabase/Docker"
   echo ""
 }
 
 cmd_init() {
   require_node
   require_pnpm
+  require_uv
   info "Initializing StashFlow monorepo..."
   pnpm install
   success "Workspace dependencies installed."
@@ -170,17 +187,44 @@ cmd_init() {
   info "Validating local Supabase configuration..."
   require_supabase
 
+  cmd_db_shared
+
   success "Initialization complete."
+}
+
+cmd_py_docker() {
+  if ! command -v docker &>/dev/null; then
+    die "Docker is required to build the container."
+  fi
+  info "Building Python backend Docker container..."
+  docker build -t stashflow-backend-py ./apps/backend-py
+  success "Docker image built: stashflow-backend-py"
 }
 
 cmd_dev() {
   local target=$1
+  local clean=0
+
+  # Support --clean flag or --clean as first arg
+  if [[ "$target" == "--clean" ]]; then
+    clean=1
+    target=$2
+  elif [[ "$2" == "--clean" ]]; then
+    clean=1
+  fi
+
+  if [ $clean -eq 1 ]; then
+    cmd_docker_clean
+    info "Starting with a fresh Docker environment..."
+  fi
+
   require_pnpm
   require_supabase
 
   # ── Preflight: Supabase must be running ───────────────────────────────────
   if ! supabase status &>/dev/null; then
-    die "Supabase is not running. Start it first:\n   ./setup.sh db:start"
+    info "Supabase is not running. Starting it now..."
+    cmd_db_start
   fi
 
   # ── Preflight: edge function env must exist ────────────────────────────────
@@ -321,8 +365,9 @@ cmd_db_env() {
   # ── Edge functions ────────────────────────────────────────────────────────
   # Edge functions run inside Docker — must use Docker-internal Kong URL, not the host-mapped port
   touch supabase/functions/.env
-  upsert_env_var supabase/functions/.env SUPABASE_URL      "http://supabase_kong_StashFlow:8000"
-  upsert_env_var supabase/functions/.env SUPABASE_ANON_KEY "$anon_key"
+  upsert_env_var supabase/functions/.env SUPABASE_URL         "http://supabase_kong_StashFlow:8000"
+  upsert_env_var supabase/functions/.env SUPABASE_ANON_KEY    "$anon_key"
+  upsert_env_var supabase/functions/.env PYTHON_BACKEND_URL  "http://host.docker.internal:8008"
   success "Updated supabase/functions/.env"
 
   # ── Supabase CLI (Local Dev) ──────────────────────────────────────────────
@@ -373,6 +418,25 @@ cmd_db_types() {
   success "Types updated → packages/core/src/schema/database.types.ts"
 }
 
+cmd_db_shared() {
+  info "Syncing shared monorepo packages to Supabase Edge Functions..."
+  rm -rf supabase/functions/_shared/core supabase/functions/_shared/document-parser
+  mkdir -p supabase/functions/_shared/core/src supabase/functions/_shared/document-parser/src
+  cp -r packages/core/src/* supabase/functions/_shared/core/src/
+  cp -r packages/document-parser/src/* supabase/functions/_shared/document-parser/src/
+  cp packages/core/deno.json supabase/functions/_shared/core/ 2>/dev/null || true
+  cp packages/document-parser/deno.json supabase/functions/_shared/document-parser/ 2>/dev/null || true
+  success "Shared packages synchronized."
+}
+
+cmd_schema_sync() {
+  info "Synchronizing schemas from Python to TypeScript..."
+  pnpm --filter @stashflow/backend-py export:schema
+  pnpm --filter @stashflow/document-parser gen:types
+  cmd_db_shared
+  success "Schema synchronization complete."
+}
+
 cmd_test() {
   require_pnpm
   local arg1=$1
@@ -408,20 +472,35 @@ cmd_typecheck() {
   success "Typecheck passed."
 }
 
-cmd_db_clean() {
+cmd_docker_clean() {
+  info "Stopping and removing all project containers..."
+  
   if command -v supabase &>/dev/null; then
-    info "Stopping Supabase containers..."
     supabase stop --no-backup 2>/dev/null || true
   fi
 
+  # Stop and remove Python backend container
+  docker stop stashflow-backend-py 2>/dev/null || true
+  docker rm stashflow-backend-py 2>/dev/null || true
+
   if command -v docker &>/dev/null; then
-    info "Pruning local Supabase Docker resources..."
+    # Prune anything with 'supabase' or project labels
     local containers
-    containers=$(docker ps -a --filter "name=supabase" --format "{{.ID}}")
+    containers=$(docker ps -aq --filter "name=supabase" --filter "label=com.supabase.project=StashFlow")
     if [ -n "$containers" ]; then
       echo "$containers" | xargs docker rm -f 2>/dev/null || true
     fi
+    success "Project containers cleaned."
+  else
+    warn "Docker not found — skipping container cleanup."
+  fi
+}
 
+cmd_db_clean() {
+  cmd_docker_clean
+
+  if command -v docker &>/dev/null; then
+    info "Pruning local Supabase volumes and networks..."
     local volumes
     volumes=$(docker volume ls --filter "name=supabase" --format "{{.Name}}")
     if [ -n "$volumes" ]; then
@@ -553,6 +632,10 @@ case "$1" in
   db:env)       cmd_db_env ;;
   db:jwt)       cmd_db_jwt ;;
   db:types)     cmd_db_types ;;
+  db:shared)    cmd_db_shared ;;
+  schema:sync)  cmd_schema_sync ;;
+  py:docker)    cmd_py_docker ;;
+  docker:clean) cmd_docker_clean ;;
   test)         cmd_test "$2" "$3" ;;
   test:e2e)     cmd_test_e2e ;;
   typecheck)    cmd_typecheck ;;

@@ -6,7 +6,7 @@
 
 ## System Overview
 
-StashFlow is a multi-platform personal finance platform built on a domain-driven monorepo. Business logic is pure and isolated; all platform-specific code (HTTP, DB, React) stays at the edges.
+StashFlow is a multi-platform personal finance platform built on a hybrid architecture: **Deterministic TypeScript Core + Python Intelligence Layer**.
 
 ```
 Browser / Mobile App
@@ -19,10 +19,11 @@ Browser / Mobile App
    @stashflow/api (Supabase queries + service layer)
         │
         ▼
-   Supabase (Postgres + Auth + Storage + Edge Functions)
-        │
-        ▼
-   @stashflow/core (pure financial logic — no I/O)
+   Supabase (Postgres 17 + Auth + Storage + Edge Functions)
+        │                     │
+        ▼                     ▼
+   @stashflow/core      Python AI Backend (FastAPI)
+   (Deterministic)      (Probabilistic / AI + mypy)
 ```
 
 ---
@@ -33,20 +34,23 @@ Browser / Mobile App
 StashFlow/
 ├── apps/
 │   ├── web/                  # Next.js 16, App Router, RSC, Tailwind 4, shadcn/ui
-│   └── mobile/               # Expo SDK 55, React Native, NativeWind
+│   ├── mobile/               # Expo SDK 55, React Native 0.83, NativeWind
+│   └── backend-py/           # FastAPI, Python 3.12, ML, OCR, mypy
 │
 ├── packages/
 │   ├── core/                 # @stashflow/core — pure TS, zero deps, Deno-compatible
+│   ├── document-parser/      # @stashflow/document-parser — shared parsing logic + schemas
 │   ├── api/                  # @stashflow/api  — Supabase queries, service layer (web/Node only)
-│   ├── db/                   # @stashflow/db   — platform-specific client factories (browser/server/mobile)
+│   ├── db/                   # @stashflow/db   — platform-specific client factories
 │   ├── auth/                 # @stashflow/auth — server-side session helpers
 │   ├── ui/                   # @stashflow/ui   — shared component primitives
 │   └── theme/                # @stashflow/theme — design tokens
 │
 ├── supabase/
-│   ├── functions/            # Deno edge functions
+│   ├── functions/            # Deno edge functions (Gateway to Python AI)
 │   └── migrations/           # Versioned SQL migrations (20+)
 │
+├── .node-version             # Node.js 24
 ├── deno.json                 # Deno workspace root
 ├── turbo.json                # Turborepo pipeline
 └── pnpm-workspace.yaml
@@ -66,8 +70,9 @@ Strictly enforced. No violations permitted.
 @stashflow/ui      ← theme
 @stashflow/api     ← core + db
 apps/web           ← api, auth, db, ui, theme
-apps/mobile        ← db, ui, theme  (never api)
-supabase/functions ← @stashflow/core via Deno workspace
+apps/mobile        ← db, ui, theme (never api)
+apps/backend-py    ← Python-only (uv)
+supabase/functions ← @stashflow/core, @stashflow/document-parser
 ```
 
 ### Rules
@@ -76,13 +81,16 @@ supabase/functions ← @stashflow/core via Deno workspace
 |---------|-----------|---------------|
 | `@stashflow/core` | nothing | everything |
 | `@stashflow/theme` | nothing | everything |
+| `@stashflow/document-parser`| core | everything else |
 | `@stashflow/db` | core, supabase-js | everything else |
 | `@stashflow/auth` | core, supabase-js | everything else |
 | `@stashflow/ui` | theme | core, api, supabase |
 | `@stashflow/api` | core, db | ui, Next.js internals |
 | `apps/web` | api, auth, db, ui, theme | react-native |
 | `apps/mobile` | db, ui, theme | api, next |
-| `supabase/functions` | core (Deno workspace) | api, ui |
+| `apps/backend-py` | nothing (Python) | TypeScript packages |
+| `supabase/functions` | core, document-parser | api, ui |
+
 
 **Mobile never imports `@stashflow/api`** — it contains React browser APIs incompatible with React Native. Mobile talks directly to Supabase and imports `@stashflow/core` for business logic.
 
@@ -175,30 +183,91 @@ Client component form submit
     └─ router.refresh() → RSC re-fetches from DB
 ```
 
-### Loan document parsing
+### Unified document processing
 
 ```
 User uploads PDF → Supabase Storage (user_documents bucket)
     │
-    ├─ Postgres trigger (tr_parse_loan_document) fires on INSERT to documents
+    ├─ Postgres trigger (tr_on_document_inserted) fires on INSERT to documents
     │
-    ├─ pg_net HTTP call → parse-loan-document edge function
-    │       (webhook-triggered, SERVICE_ROLE_KEY, validates x-webhook-secret)
+    ├─ pg_net HTTP call → parse-document edge function
+    │       (webhook-triggered, validates x-webhook-secret)
     │
-    ├─ 3-tier pipeline:
-    │       1. unpdf text extraction → deterministic regex parser → confidence score
-    │       2. Google Vision OCR (if confidence < 0.85)
-    │       3. Groq → Gemini → Claude AI fallback (if confidence < 0.70)
+    ├─ Security Gate (Deno Edge Function):
+    │       1. inspect MIME type
+    │       2. validate Magic Bytes (file signature)
     │
-    └─ extracted data written back to documents.extracted_data (JSONB)
-       processing_status updated → client polls via Supabase Realtime
+    ├─ Intelligence Layer (Python FastAPI):
+    │       1. extract text (PyMuPDF) with local OCR fallback (Tesseract)
+    │       2. AI Classification (Loan vs. Bank Statement)
+    │       3. AI Structured Extraction (Instructor + LLM)
+    │
+    └─ persistence path (Deno Edge Function):
+            1. validate AI output against business rules
+            2. write extracted data back to documents.extracted_data (JSONB)
+            3. update processing_status to 'success'
 ```
+
+---
+
+## Shared Schema Governance
+
+To prevent contract drift between the Python AI layer and the TypeScript application, StashFlow implements an automated governance pipeline.
+
+1.  **Source of Truth**: Pydantic models in `apps/backend-py/src/schemas/`.
+2.  **Export**: `./setup.sh schema:sync` triggers a Python script to export models as JSON Schemas.
+3.  **Generation**: `json-schema-to-typescript` converts these to TypeScript interfaces in `@stashflow/document-parser`.
+4.  **Synchronization**: The generated types are automatically copied to the Supabase Edge Function environment.
+
+---
+
+## Security & Integrity
+
+### Ledger Integrity
+
+To detect unauthorized tampering with financial records, StashFlow implements a cryptographic ledger.
+- **Mechanism**: Every `income` and `expense` record includes a `signature` column.
+- **Algorithm**: HMAC-SHA256.
+- **Verification**: The `verify-ledger-integrity` edge function scans the last 1,000 transactions to ensure all signatures match the current record data.
+
+### Session Intelligence
+
+StashFlow monitors session health to detect potential account takeovers.
+- **Event Logging**: The `log-session-event` webhook captures IP, country, and User-Agent metadata on every login.
+- **Anomaly Scoring**: A pure algorithm in `@stashflow/core` scores logins based on geographic shifts and unusual hours.
+- **Management**: Users can view and revoke active sessions directly from the Settings dashboard.
+
+---
+
+## CI/CD Pipeline
+
+StashFlow uses a gated, backend-first deployment strategy to ensure system stability.
+
+```
+Merge to develop/main
+        │
+        ▼
+   CI Job (Lint, Typecheck, Unit Tests, RLS Tests)
+        │
+        ▼
+   Manual Approval Gate (GitHub Environments)
+        │
+        ▼
+   Backend Deploy (Supabase Secrets + Migrations + Edge Functions)
+        │
+        ▼
+   Frontend Deploy (Vercel --prebuilt)
+```
+
+- **Backend-First**: Supabase infrastructure is fully updated before the frontend goes live.
+- **Vercel Prebuilt**: Artifacts built in CI are deployed directly, ensuring parity between testing and production.
+- **Rollback**: A dedicated `rollback-prod.yml` workflow allows for near-instant reversion to previous stable deployment IDs.
 
 ---
 
 ## Realtime Architecture
 
-Used for loan document processing status updates only (current implementation).
+Used for loan document processing status updates and live ledger status.
 
 ```
 Client (DocumentStatusWatcher.tsx)

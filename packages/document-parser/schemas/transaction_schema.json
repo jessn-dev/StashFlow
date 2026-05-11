@@ -1,0 +1,46 @@
+{
+  "$defs": {
+    "ExpenseCategory": {
+      "enum": [
+        "housing",
+        "food",
+        "transport",
+        "utilities",
+        "healthcare",
+        "entertainment",
+        "education",
+        "personal",
+        "shopping",
+        "other"
+      ],
+      "title": "ExpenseCategory",
+      "type": "string"
+    }
+  },
+  "description": "Schema for categorizing a bank transaction description.",
+  "properties": {
+    "category": {
+      "$ref": "#/$defs/ExpenseCategory",
+      "description": "The primary category for this transaction"
+    },
+    "confidence": {
+      "description": "Confidence score from 0.0 to 1.0",
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "reasoning": {
+      "description": "Brief explanation of why this category was chosen",
+      "title": "Reasoning",
+      "type": "string"
+    }
+  },
+  "required": [
+    "category",
+    "confidence",
+    "reasoning"
+  ],
+  "title": "TransactionCategorizationSchema",
+  "type": "object"
+}

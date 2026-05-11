@@ -77,6 +77,13 @@ Expo → supabase.auth.signIn → JWT stored in expo-secure-store
 
 TOTP via Supabase Auth. `MfaManager` component in Settings allows enrollment. Login flow checks `aal2` assurance level — elevated to MFA challenge if enrolled. `MfaNudgeBanner` prompts unenrolled users globally with `sessionStorage` dismissal.
 
+### Session Intelligence (P3-A)
+
+StashFlow monitors session health to detect potential account takeovers.
+- **Event Logging**: The `log-session-event` webhook captures IP, country, and User-Agent metadata on every login, stored in `session_events`.
+- **Anomaly Scoring**: A pure algorithm in `@stashflow/core` scores logins based on geographic shifts and unusual hours.
+- **Management**: Users can view risk scores for all active sessions and revoke access (force logout) from the Settings dashboard.
+
 ---
 
 ## Authorization
@@ -85,24 +92,7 @@ TOTP via Supabase Auth. `MfaManager` component in Settings allows enrollment. Lo
 
 Every user-owned table has RLS enabled. All PostgREST queries execute as the authenticated user — no query bypasses RLS.
 
-**Current state:** Tables have `FOR ALL` RLS policies that grant broad read/write access to the row owner.
-
-**Target state (P1-B):** Refactor all `FOR ALL` policies to explicit per-operation policies with strict `WITH CHECK` clauses:
-
-```sql
--- Pattern for each table:
-CREATE POLICY "users_select_own" ON table_name
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "users_insert_own" ON table_name
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "users_update_own" ON table_name
-  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "users_delete_own" ON table_name
-  FOR DELETE USING (auth.uid() = user_id);
-```
+**Current state:** Tables have explicit per-operation policies with strict `WITH CHECK` clauses (migration `20260510000001_explicit_rls_policies.sql`).
 
 **`system_audit_logs`:** Append-only by design. Users have `SELECT` only. `INSERT` only via service role (no user-initiated writes). No `UPDATE` or `DELETE` policy exists.
 
@@ -117,6 +107,20 @@ await adminClient.auth.admin.deleteUser(user.id)
 ```
 
 ---
+
+## Data Integrity (P3-C)
+
+### Ledger Integrity
+
+To detect unauthorized tampering with financial records, StashFlow implements a cryptographic ledger.
+- **Mechanism**: Every `income` and `expense` record includes a `signature` column.
+- **Algorithm**: HMAC-SHA256 signing of the amount, currency, date, and description.
+- **Verification**: The `verify-ledger-integrity` edge function scans records for signature validity.
+- **Indicator**: A "Ledger Secure" status indicator in the web app provides real-time verification feedback.
+
+---
+
+## Token Management
 
 ## Token Management
 
@@ -218,17 +222,41 @@ Edge functions return explicit CORS headers. Allowed origins are restricted in p
 - [x] **Zod validation in edge functions** — standardized request validation via `_shared/validate.ts`.
 - [x] **Middleware auth scoped to protected routes** — `apps/web/middleware.ts` optimized to prevent auth amplification.
 
-### Hardening Applied (P2-D partial)
+### Hardening Applied (P2-D complete)
 
 - [x] **MIME type whitelist** — whitelists PDF/JPG/PNG/WEBP.
-- [x] **5MB hard cap** — checks `file_size` before processing.
+- [x] **10MB hard cap** — checks `file_size` before processing (enforced at Python API).
 - [x] **Password Support** — added `x-document-password` header and `pdf.ts` client detection.
+- [x] **Magic Bytes validation** — `@stashflow/document-parser` verifies binary file signatures before processing.
 
 ### Remaining Gaps
 
-- **No magic bytes validation** — `Content-Type` spoofing still possible; true file format not verified against header bytes.
 - **No malware scanning** — files parsed directly; no pre-processing antivirus step.
 - **No async job queue** — synchronous processing; edge function timeout risk on large files remains.
+
+---
+
+## Python Intelligence Layer Security
+
+The Python backend (`apps/backend-py`) is an isolated, internal microservice responsible for probabilistic workflows.
+
+### Isolation & Sandboxing
+
+- **Network Isolation**: Not accessible from the public internet. Only accessible via Supabase Edge Function gateways.
+- **No Persistence**: The service is entirely stateless and does not possess Supabase database credentials.
+- **Non-Privileged User**: The Docker container runs as a non-privileged `appuser` to prevent container escape and root access.
+
+### Resource Protection
+
+- **Payload Limit**: Enforces a strict 10MB limit on incoming files to prevent memory exhaustion.
+- **Page Limit**: Enforces a 20-page safety limit on PDFs to prevent DoS via complex PDF rendering.
+- **Timeouts**: Enforces internal processing timeouts to prevent hangs.
+
+### Application Security
+
+- **Mandatory Headers**: Middleware injects `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and `HSTS`.
+- **Traceability**: All requests require a `X-Correlation-ID`, allowing end-to-end auditability from the user action to the AI extraction.
+- **Low Confidence Alerts**: Automated logging for AI extraction results with < 40% confidence, enabling manual audit.
 
 ---
 
@@ -327,9 +355,10 @@ Report security vulnerabilities to `jessengolab.dev@gmail.com`. Do not open publ
 - [x] Immutable audit logs for financial mutations — triggers `trg_audit_incomes/expenses/loans` in migration `20260510000002`
 - [x] Zod validation in edge functions — `_shared/validate.ts` pattern + applied to `delete-account`
 - [x] Middleware auth scoped to protected routes — `apps/web/middleware.ts`
-- [x] MIME type whitelist + 5MB file size limit — `parse-loan-document` (P2-D partial; magic bytes + async queue remain)
-- [ ] Magic bytes validation on document uploads — **P2-D remaining**
+- [x] MIME type whitelist + 10MB file size limit — `parse-document`
+- [x] Magic bytes validation on document uploads — `@stashflow/document-parser`
 - [x] `pnpm audit --audit-level=high` in CI — `security` job in `.github/workflows/ci.yml`
 - [x] Secret scanning in CI — Gitleaks v8.27.2 in `security` job
-- [ ] Session visibility dashboard + revoke all — **P3-A**
-- [ ] Login anomaly detection — **P3-A**
+- [x] Session visibility dashboard + revoke all — **P3-A**
+- [x] Login anomaly detection — **P3-A**
+- [x] Ledger Integrity HMAC-SHA256 signatures — **P3-C**

@@ -1,0 +1,14 @@
+{
+  "name": "@stashflow/backend-py",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "touch .env && docker build -t stashflow-backend-py . && docker stop stashflow-backend-py 2>/dev/null || true && docker run --rm --name stashflow-backend-py -p 8008:8000 --env-file .env stashflow-backend-py",
+    "gen:schemas": "uv run python scripts/export_schema.py",
+    "build": "echo 'No build step for Python API'",
+    "start": "uv run uvicorn src.main:app --host 0.0.0.0 --port 8000",
+    "lint": "uv run ruff check src",
+    "test": "uv run pytest",
+    "typecheck": "uv run mypy src"
+  }
+}

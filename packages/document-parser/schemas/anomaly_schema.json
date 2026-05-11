@@ -1,0 +1,73 @@
+{
+  "$defs": {
+    "AnomalyInsight": {
+      "description": "Represents a single detected anomaly with AI reasoning.",
+      "properties": {
+        "category": {
+          "$ref": "#/$defs/ExpenseCategory"
+        },
+        "severity": {
+          "$ref": "#/$defs/AnomalySeverity"
+        },
+        "description": {
+          "description": "Human-readable description of the anomaly, e.g., 'Utilities spiked by 45%'",
+          "title": "Description",
+          "type": "string"
+        },
+        "recommended_action": {
+          "description": "Actionable advice for the user, e.g., 'Check for leaking faucets'",
+          "title": "Recommended Action",
+          "type": "string"
+        }
+      },
+      "required": [
+        "category",
+        "severity",
+        "description",
+        "recommended_action"
+      ],
+      "title": "AnomalyInsight",
+      "type": "object"
+    },
+    "AnomalySeverity": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "AnomalySeverity",
+      "type": "string"
+    },
+    "ExpenseCategory": {
+      "enum": [
+        "housing",
+        "food",
+        "transport",
+        "utilities",
+        "healthcare",
+        "entertainment",
+        "education",
+        "personal",
+        "shopping",
+        "other"
+      ],
+      "title": "ExpenseCategory",
+      "type": "string"
+    }
+  },
+  "description": "Full report containing all detected spending anomalies.",
+  "properties": {
+    "anomalies": {
+      "items": {
+        "$ref": "#/$defs/AnomalyInsight"
+      },
+      "title": "Anomalies",
+      "type": "array"
+    }
+  },
+  "required": [
+    "anomalies"
+  ],
+  "title": "AnomalyReportSchema",
+  "type": "object"
+}

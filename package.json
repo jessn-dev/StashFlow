@@ -11,15 +11,20 @@
     "typecheck": "NODE_OPTIONS='--max-old-space-size=8192' turbo run typecheck",
     "lint": "NODE_OPTIONS='--max-old-space-size=8192' turbo run lint",
     "prepare": "husky",
+    "gen:schemas": "turbo run gen:schemas",
     "gen:types": "supabase gen types typescript --local | tail -n +2 > packages/core/src/schema/database.types.ts"
   },
   "devDependencies": {
-    "@types/node": "^22",
+    "@types/node": "^24",
     "@vitest/coverage-v8": "^4.1.5",
     "husky": "^9",
     "lint-staged": "^15",
     "turbo": "^2.9.12",
-    "typescript": "^6.0.3"
+    "typescript": "^5.9.0"
+  },
+  "volta": {
+    "node": "24.x",
+    "pnpm": "10.33.2"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -32,8 +37,10 @@
       "postcss": "^8.5.10",
       "@babel/plugin-transform-modules-systemjs": "^7.29.4",
       "@xmldom/xmldom": "^0.8.13",
-      "react": "19.0.0",
-      "react-dom": "19.0.0"
+      "react": "19.2.0",
+      "react-dom": "19.2.0",
+      "@types/react": "^19",
+      "@types/react-dom": "^19"
     }
   }
 }

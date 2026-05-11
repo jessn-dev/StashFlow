@@ -70,4 +70,26 @@ describe('loan math', () => {
     expect(result.monthlyPayment).toBe(10000 / 12);
     expect(result.totalInterest).toBe(0);
   });
+
+  it('should handle 0 duration gracefully', () => {
+    const result = generateAmortizationSchedule({
+      ...baseParams,
+      durationMonths: 0,
+      interestType: 'Standard Amortized',
+    });
+
+    expect(result.monthlyPayment).toBe(Infinity); // Division by zero in standard formula
+    expect(result.entries).toHaveLength(0);
+  });
+
+  it('should handle negative principal', () => {
+    const result = generateAmortizationSchedule({
+      ...baseParams,
+      principal: -10000,
+      interestType: 'Standard Amortized',
+    });
+
+    expect(result.monthlyPayment).toBeLessThan(0);
+    expect(result.totalPayment).toBeLessThan(0);
+  });
 });

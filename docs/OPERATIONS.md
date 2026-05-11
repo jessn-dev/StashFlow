@@ -14,6 +14,24 @@
 
 ---
 
+## Testing Strategy
+
+StashFlow enforces a high-quality testing standard across all layers of the stack.
+
+### Unit & Integration Tests
+
+- **Deterministic Core**: `@stashflow/core` requires **90%+ branch coverage**. Tests cover all financial math and regional strategies.
+- **Python Backend**: `apps/backend-py` requires **80%+ statement coverage**. Verified via `pytest --cov`.
+- **Web Frontend**: `apps/web` uses Vitest for utility and middleware testing.
+
+### End-to-End (E2E) Validation
+
+- **Playwright**: Used for validating critical user journeys (Auth, Imports, Dashboard).
+- **Local Run**: `cd apps/web && npx playwright test --project=chromium`
+- **CI Run**: Executed on PRs to `develop` to prevent regressions in core flows.
+
+---
+
 ## CI/CD Pipeline
 
 GitHub Actions. Defined in `.github/workflows/`.
@@ -25,7 +43,7 @@ GitHub Actions. Defined in `.github/workflows/`.
 
 ### Jobs
 
-Four parallel jobs; `e2e` depends on `test`.
+StashFlow uses a gated pipeline to ensure production stability.
 
 **`test`** — runs on every push/PR:
 ```bash
@@ -33,7 +51,13 @@ pnpm install --frozen-lockfile
 turbo run typecheck      # tsc --noEmit on all packages
 pnpm lint                # tsc --noEmit on apps/web
 pnpm test:coverage       # vitest with coverage; fails below threshold
+cd apps/backend-py && PYTHONPATH=. uv run pytest --cov  # python coverage
 ```
+
+**`deploy`** — runs on merge to `develop` (test) or `main` (prod):
+1.  **Manual Approval**: Requires reviewer sign-off via GitHub Environments.
+2.  **Backend-First**: Deploys Supabase secrets and Edge Functions before the frontend.
+3.  **Vercel Prebuilt**: Uses `vercel pull` -> `vercel build` -> `vercel deploy --prebuilt` to ensure environment parity.
 
 **`rls-tests`** — runs on every push/PR:
 ```bash
@@ -48,33 +72,38 @@ pnpm audit --audit-level=high   # fails on high/critical CVEs
 gitleaks detect --redact        # full history secret scan
 ```
 
-**`e2e`** — runs only on PRs to `develop`, after `test` passes:
-```bash
-playwright install --with-deps
-playwright test   # chromium + firefox + webkit
-```
-Requires `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` repository secrets.
-
-### Coverage Thresholds (CI fails if below)
-
-| Package | Lines | Functions | Branches |
-|---------|-------|-----------|----------|
-| `@stashflow/core` | 90% | 90% | 90% |
-| `@stashflow/api` | 70% | 70% | 60% |
-| `apps/web` | 20% | 20% | 20% |
-
 ---
 
 ## Deployment Process
 
-### Ongoing Deployments (once configured)
+StashFlow implements a **Backend-First** deployment strategy. The database and edge functions are fully updated and verified before the frontend artifacts are promoted.
 
-| What | How |
-|------|-----|
-| Web | Push to `main` → CI passes → Vercel auto-deploys |
-| Edge functions | `supabase functions deploy` (independent of web) |
-| Schema changes | `supabase db push --linked` → `pnpm gen:types` |
-| Mobile | `eas build --platform all && eas submit` (not yet configured) |
+| Stage | Action | Tool |
+|-------|--------|------|
+| 1. Validate | Lint, Typecheck, Unit Tests, RLS Tests | GitHub Actions |
+| 2. Approve | Manual Sign-off | GitHub Environments |
+| 3. Backend | `supabase db push` + `functions deploy` | Supabase CLI |
+| 4. Frontend | `vercel deploy --prebuilt` | Vercel CLI |
+
+### Production Rollback
+
+In the event of a critical failure, use the `rollback-prod.yml` workflow. This performs a near-instant reversion to the last known stable deployment ID on Vercel and notifies the engineering team.
+
+---
+
+## Developer CLI (`./setup.sh`)
+
+The root `setup.sh` script is the primary entry point for managing the development environment.
+
+| Command | Purpose |
+|---------|---------|
+| `./setup.sh init` | One-time setup of dependencies and git |
+| `./setup.sh dev` | Start the entire integrated stack |
+| `./setup.sh dev --clean` | Fresh start (kills containers first) |
+| `./setup.sh docker:clean` | Deep cleanup of project containers |
+| `./setup.sh schema:sync` | **Governance**: Sync Python AI models to TypeScript |
+| `./setup.sh db:shared` | Sync monorepo packages to Supabase environment |
+| `./setup.sh db:reset` | Reset local DB and re-seed |
 
 ---
 
@@ -87,13 +116,16 @@ Complete guide for standing up a new environment (test or production) from zero.
 ```bash
 brew install supabase/tap/supabase   # Supabase CLI
 npm install -g vercel                 # Vercel CLI
+brew install uv                       # Python Package Manager
+brew install tesseract poppler       # OCR Engines (Local Dev only)
 ```
 
 ### Phase 0 — Platform Setup
 
-1.  **Supabase:** Create a new project. Gather **Project Ref**, **API URL**, **Anon Key**, and **Service Role Key**.
-2.  **AI Keys:** Ensure you have production-ready keys for Groq, Gemini, and Anthropic.
-3.  **Google OAuth:** Transition your GCP project to "Production" status and add `https://<ref>.supabase.co/auth/v1/callback` to the authorized redirect URIs.
+1.  **Node.js**: Ensure **Node.js 24** is installed (managed via Volta or `.node-version`).
+2.  **Supabase:** Create a new project. Gather **Project Ref**, **API URL**, **Anon Key**, and **Service Role Key**.
+3.  **AI Keys:** Ensure you have production-ready keys for Groq, Gemini, and Anthropic.
+4.  **Google OAuth:** Transition your GCP project to "Production" status and add `https://<ref>.supabase.co/auth/v1/callback` to the authorized redirect URIs.
 
 ### Phase 1 — CLI Link
 ```bash
@@ -111,7 +143,6 @@ supabase db push
 supabase secrets set \
   GROQ_API_KEY=xxx \
   GEMINI_API_KEY=xxx \
-  ANTHROPIC_API_KEY=xxx \
   CRON_SECRET=xxx \
   LEDGER_SECRET=xxx \
   PARSE_LOAN_WEBHOOK_SECRET=xxx
@@ -155,6 +186,11 @@ In `.github/workflows/ci.yml`, the `deploy` job is currently a stub.
 | Layer | Tool | Metrics |
 |-------|------|---------|
 | Web performance | Vercel Analytics | LCP, CLS, FID, p95 response |
+| Error Tracking (Frontend) | Vercel Logs / Axiom | Runtime exceptions, API errors |
+| Error Tracking (Backend) | Supabase Logs | Edge Function failures, DB errors |
 | Anomaly detection | Custom | Transaction spike detection, unusual login patterns |
+
+...
+tterns |
 
 ...

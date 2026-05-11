@@ -310,7 +310,7 @@ Via `BudgetQuery.delete(userId, category)`.
 
 ## Exchange Rates
 
-Rates are cached in `exchange_rates`, synced hourly by the `sync-exchange-rates` cron.
+Rates are cached in `exchange_rates`, synced daily (or manually) by the `sync-exchange-rates` edge function.
 
 ### Get latest rates
 
@@ -319,6 +319,10 @@ Via `ExchangeRateQuery.getLatest(userId)`. Returns rates relevant to the user's 
 ### Currency conversion
 
 Via `convertToBase(amount, rate)` from `@stashflow/core`. `rate` = units of base currency per 1 unit of foreign currency.
+
+### `sync-exchange-rates` (Edge Function)
+
+Syncs daily reference rates from the **Frankfurter API**. Computes bidirectional cross-rates via a USD bridge.
 
 ---
 
@@ -374,21 +378,107 @@ POST /functions/v1/macro-financial-advisor
 Authorization: Bearer <access_token>
 ```
 
-### `parse-loan-document`
+### `parse-document`
 
-Webhook-triggered or manually invoked for password-protected files.
+Unified entry point for AI-driven document processing. Triggered automatically on `INSERT` to the `documents` table via database webhook, or manually invoked for password-protected files.
 
 **Manual Invocation (Auth required):**
 ```
-POST /functions/v1/parse-loan-document
+POST /functions/v1/parse-document
 Authorization: Bearer <access_token>
 x-document-password: <password>
 Content-Type: application/json
 
-Body: { "id": "<document_id>" }
+Body: { "record": { "id": "<document_id>" } }
 ```
 
-Processes PDF through 3-tier AI pipeline; writes `extracted_data` + `processing_status` back to the row. Supports `x-document-password` for encrypted PDFs.
+Classifies PDF as LOAN or BANK_STATEMENT, extracts structured data via Python backend, and writes results to `documents.extracted_data`.
+
+### `categorize-transaction` (New in v0.19.0)
+
+AI-driven classification of bank transaction descriptions.
+
+```
+POST /functions/v1/categorize-transaction
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+Body: { "description": "Starbucks Manila", "amount": 250.00 }
+
+Response 200: { "category": "food", "confidence": 0.98, "reasoning": "..." }
+```
+
+### `detect-anomalies` (New in v0.19.0)
+
+Statistical and AI-driven analysis of spending spikes.
+
+```
+POST /functions/v1/detect-anomalies
+Authorization: Bearer <access_token>
+```
+
+Fetches last 6 months of expenses and returns an `AnomalyReport` containing detected spikes and actionable insights.
+
+### `get-user-sessions` (New in v0.18.0)
+
+Returns active sessions for the user with calculated anomaly risk scores.
+
+```
+GET /functions/v1/get-user-sessions
+Authorization: Bearer <access_token>
+```
+
+### `revoke-session` (New in v0.18.0)
+
+Forces logout of a specific session.
+
+```
+POST /functions/v1/revoke-session
+Authorization: Bearer <access_token>
+Body: { "sessionId": "<session_id>" }
+```
+
+### `log-session-event` (Webhook)
+
+Supabase Auth Webhook that captures login metadata.
+
+```
+POST /functions/v1/log-session-event
+x-webhook-secret: <secret>
+Body: { "user_id": "...", "ip": "...", "user_agent": "...", "session_id": "..." }
+```
+
+### `verify-ledger-integrity` (New in v0.18.0)
+
+Scans financial records for HMAC-SHA256 signature validity.
+
+```
+POST /functions/v1/verify-ledger-integrity
+Authorization: Bearer <access_token>
+```
+
+Returns `{ status: 'valid' | 'invalid', invalidCount: number }`.
+
+---
+
+## Python Intelligence Layer (Internal)
+
+These endpoints are internal to the StashFlow network and are called by Supabase Edge Functions. They are hosted by the `stashflow-backend-py` service.
+
+### `POST /api/v1/documents/process`
+Unified classification and extraction.
+- **Input**: PDF file + optional password.
+- **Output**: `UnifiedDocumentResponse` (Loan or Statement data).
+
+### `POST /api/v1/transactions/categorize`
+High-precision transaction classification.
+- **Input**: Description + optional amount.
+- **Output**: Category, confidence, and reasoning.
+
+### `POST /api/v1/analysis/anomalies`
+Spend analysis engine.
+- **Input**: Transaction history list.
+- **Output**: List of statistical anomalies with AI insights.
 
 ---
 

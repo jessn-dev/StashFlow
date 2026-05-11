@@ -5,9 +5,48 @@ on:
     branches: [develop]
 
 jobs:
-  # 1. Supabase Deployment (Backend & Keys First)
+  # 0. Infrastructure State (Terraform First)
+  terraform-test:
+    name: Infrastructure (Terraform)
+    runs-on: ubuntu-latest
+    environment: test
+    defaults:
+      run:
+        working-directory: infra/terraform/environments/test
+    env:
+      TF_VAR_supabase_access_token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      TF_VAR_supabase_organization_id: ${{ secrets.SUPABASE_ORG_ID }}
+      TF_VAR_vercel_api_token: ${{ secrets.VERCEL_TOKEN }}
+      TF_VAR_vercel_team_id: ${{ secrets.VERCEL_TEAM_ID }}
+      TF_VAR_upstash_email: ${{ secrets.UPSTASH_EMAIL }}
+      TF_VAR_upstash_api_key: ${{ secrets.UPSTASH_API_KEY }}
+      TF_VAR_db_password: ${{ secrets.SUPABASE_DB_PASSWORD_TEST }}
+      TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
+      TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      TF_VAR_github_repo: ${{ github.repository }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      # - name: Terraform Apply
+      #   if: github.ref == 'refs/heads/develop'
+      #   run: terraform apply -auto-approve tfplan
+
+  # 1. Supabase Deployment (Backend & Keys Second)
   deploy-supabase-test:
     name: Deploy Supabase (Test)
+    needs: terraform-test
     runs-on: ubuntu-latest
     environment: test
     env:
@@ -23,8 +62,8 @@ jobs:
         with:
           version: "2.98.2"
 
-      - name: Link to Supabase Project (Test)
-        run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }} -p ${{ secrets.SUPABASE_DB_PASSWORD_TEST }}
+      # - name: Link to Supabase Project (Test)
+      #   run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }} -p ${{ secrets.SUPABASE_DB_PASSWORD_TEST }}
 
       - name: Setup shared code for Supabase
         run: |
@@ -34,30 +73,30 @@ jobs:
           cp -R packages/core supabase/functions/_shared/core
           cp -R packages/document-parser supabase/functions/_shared/document-parser
 
-      - name: Set Supabase Secrets (Test)
-        env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GOOGLE_VISION_API_KEY: ${{ secrets.GOOGLE_VISION_API_KEY }}
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
-          LEDGER_SECRET: ${{ secrets.LEDGER_SECRET }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          PARSE_LOAN_WEBHOOK_SECRET: ${{ secrets.PARSE_LOAN_WEBHOOK_SECRET }}
-        run: |
-          supabase secrets set \
-            GROQ_API_KEY="$GROQ_API_KEY" \
-            GEMINI_API_KEY="$GEMINI_API_KEY" \
-            ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
-            GOOGLE_VISION_API_KEY="$GOOGLE_VISION_API_KEY" \
-            FRED_API_KEY="$FRED_API_KEY" \
-            LEDGER_SECRET="$LEDGER_SECRET" \
-            CRON_SECRET="$CRON_SECRET" \
-            PARSE_LOAN_WEBHOOK_SECRET="$PARSE_LOAN_WEBHOOK_SECRET" \
-            --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }}
+      # - name: Set Supabase Secrets (Test)
+      #   env:
+      #     GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      #     GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      #     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      #     GOOGLE_VISION_API_KEY: ${{ secrets.GOOGLE_VISION_API_KEY }}
+      #     FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      #     LEDGER_SECRET: ${{ secrets.LEDGER_SECRET }}
+      #     CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      #     PARSE_LOAN_WEBHOOK_SECRET: ${{ secrets.PARSE_LOAN_WEBHOOK_SECRET }}
+      #   run: |
+      #     supabase secrets set \
+      #       GROQ_API_KEY="$GROQ_API_KEY" \
+      #       GEMINI_API_KEY="$GEMINI_API_KEY" \
+      #       ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+      #       GOOGLE_VISION_API_KEY="$GOOGLE_VISION_API_KEY" \
+      #       FRED_API_KEY="$FRED_API_KEY" \
+      #       LEDGER_SECRET="$LEDGER_SECRET" \
+      #       CRON_SECRET="$CRON_SECRET" \
+      #       PARSE_LOAN_WEBHOOK_SECRET="$PARSE_LOAN_WEBHOOK_SECRET" \
+      #       --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }}
 
-      - name: Deploy Edge Functions (Test)
-        run: supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }}
+      # - name: Deploy Edge Functions (Test)
+      #   run: supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }}
 
   # 2. Vercel Deployment (Frontend Second)
   deploy-test:
@@ -81,11 +120,11 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel
 
-      - name: Pull Vercel Project Settings
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      # - name: Pull Vercel Project Settings
+      #   run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build Project Artifacts
-        run: vercel build --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+      # - name: Build Project Artifacts
+      #   run: vercel build --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Prune Build Artifacts
         run: |
@@ -97,5 +136,5 @@ jobs:
         run: |
           find .vercel/output -type f -size +30M -exec du -h {} + || echo "No files > 30MB found"
 
-      - name: Deploy Project Artifacts to Vercel
-        run: vercel deploy --prebuilt --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+      # - name: Deploy Project Artifacts to Vercel
+      #   run: vercel deploy --prebuilt --prod --yes --token=${{ secrets.VERCEL_TOKEN }}

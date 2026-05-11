@@ -58,7 +58,7 @@ export type LoanInterestType = Enums<'loan_interest_type'>;
 export type LoanStatus = Enums<'loan_status'>;
 export type PaymentStatus = Enums<'payment_status'>;
 
-export type Region = 'US' | 'PH' | 'SG';
+export type Region = 'US' | 'PH' | 'SG' | 'JPY';
 
 export const CURRENCIES = ['USD', 'PHP', 'SGD', 'EUR', 'GBP'] as const;
 

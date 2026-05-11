@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '~/lib/supabase/client';
 import { EXPENSE_CATEGORIES, CURRENCIES } from '@stashflow/core';
@@ -28,6 +28,52 @@ export function TransactionForm({ onSuccess, initialData }: TransactionFormProps
     isRecurring: false,
     notes: initialData?.notes ?? '',
   });
+
+  // AI Categorization State
+  const [isCategorizing, setIsCategorizing] = useState(false);
+  const [aiCategory, setAiCategory] = useState<string | null>(null);
+  const [aiConfidence, setAiConfidence] = useState<number | null>(null);
+  const [aiReasoning, setAiReasoning] = useState<string | null>(null);
+
+  // Debounced AI Categorization
+  useEffect(() => {
+    if (type !== 'expense' || values.description.length < 3 || isEditing) {
+      setAiCategory(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCategorizing(true);
+      try {
+        const supabase = createClient();
+        const { data, error: aiError } = await supabase.functions.invoke('categorize-transaction', {
+          body: { 
+            description: values.description,
+            amount: parseFloat(values.amount) || null
+          }
+        });
+
+        if (aiError) throw aiError;
+
+        if (data) {
+          setAiCategory(data.category);
+          setAiConfidence(data.confidence);
+          setAiReasoning(data.reasoning);
+
+          // Auto-select if high confidence
+          if (data.confidence > 0.8) {
+            setValues(v => ({ ...v, category: data.category }));
+          }
+        }
+      } catch (err) {
+        console.error('[TransactionForm] AI Categorization failed:', err);
+      } finally {
+        setIsCategorizing(false);
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [values.description, values.amount, type, isEditing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,13 +211,42 @@ export function TransactionForm({ onSuccess, initialData }: TransactionFormProps
 
             <div>
               <label className={labelClass}>{type === 'income' ? 'Source' : 'Description'}</label>
-              <input 
-                required
-                placeholder={type === 'income' ? 'Salary, Freelance, etc.' : 'Rent, Groceries, etc.'}
-                className={inputClass}
-                value={values.description}
-                onChange={e => setValues({...values, description: e.target.value})}
-              />
+              <div className="relative">
+                <input 
+                  required
+                  placeholder={type === 'income' ? 'Salary, Freelance, etc.' : 'Rent, Groceries, etc.'}
+                  className={inputClass}
+                  value={values.description}
+                  onChange={e => setValues({...values, description: e.target.value})}
+                />
+                {isCategorizing && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest animate-pulse">Magic...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* AI Suggestion Feedback */}
+              {aiCategory && !isCategorizing && type === 'expense' && (
+                <div className="mt-2 ml-1 flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                      ✨ AI Suggested: {aiCategory}
+                    </span>
+                    {aiConfidence && (
+                      <span className={`text-[10px] font-bold uppercase tracking-widest ${aiConfidence > 0.8 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {Math.round(aiConfidence * 100)}% Match
+                      </span>
+                    )}
+                  </div>
+                  {aiReasoning && (
+                    <p className="text-[10px] text-gray-400 leading-tight italic ml-0.5">
+                      &quot;{aiReasoning}&quot;
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

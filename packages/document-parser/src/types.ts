@@ -1,3 +1,8 @@
+import type { LoanExtractionSchema } from './generated_loan_schema.ts'
+import type { TransactionCategorizationSchema } from './generated_transaction_schema.ts'
+import type { AnomalyReportSchema } from './generated_anomaly_schema.ts'
+import type { UnifiedDocumentResponse } from './generated_unified_schema.ts'
+
 export type PipelineStage = 'inspect' | 'extract' | 'parse' | 'ocr' | 'ai' | 'validate'
 
 export interface ProcessingError {
@@ -12,19 +17,32 @@ export type StageResult<T> =
   | { ok: true; value: T }
   | { ok: false; error: ProcessingError }
 
-export interface ExtractedLoanData {
-  name: string | null
-  principal: number | null
-  currency: string | null
-  interest_rate: number | null
-  duration_months: number | null
-  installment_amount: number | null
-  lender: string | null
-  start_date: string | null
-  interest_type: string | null
+/**
+ * Extends the AI-extracted schema with additional metadata inferred by the core engine.
+ */
+export interface ExtractedLoanData extends LoanExtractionSchema {
   interest_basis: string | null
   inferred_type: string | null
 }
+
+export interface MultiLoanExtractedData {
+  loans: ExtractedLoanData[]
+}
+
+/**
+ * AI-driven transaction categorization result.
+ */
+export interface TransactionCategorization extends TransactionCategorizationSchema {}
+
+/**
+ * AI-driven budget anomaly report.
+ */
+export interface AnomalyReport extends AnomalyReportSchema {}
+
+/**
+ * Unified AI-driven document processing result.
+ */
+export interface UnifiedDocumentResult extends UnifiedDocumentResponse {}
 
 export interface ParseResult {
   data: ExtractedLoanData

@@ -46,12 +46,11 @@ export function LoanUploadZone() {
     // 3. Trigger edge function (if password provided, we invoke manually with password header)
     if (password) {
       // NOTE: Manual invocation allows passing the session-only password securely
-      await supabase.functions.invoke('parse-loan-document', {
-        body: { id: doc.id },
+      await supabase.functions.invoke('parse-document', {
+        body: { record: { id: doc.id } },
         headers: { 'x-document-password': password }
       });
     }
-
     router.push(`/dashboard/loans/review?doc=${doc.id}`);
   };
 

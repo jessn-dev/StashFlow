@@ -14,6 +14,7 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
   - **Backend-First Deployment**: Re-engineered workflows to ensure Supabase secrets and Edge Functions are fully deployed before the Vercel frontend goes live.
   - **Automated Backend Release**: Integrated `supabase secrets set` and `supabase functions deploy` into the CI/CD pipeline.
   - **Production Rollback Pipeline**: Created a manual `rollback-prod.yml` workflow for near-instant reversion to stable deployment IDs in case of critical production failures.
+  - **Vercel Prebuilt Strategy**: Adopted the `vercel pull` -> `vercel build` -> `vercel deploy --prebuilt` workflow. This ensures that the exact same artifacts that pass CI are deployed to the web, improving reliability and resolving flag errors.
 - **pnpm Lockfile Security Gates**
   - **Husky pre-commit hook**: Implemented mandatory `pnpm install --lockfile-only --frozen-lockfile` check to prevent out-of-sync lockfiles from reaching CI.
   - **lint-staged rule**: Added targeted validation for `**/package.json` changes to enforce lockfile integrity.
@@ -30,36 +31,36 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
   - **Dynamic Background**: Header now transitions to solid white with a subtle shadow upon hover.
   - **Unified Actions**: Styled "Sign in" and "Contact Us" as consistent rounded-pill actions with dark backgrounds.
   - **Product Roadmap**: Added a new section and footer link showcasing "Shipped" and "Active Development" features.
+- **Product Monitoring & Analytics**
+  - **Vercel Analytics**: Integrated `@vercel/analytics` to track real-time user engagement and page views.
+  - **Speed Insights**: Integrated `@vercel/speed-insights` to monitor Core Web Vitals and site performance in production.
 - **Custom Notification System**
   - **Physics-based Toasts**: Implemented `AnimatePresence` managed "Coming Soon" notifications for placeholder features (Mobile App, Support).
   - **State-Managed Messaging**: Dynamic title/message system to manage user expectations for post-MVP functionality.
 
 ### Fixed
-- **Google OAuth Validation**: Resolved the `missing redirect URI` error by externalizing the `redirect_uri` to an environment variable (`SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI`) and automating its injection via `setup.sh`.
-- **Database Seeding Integrity**: Fixed a configuration mismatch in `config.toml` where empty `sql_paths` caused `seed.sql` to be ignored during reset.
-- **Universal Test Account**: Added `test@stashflow.com` (password: `password123`) to `seed.sql` with 6 months of realistic persona data to ensure a consistent testing baseline.
-- **Tree Hydration Errors**: Resolved critical SSR/CSR mismatches caused by browser extension attribute injection (fixed via `suppressHydrationWarning` in `layout.tsx`) and invalid HTML nesting (replaced nested `<p>` with `<div>`).
-- **UI Flickering**: Eliminated the Hero section "pop-in" by making it visible on the initial paint and replacing JS-driven reveal logic with Framer Motion.
-- **Text Readability Overhaul**: Performed a site-wide audit to replace low-contrast gray text with higher-contrast alternatives (`#4B5563`, `#0A2540`).
-- **Compliance Alignment**: Replaced "Tax Residency Optimizers" with "Advanced Savings Goal Automations" to avoid regulated advice implications.
-- **Style Consolidation**: Removed redundant `globals.css` files and ~100 lines of legacy animation code to unify the styling engine.
-- **Typecheck Hardening**: Resolved 10+ TypeScript errors across `@stashflow/core`, `@stashflow/api`, and `web`, ensuring monorepo-wide type safety.
-- **Supabase CI Hardening**: Standardized on **PostgreSQL 17** across all environments. Resolved parsing errors by pinning the Supabase CLI to version **2.98.2** and injecting real repository secrets into the CI environment.
-- **Edge Function Modernization**: Refactored dependency management for Supabase Edge Functions. Replaced deprecated `--import-map` flags with a unified `supabase/functions/deno.json` configuration.
-- **Monorepo Bundling Fix**: Resolved a critical "failed to create the graph" deployment error by implementing a **Local Proxy Strategy**. The CI pipeline now automatically bridges the isolated Supabase Docker context with the monorepo's shared packages (`@stashflow/core`) during deployment.
-- **Vercel Prebuilt Strategy**: Adopted the `vercel pull` -> `vercel build` -> `vercel deploy --prebuilt` workflow. This ensures that the exact same artifacts that pass CI are deployed to the web, resolving flag errors and improving deployment reliability for monorepos.
-- **Build Stability Hardening**: Resolved a fatal `TypeError: useRef` error during static generation by standardizing **React** and **react-dom** to **v19.0.0** across the entire monorepo.
-- **Path Alias Migration**: Migrated the web application from `@/` to `~/` path aliases. This resolves a critical "Module not found" collision between internal aliases and scoped npm packages (`@stashflow/*`) in the Vercel/Linux build environment.
-- **Product Monitoring**: Integrated **@vercel/analytics** and **@vercel/speed-insights** into the root layout to track user engagement and Core Web Vitals in real-time.
+- **Vercel Build Stability**
+  - **Next.js 16 Upgrade**: Standardized the project on **Next.js 16.2.6**, leveraging stable Turbopack for production builds (reducing build times by ~70%).
+  - **Middleware to Proxy Migration**: Renamed `middleware.ts` to `proxy.ts` and updated exported functions to comply with the new framework standard.
+  - **Edge Runtime Polyfill**: Added a global `__dirname` polyfill in the Edge Runtime to resolve `ReferenceError` crashes caused by deep dependency incompatibilities.
+  - **Build Size Optimization**: Implemented mandatory `.next/cache` pruning in CI and enabled `output: 'standalone'` to stay under Vercel's 100MB source upload limit.
+  - **Path Alias Migration**: Migrated from `@/` to `~/` path aliases to resolve name collisions with scoped npm packages (`@stashflow/*`) in Linux build environments.
+- **Monorepo Backend Integration**
+  - **Monorepo Bundling Fix**: Resolved a critical "failed to create the graph" deployment error by implementing a **Local Proxy Strategy**. The CI pipeline now automatically copies shared monorepo packages (`@stashflow/core`) into the `supabase/` folder during deployment.
+  - **Deno Module Resolution**: Refactored the entire `@stashflow/core` package to use explicit `.ts` extensions in all internal imports and renamed entry points to `mod.ts` for native Deno/Edge compatibility.
+  - **Universal Test Account**: Added `test@stashflow.com` (password: `password123`) to `seed.sql` with 6 months of realistic persona data to ensure a consistent testing baseline.
+  - **Database Seeding Integrity**: Fixed a configuration mismatch in `config.toml` where empty `sql_paths` caused `seed.sql` to be ignored during reset.
+  - **Supabase CI Hardening**: Standardized on **PostgreSQL 17** across all environments. Resolved parsing errors by pinning the Supabase CLI to version **2.98.2**.
+- **User Interface & Quality**
+  - **Tree Hydration Errors**: Resolved critical SSR/CSR mismatches caused by browser extension attribute injection (fixed via `suppressHydrationWarning` in `layout.tsx`) and invalid HTML nesting (replaced nested `<p>` with `<div>`).
+  - **UI Flickering**: Eliminated the Hero section "pop-in" by making it visible on the initial paint and replacing JS-driven reveal logic with Framer Motion.
+  - **Text Readability Overhaul**: Performed a site-wide audit to replace low-contrast gray text with higher-contrast alternatives (`#4B5563`, `#0A2540`).
+  - **Compliance Alignment**: Replaced "Tax Residency Optimizers" with "Advanced Savings Goal Automations" to avoid regulated advice implications.
+  - **Typecheck Hardening**: Resolved 20+ TypeScript and JSX type errors across `@stashflow/core`, `@stashflow/api`, and `web`, ensuring monorepo-wide type safety.
 - **Dependency Security Hardening**: Resolved **15 vulnerabilities** (including 2 Critical and 2 High) by applying surgical pnpm overrides for `next`, `postcss`, `@babel/plugin-transform-modules-systemjs`, and `@xmldom/xmldom`.
 
-### Fixed
-- **Edge Runtime Stability**: Resolved a critical `MIDDLEWARE_INVOCATION_FAILED` (ReferenceError: __dirname is not defined) error on Vercel by standardizing the project on stable, secure versions: **Next.js 15.5.18**, **React 19.0.0**, and **Framer Motion 11.15.0**. This eliminated incompatible Node.js globals leaking into the Edge Runtime.
-- **Monorepo Type Unification**: Standardized `@types/react` and `@types/react-dom` across all packages (`web`, `mobile`, `api`, `ui`), resolving JSX component type mismatches and unblocking the workspace build.
-- **Deno Module Resolution**: Refactored the entire `@stashflow/core` package to use explicit `.ts` extensions in all internal imports. Enabled `allowImportingTsExtensions` in TypeScript configs to maintain compatibility with Next.js and Expo while satisfying Deno's strict requirements for Supabase Edge Functions.
-- **Git Hygiene**: Resolved "beyond a symbolic link" commit blockers by properly ignoring and untracking the `supabase/functions/_shared/` directory, which contains local symlinks for Deno compatibility.
-
 ### Removed
+- **Legacy Code**: Deleted redundant `globals.css` files and ~150 lines of manual animation logic to unify the styling engine under Tailwind + Framer Motion.
 - **Branding cleanup**: Removed all explicit "AI" and "Parsing" terminology from marketing copy in favor of "automated" benefit-driven language.
 
 ---

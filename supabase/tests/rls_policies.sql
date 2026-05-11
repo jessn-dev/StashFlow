@@ -1,5 +1,5 @@
 begin;
-select plan(17);
+select plan(23);
 
 -- 1. Setup test users and profiles
 insert into auth.users (id, email)
@@ -176,6 +176,51 @@ select is(
   (select count(*)::int from public.category_metadata where user_id = '00000000-0000-0000-0000-000000000001'),
   1,
   'User 1 can insert own category metadata'
+);
+
+-- 15. Hostile: Attempt to update another user's user_id (Lateral Movement)
+set local "request.jwt.claims" to '{"sub": "00000000-0000-0000-0000-000000000001"}';
+select throws_ok(
+  $$ update public.expenses set user_id = '00000000-0000-0000-0000-000000000001' where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' $$,
+  'new row violates row-level security policy for table "expenses"', -- Should fail because it shouldn't even find the row (SELECT policy) or WITH CHECK fails
+  'User 1 cannot hijack User 2 expense by changing user_id'
+);
+
+-- 16. Hostile: Attempt to delete another user's data
+select is(
+  (select count(*)::int from public.expenses where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'),
+  0,
+  'User 1 cannot see User 2 expense for deletion'
+);
+delete from public.expenses where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
+-- Verify it still exists (reset role to check)
+reset role;
+select is(
+  (select count(*)::int from public.expenses where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'),
+  1,
+  'User 2 expense still exists after User 1 attempted deletion'
+);
+
+-- 17. Hostile: Attempt to insert for User 2 while being User 1
+set local role authenticated;
+set local "request.jwt.claims" to '{"sub": "00000000-0000-0000-0000-000000000001"}';
+select throws_ok(
+  $$ insert into public.loans (user_id, name, principal, currency, interest_rate, duration_months, interest_type, start_date, end_date, installment_amount)
+     values ('00000000-0000-0000-0000-000000000002', 'Stolen Loan', 1000, 'PHP', 5, 12, 'Standard Amortized', '2026-05-01', '2027-05-01', 100) $$,
+  'new row violates row-level security policy for table "loans"',
+  'User 1 cannot insert loan for User 2'
+);
+
+-- 18. Hostile: Attempt to access system_audit_logs as a user
+select is(
+  (select count(*)::int from public.system_audit_logs),
+  0,
+  'Regular user cannot see system_audit_logs'
+);
+select throws_ok(
+  $$ insert into public.system_audit_logs (user_id, event_type, action) values ('00000000-0000-0000-0000-000000000001', 'hack', 'attempt') $$,
+  'new row violates row-level security policy for table "system_audit_logs"',
+  'Regular user cannot write to system_audit_logs'
 );
 
 select * from finish();

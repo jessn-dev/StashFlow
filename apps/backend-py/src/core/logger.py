@@ -1,5 +1,6 @@
 import logging
 import sys
+from typing import Any
 import structlog
 from asgi_correlation_id import CorrelationIdFilter
 from .config import settings
@@ -17,7 +18,7 @@ def setup_logging():
     handler.addFilter(cid_filter)
     
     # 2. Structlog setup
-    processors = [
+    processors: list[Any] = [
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.StackInfoRenderer(),

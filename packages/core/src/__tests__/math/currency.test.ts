@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { convertToBase, formatCurrency } from '../../math/currency.ts';
+import { convertToBase, formatCurrency, type ExchangeRate } from '../../math/currency.ts';
 
 describe('currency math', () => {
   describe('convertToBase', () => {

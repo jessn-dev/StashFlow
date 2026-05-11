@@ -92,4 +92,60 @@ describe('loan math', () => {
     expect(result.monthlyPayment).toBeLessThan(0);
     expect(result.totalPayment).toBeLessThan(0);
   });
+
+  describe('Precision and Edge Cases', () => {
+    it('should handle large principal values without precision loss', () => {
+      const result = generateAmortizationSchedule({
+        principal: 10_000_000_000, // 10 Billion
+        annualInterestRate: 0.05,
+        durationMonths: 120,
+        startDate: '2026-01-01',
+        interestType: 'Standard Amortized',
+      });
+
+      expect(result.monthlyPayment).toBeCloseTo(106065515.24, 0);
+      expect(result.entries[119]?.remainingBalance).toBeCloseTo(0, 0);
+    });
+
+    it('should maintain accuracy over long durations (30 years)', () => {
+      const result = generateAmortizationSchedule({
+        principal: 500_000,
+        annualInterestRate: 0.07,
+        durationMonths: 360, // 30 years
+        startDate: '2026-01-01',
+        interestType: 'Standard Amortized',
+      });
+
+      expect(result.entries).toHaveLength(360);
+      expect(result.monthlyPayment).toBeCloseTo(3326.51, 1);
+      // Last balance should be zero (within rounding tolerance)
+      expect(result.entries[359]?.remainingBalance).toBeCloseTo(0, 2);
+    });
+
+    it('should handle extremely high interest rates', () => {
+      const result = generateAmortizationSchedule({
+        principal: 1000,
+        annualInterestRate: 1.0, // 100% interest
+        durationMonths: 6,
+        startDate: '2026-01-01',
+        interestType: 'Standard Amortized',
+      });
+
+      expect(result.totalInterest).toBeGreaterThan(250);
+      expect(result.entries[5]?.remainingBalance).toBeCloseTo(0, 5);
+    });
+
+    it('should handle negative interest rates as a sanity check', () => {
+      const result = generateAmortizationSchedule({
+        principal: 10000,
+        annualInterestRate: -0.01,
+        durationMonths: 12,
+        startDate: '2026-01-01',
+        interestType: 'Standard Amortized',
+      });
+
+      expect(result.totalInterest).toBeLessThan(0);
+      expect(result.monthlyPayment).toBeLessThan(10000 / 12);
+    });
+  });
 });

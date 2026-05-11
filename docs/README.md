@@ -74,6 +74,35 @@ For full architecture detail: `docs/ARCHITECTURE.md`
 | Monorepo | Turborepo | 2.9.12 |
 | Package manager | pnpm | 10.33.2 |
 | Edge functions | Deno | 2 |
+| Observability | GlitchTip (Sentry) | latest (Docker) |
+
+---
+
+## CLI Reference
+
+The `./setup.sh` script is the primary entry point for managing the workspace.
+
+### Core Commands
+- `./setup.sh dev` — Start all dev servers (Web, Mobile, Supabase, Logging) and sync envs.
+- `./setup.sh db:env` — Automatically synchronize all `.env` files with local Supabase keys and Sentry DSN.
+- `./setup.sh shutdown` — **Full System Cleanup**: Stop all Docker services, prune volumes, and clear all caches (`node_modules`, `.next`, `turbo`, `pnpm`, `.venv`).
+
+### Quality Gates
+- `./setup.sh check:all` — Master gate: runs typecheck, lint, and tests (with coverage) for the entire monorepo.
+- `./setup.sh typecheck` — TypeScript static analysis for all packages.
+- `./setup.sh lint` — Workspace-wide ESLint.
+- `./setup.sh test` — Run all unit tests.
+- `./setup.sh py:check` — Python-specific quality gate (Ruff + MyPy + Pytest).
+
+---
+
+## Local Observability
+
+StashFlow includes a centralized logging dashboard for local development.
+
+1.  Run `./setup.sh dev` (starts automatically).
+2.  Access the **GlitchTip** (Sentry-compatible) dashboard at: **http://localhost:8000**
+3.  View errors, performance events, and audit logs from the Web app and Supabase Edge Functions in one place.
 
 ---
 

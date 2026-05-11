@@ -1,0 +1,44 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - logging-network
+
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: glitchtip
+      POSTGRES_USER: glitchtip
+      POSTGRES_PASSWORD: password
+    volumes:
+      - glitchtip-db:/var/lib/postgresql/data
+    networks:
+      - logging-network
+
+  glitchtip:
+    image: glitchtip/glitchtip:latest
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: postgres://glitchtip:password@db:5432/glitchtip
+      SECRET_KEY: local-dev-secret-key-12345
+      PORT: 8000
+      GLITCHTIP_DOMAIN: http://localhost:8000
+      DEFAULT_FROM_EMAIL: alerts@stashflow.local
+      ENABLE_REGISTRATION: "True"
+      CELERY_BROKER_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    networks:
+      - logging-network
+
+networks:
+  logging-network:
+    name: stashflow-logging
+
+volumes:
+  glitchtip-db:

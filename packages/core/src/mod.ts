@@ -1,5 +1,5 @@
 export * from './schema/mod.ts';
-export * from './math/currency.ts';
+export { convertToBase, formatCurrency, type ExchangeRate as MathExchangeRate } from './math/currency.ts';
 export * from './math/dti.ts';
 export * from './math/loans.ts';
 export * from './regional/mod.ts';

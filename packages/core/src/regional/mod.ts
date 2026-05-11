@@ -44,10 +44,22 @@ export class SGStrategy implements RegionalStrategy {
   }
 }
 
+export class JPYStrategy implements RegionalStrategy {
+  region: Region = 'JPY';
+  currency = 'JPY';
+  dtiThreshold = REGIONAL_THRESHOLDS.JPY.healthy;
+
+  getRationale(ratio: number): string {
+    if (ratio <= this.dtiThreshold) return 'Within standard Japan bank limits.';
+    return 'Exceeds typical Japan bank limits.';
+  }
+}
+
 const defaultStrategies: Record<Region, RegionalStrategy> = {
   US: new USStrategy(),
   PH: new PHStrategy(),
   SG: new SGStrategy(),
+  JPY: new JPYStrategy(),
 };
 
 export function getRegionalStrategy(
@@ -60,5 +72,6 @@ export function getRegionalStrategy(
 export function getRegionByCurrency(currency: string): Region {
   if (currency === 'PHP') return 'PH';
   if (currency === 'SGD') return 'SG';
+  if (currency === 'JPY') return 'JPY';
   return 'US';
 }

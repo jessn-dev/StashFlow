@@ -11,16 +11,35 @@ from src.core.logger import get_logger
 router = APIRouter()
 logger = get_logger(__name__)
 
-# Patch litellm with instructor
+# Patch litellm with instructor to support structured output via Pydantic models
 client = instructor.from_litellm(completion)
 
 class AnomalyRequest(BaseModel):
+    """
+    Schema for the anomaly detection request.
+    
+    Attributes:
+        transactions: A list of transaction records to be analyzed.
+    """
     transactions: List[TransactionRecord]
 
 @router.post("/anomalies", response_model=AnomalyReportSchema)
-async def detect_anomalies(request: AnomalyRequest):
+async def detect_anomalies(request: AnomalyRequest) -> AnomalyReportSchema:
     """
     Analyzes transaction history to detect spending anomalies using a hybrid statistical/AI approach.
+    
+    The function first performs a statistical scan for category-level spending spikes 
+    relative to historical averages. If spikes are found, it uses an LLM to generate 
+    human-readable insights and actionable advice.
+
+    Args:
+        request (AnomalyRequest): The request containing the transaction history.
+
+    Returns:
+        AnomalyReportSchema: A report containing detected anomalies and AI-generated insights.
+
+    Raises:
+        HTTPException: If the analysis process fails due to data or model errors.
     """
     if not request.transactions:
         return AnomalyReportSchema(anomalies=[])
@@ -28,42 +47,49 @@ async def detect_anomalies(request: AnomalyRequest):
     logger.info("detect_anomalies_start", transaction_count=len(request.transactions))
 
     try:
-        # 1. Statistical Analysis with Pandas
+        # PSEUDOCODE: Statistical Anomaly Detection
+        # 1. Convert list of transaction objects into a Pandas DataFrame for vectorized processing.
+        # 2. Normalize dates and group by month and category to calculate total periodic spend.
+        # 3. Identify the current (most recent) month to compare against historical data.
+        # 4. For each category:
+        #    a. Calculate the mean historical spend (excluding the current month).
+        #    b. Apply a sensitivity threshold (30% increase AND at least $50 delta).
+        #    c. If current spend exceeds threshold, flag as an anomaly and extract top contributing items.
+        
         df = pd.DataFrame([t.model_dump() for t in request.transactions])
         df['date'] = pd.to_datetime(df['date'])
         df['month'] = df['date'].dt.to_period('M')
         
-        # Aggregate monthly spending by category
-        monthly_category = df.groupby(['month', 'category'])['amount'].sum().reset_index()
-        
-        # Get the most recent month
-        latest_month = monthly_category['month'].max()
+        monthly_category_spend = df.groupby(['month', 'category'])['amount'].sum().reset_index()
+        latest_month = monthly_category_spend['month'].max()
         
         anomalies_to_explain = []
         
-        # Group by category and look for spikes
-        for category, group in monthly_category.groupby('category'):
-            if len(group) < 2:
+        for category, history in monthly_category_spend.groupby('category'):
+            # We need at least one previous month to establish a baseline
+            if len(history) < 2:
                 continue
                 
-            latest_spend = group[group['month'] == latest_month]['amount'].iloc[0] if not group[group['month'] == latest_month].empty else 0
-            historic_group = group[group['month'] < latest_month]
+            latest_spend_series = history[history['month'] == latest_month]['amount']
+            latest_spend = latest_spend_series.iloc[0] if not latest_spend_series.empty else 0
             
-            if historic_group.empty:
+            historical_data = history[history['month'] < latest_month]
+            if historical_data.empty:
                 continue
                 
-            avg_spend = historic_group['amount'].mean()
+            average_historical_spend = historical_data['amount'].mean()
             
-            # Threshold: 30% increase AND at least $50 (or equivalent) difference
-            threshold = max(avg_spend * 1.3, avg_spend + 50)
+            # BUSINESS RULE: Threshold: 30% increase AND at least $50 difference.
+            # This prevents flagging small dollar amounts (e.g., $1 to $2) as significant anomalies.
+            threshold = max(average_historical_spend * 1.3, average_historical_spend + 50)
             
             if latest_spend > threshold:
-                increase_pct = ((latest_spend / avg_spend) - 1) * 100
+                increase_percentage = ((latest_spend / average_historical_spend) - 1) * 100
                 anomalies_to_explain.append({
                     "category": category,
                     "latest_spend": latest_spend,
-                    "avg_spend": avg_spend,
-                    "increase_pct": round(increase_pct, 1),
+                    "avg_spend": average_historical_spend,
+                    "increase_pct": round(increase_percentage, 1),
                     "recent_items": df[(df['category'] == category) & (df['month'] == latest_month)]['description'].unique().tolist()[:5]
                 })
 
@@ -73,13 +99,18 @@ async def detect_anomalies(request: AnomalyRequest):
 
         logger.info("detect_anomalies_spikes_found", categories=[a['category'] for a in anomalies_to_explain])
 
-        # 2. AI Explanation Layer
-        context = ""
-        for a in anomalies_to_explain:
-            context += f"- Category: {a['category']}, This Month: {a['latest_spend']}, Avg: {a['avg_spend']} (+{a['increase_pct']}%)\n"
-            context += f"  Recent items: {', '.join(a['recent_items'])}\n"
+        # PSEUDOCODE: AI Interpretation Layer
+        # 1. Format the statistical findings into a structured text context for the LLM.
+        # 2. Instruct the model to act as a financial advisor.
+        # 3. Provide the context and request concise, actionable insights for each anomaly.
+        # 4. Return the structured response validated against AnomalyReportSchema.
 
-        extraction = client.chat.completions.create(
+        formatted_context = ""
+        for a in anomalies_to_explain:
+            formatted_context += f"- Category: {a['category']}, This Month: {a['latest_spend']}, Avg: {a['avg_spend']} (+{a['increase_pct']}%)\n"
+            formatted_context += f"  Recent items: {', '.join(a['recent_items'])}\n"
+
+        ai_analysis = client.chat.completions.create(
             model=settings.DEFAULT_AI_MODEL,
             response_model=AnomalyReportSchema,
             messages=[
@@ -89,14 +120,17 @@ async def detect_anomalies(request: AnomalyRequest):
                 },
                 {
                     "role": "user",
-                    "content": f"Analyze these spending spikes and provide insights:\n\n{context}"
+                    "content": f"Analyze these spending spikes and provide insights:\n\n{formatted_context}"
                 }
             ]
         )
         
-        logger.info("detect_anomalies_success", insight_count=len(extraction.anomalies))
-        return extraction
+        logger.info("detect_anomalies_success", insight_count=len(ai_analysis.anomalies))
+        return ai_analysis
 
     except Exception as e:
+        # We catch all exceptions here to ensure we log the failure in our structured logs
+        # before returning a generic 500 to the user.
         logger.error("detect_anomalies_failed", error=str(e))
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+

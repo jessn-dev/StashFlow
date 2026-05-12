@@ -81,8 +81,8 @@ async function resolveModels(apiKey: string) {
     const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=50`)
     if (!resp.ok) return MODELS_BY_PREFERENCE
     const data = await resp.json()
-    const names = (data.models ?? []).map((m: any) => m.name.replace('models/', ''))
-    return MODELS_BY_PREFERENCE.filter(m => names.includes(m))
+    const names = new Set((data.models ?? []).map((m: any) => m.name.replace('models/', '')))
+    return MODELS_BY_PREFERENCE.filter(m => names.has(m))
   } catch { return MODELS_BY_PREFERENCE }
 }
 
@@ -125,36 +125,17 @@ serve(async (req) => {
 
     // 1. Try Gemini
     if (geminiKey) {
-      const genAI = new GoogleGenerativeAI(geminiKey)
-      const models = await resolveModels(geminiKey)
-      for (const mName of models) {
-        try {
-          const model = genAI.getGenerativeModel({ model: mName, generationConfig: { responseMimeType: 'application/json' } })
-          const result = await model.generateContent(prompt)
-          macroData = safeParseJSON(result.response.text())
-          if (macroData) { modelUsed = `gemini-${mName}`; break }
-        } catch (e) { console.error(`Gemini ${mName} failed:`, e.message) }
+      const geminiResult = await tryGemini(prompt, geminiKey)
+      if (geminiResult) {
+        macroData = geminiResult.data
+        modelUsed = geminiResult.model
       }
     }
 
     // 2. Try Groq Fallback
     if (!macroData && groqKey) {
-      try {
-        const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'llama3-70b-8192',
-            messages: [{ role: 'user', content: prompt }],
-            response_format: { type: 'json_object' }
-          })
-        })
-        if (resp.ok) {
-          const res = await resp.json()
-          macroData = safeParseJSON(res.choices[0].message.content)
-          if (macroData) modelUsed = 'groq-llama3-70b'
-        }
-      } catch (e) { console.error('Groq failed:', e.message) }
+      macroData = await tryGroq(prompt, groqKey)
+      if (macroData) modelUsed = 'groq-llama3-70b'
     }
 
     // 3. Final Static Fallback (NEVER return empty)
@@ -173,3 +154,67 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: err.message }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 })
   }
 })
+
+/**
+ * Attempts to generate a financial report using Google's Gemini AI.
+ * Iterates through available models based on user preference.
+ * 
+ * @param prompt - The economic analysis prompt.
+ * @param apiKey - Google Generative AI API Key.
+ * @returns An object containing the parsed JSON data and the name of the model used, or null if all models fail.
+ */
+async function tryGemini(prompt: string, apiKey: string): Promise<{ data: any, model: string } | null> {
+  const genAI = new GoogleGenerativeAI(apiKey)
+  const models = await resolveModels(apiKey)
+  
+  // PSEUDOCODE: Gemini Multi-Model Attempt
+  // 1. Resolve which Gemini models are actually available for the given API key.
+  // 2. Iterate through preferred models (flash-2.0, flash-1.5).
+  // 3. For each model, attempt to generate content with JSON output format.
+  // 4. If successful, parse and return; otherwise, log and try next model.
+
+  for (const mName of models) {
+    try {
+      const model = genAI.getGenerativeModel({ model: mName, generationConfig: { responseMimeType: 'application/json' } })
+      const result = await model.generateContent(prompt)
+      const data = safeParseJSON(result.response.text())
+      if (data) return { data, model: `gemini-${mName}` }
+    } catch (e) {
+      console.error(`Gemini ${mName} failed:`, e.message)
+    }
+  }
+  return null
+}
+
+/**
+ * Attempts to generate a financial report using Groq's Llama 3 model as a fallback.
+ * 
+ * @param prompt - The economic analysis prompt.
+ * @param apiKey - Groq API Key.
+ * @returns The parsed JSON data from the model, or null if the request fails.
+ */
+async function tryGroq(prompt: string, apiKey: string): Promise<any> {
+  // PSEUDOCODE: Groq Fallback Mechanism
+  // 1. Send chat completion request to Groq API using Llama 3 70B.
+  // 2. Force JSON output mode.
+  // 3. Return parsed content on success.
+
+  try {
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama3-70b-8192',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' }
+      })
+    })
+    if (resp.ok) {
+      const res = await resp.json()
+      return safeParseJSON(res.choices[0].message.content)
+    }
+  } catch (e) {
+    console.error('Groq failed:', e.message)
+  }
+  return null
+}

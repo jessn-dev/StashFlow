@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '~/lib/supabase/server';
 import { LoansServiceFactory } from '@stashflow/api';
 import {
   generateAmortizationSchedule,

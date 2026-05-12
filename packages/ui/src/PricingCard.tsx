@@ -29,9 +29,9 @@ export function PricingCard({
         </p>
         <div className="flex items-baseline gap-1">
           <span className="text-4xl font-black tracking-tighter">{price}</span>
-          {price !== 'Free' && <span className={`text-sm font-medium ${highlighted ? 'text-gray-400' : 'text-gray-500'}`}>/month</span>}
+          {price !== 'Free' && <span className={`text-sm font-bold ${highlighted ? 'text-gray-300' : 'text-[#4B5563]'}`}>/month</span>}
         </div>
-        <p className={`mt-4 text-sm font-medium leading-relaxed ${highlighted ? 'text-gray-400' : 'text-gray-500'}`}>
+        <p className={`mt-4 text-sm font-bold leading-relaxed ${highlighted ? 'text-gray-200' : 'text-[#4B5563]'}`}>
           {description}
         </p>
       </div>
@@ -44,7 +44,7 @@ export function PricingCard({
             }`}>
               ✓
             </span>
-            <span className="text-sm font-semibold opacity-90">{feature}</span>
+            <span className="text-sm font-bold opacity-100">{feature}</span>
           </li>
         ))}
       </ul>

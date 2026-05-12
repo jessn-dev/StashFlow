@@ -1,4 +1,3 @@
-export * from './client';
 export * from './queries/interfaces';
 export * from './queries/base';
 export * from './queries/profile';
@@ -7,5 +6,8 @@ export * from './queries/loan';
 export * from './queries/goal';
 export * from './queries/budget';
 export * from './queries/exchange-rate';
+export * from './queries/asset';
+export * from './queries/net-worth-snapshot';
 export * from './services/loans';
+export * from './services/dashboard';
 export * from './services/factory';

@@ -35,9 +35,21 @@ ios/
 *.log
 *.tsbuildinfo
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+
 # Supabase local dev
 supabase/.branches
 supabase/.temp
+supabase/functions/_shared/core
+supabase/functions/_shared/document-parser
 
 # Docs — committed: governance suite (SECURITY, OPERATIONS, API, CONTRIBUTING,
 # ROADMAP, CHANGELOG, README) + reference triad (ARCHITECTURE, DATA_MODEL, DECISIONS).
@@ -52,3 +64,4 @@ CLAUDE.md
 
 .idea/
 .claude
+GEMINI.md

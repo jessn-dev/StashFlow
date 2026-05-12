@@ -23,10 +23,11 @@ export function useDashboardData(): UseDashboardDataResult {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated');
 
-        const [incomes, expenses, loans, goals, rates, profile] = await Promise.all([
+        const [incomes, expenses, loans, assets, goals, rates, profile] = await Promise.all([
           supabase.from('incomes').select('*').eq('user_id', user.id),
           supabase.from('expenses').select('*').eq('user_id', user.id),
           supabase.from('loans').select('*').eq('user_id', user.id),
+          supabase.from('assets').select('*').eq('user_id', user.id),
           supabase.from('goals').select('*').eq('user_id', user.id),
           supabase.from('exchange_rates').select('target, rate'),
           supabase.from('profiles').select('*').eq('id', user.id).single(),
@@ -46,6 +47,7 @@ export function useDashboardData(): UseDashboardDataResult {
           incomes: incomes.data || [],
           expenses: expenses.data || [],
           loans: loans.data || [],
+          assets: assets.data || [],
           goals: goals.data || [],
           rates: ratesMap,
           region: getRegionByCurrency(currency),

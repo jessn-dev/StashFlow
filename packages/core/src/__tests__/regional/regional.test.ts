@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRegionalStrategy, USStrategy, PHStrategy, SGStrategy } from '../../regional';
+import { getRegionalStrategy, USStrategy, PHStrategy, SGStrategy, getRegionByCurrency } from '../../regional/mod.ts';
 
 describe('regional strategies', () => {
   it('should return correct strategy for US', () => {
@@ -23,6 +23,7 @@ describe('regional strategies', () => {
   it('should return correct rationale based on ratio', () => {
     const us = new USStrategy();
     expect(us.getRationale(0.2)).toContain('Healthy');
+    expect(us.getRationale(0.4)).toContain('Slightly high');
     expect(us.getRationale(0.5)).toContain('High');
 
     const ph = new PHStrategy();
@@ -32,5 +33,17 @@ describe('regional strategies', () => {
     const sg = new SGStrategy();
     expect(sg.getRationale(0.4)).toContain('TDSR');
     expect(sg.getRationale(0.6)).toContain('Exceeds');
+  });
+
+  it('should fall back to US strategy for unknown region', () => {
+    const strategy = getRegionalStrategy('UNKNOWN' as any);
+    expect(strategy).toBeInstanceOf(USStrategy);
+  });
+
+  it('should map currency to region correctly', () => {
+    expect(getRegionByCurrency('PHP')).toBe('PH');
+    expect(getRegionByCurrency('SGD')).toBe('SG');
+    expect(getRegionByCurrency('USD')).toBe('US');
+    expect(getRegionByCurrency('UNKNOWN')).toBe('US');
   });
 });

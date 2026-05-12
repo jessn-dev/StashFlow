@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { DocumentStatusWatcher } from '@/modules/loans/components/DocumentStatusWatcher';
-import type { DocumentRecord } from '@/modules/loans/components/DocumentStatusWatcher';
+import { createClient } from '~/lib/supabase/server';
+import { DocumentStatusWatcher } from '~/modules/loans/components/DocumentStatusWatcher';
+import type { DocumentRecord } from '~/modules/loans/components/DocumentStatusWatcher';
 
 interface ReviewPageProps {
   searchParams: Promise<{ doc?: string }>;

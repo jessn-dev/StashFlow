@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { createClient } from "@supabase/supabase-js"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,31 +41,13 @@ Deno.serve(async (req) => {
 
     const baseCurrency = profile?.preferred_currency || 'USD'
 
-    // 3. Currency Conversion Helper
-    const convertToBase = (amount: any, fromCurrency: string): number => {
-      const val = Number(amount) || 0
-      if (fromCurrency === baseCurrency) return val
-      
-      const rateEntry = rates?.find((r: any) => r.base === baseCurrency && r.target === fromCurrency)
-      if (rateEntry) return val / Number(rateEntry.rate)
-      
-      const inverseRateEntry = rates?.find((r: any) => r.base === fromCurrency && r.target === baseCurrency)
-      if (inverseRateEntry) return val * Number(inverseRateEntry.rate)
-
-      if (baseCurrency !== 'USD' && fromCurrency !== 'USD') {
-        const toUsd = rates?.find((r: any) => r.base === 'USD' && r.target === fromCurrency)
-        const fromUsd = rates?.find((r: any) => r.base === 'USD' && r.target === baseCurrency)
-        if (toUsd && fromUsd) {
-          return (val / Number(toUsd.rate)) * Number(fromUsd.rate)
-        }
-      }
-      return val
-    }
+    // 3. Use Canonical Financial Engine from @stashflow/core
+    const { convertToBase, calculateDTIRatio } = await import("../_shared/core/src/mod.ts")
 
     // 4. Calculate Gross Monthly Income (with Haircuts)
     let monthlyIncome = 0
     incomes?.forEach((inc: any) => {
-      let amount = convertToBase(inc.amount, inc.currency)
+      let amount = convertToBase(inc.amount, inc.currency, baseCurrency, rates || [])
       
       // SGD Haircut: Variable income by 30%
       if (baseCurrency === 'SGD' && (inc.source.toLowerCase().includes('commission') || inc.source.toLowerCase().includes('bonus'))) {
@@ -79,12 +61,12 @@ Deno.serve(async (req) => {
       }
     })
 
-    // 5. Calculate Monthly Debt (Regional Logic)
+    // 5. Calculate Monthly Debt
     let monthlyDebt = 0
     let housingOnlyDebt = 0
     
     loans?.forEach((loan: any) => {
-      const amt = convertToBase(loan.installment_amount, loan.currency)
+      const amt = convertToBase(loan.installment_amount, loan.currency, baseCurrency, rates || [])
       monthlyDebt += amt
       if (loan.name.toLowerCase().includes('mortgage') || loan.name.toLowerCase().includes('home')) {
         housingOnlyDebt += amt
@@ -92,40 +74,20 @@ Deno.serve(async (req) => {
     })
 
     expenses?.filter((e: any) => e.is_recurring && e.category === 'housing').forEach((exp: any) => {
-      const amt = convertToBase(exp.amount, exp.currency)
+      const amt = convertToBase(exp.amount, exp.currency, baseCurrency, rates || [])
       monthlyDebt += amt
       housingOnlyDebt += amt
     })
 
-    // 6. DTI Result & Risk Assessment (Regional Thresholds)
-    let ratio = 0
-    let status = 'low'
-    let color = '#1A7A7A'
-    let recommendation = ""
-
-    let healthyLimit = 36
-    let maxLimit = 43
-
-    if (baseCurrency === 'PHP') { healthyLimit = 30; maxLimit = 40 }
-    else if (baseCurrency === 'SGD') { healthyLimit = 45; maxLimit = 55 }
-    else if (baseCurrency === 'JPY') { healthyLimit = 30; maxLimit = 45 }
-
-    if (monthlyIncome > 0) {
-      ratio = (monthlyDebt / monthlyIncome) * 100
-      if (ratio <= healthyLimit) {
-        status = 'low'; color = '#1A7A7A'
-        recommendation = `Your DTI is healthy for ${baseCurrency} standards.`
-      } else if (ratio <= maxLimit) {
-        status = 'medium'; color = '#EAB308'
-        recommendation = `You are in the caution zone for ${baseCurrency}.`
-      } else {
-        status = 'high'; color = '#D4522A'
-        recommendation = `High Risk: Your DTI exceeds ${baseCurrency} recommended limits.`
-      }
-    } else if (monthlyDebt > 0) {
-      ratio = 100; status = 'high'; color = '#D4522A'
-      recommendation = "No income recorded against your debt."
-    }
+    // 6. Use Canonical DTI Calculation
+    const region = (baseCurrency === 'PHP' ? 'PH' : baseCurrency === 'SGD' ? 'SG' : baseCurrency === 'JPY' ? 'JPY' : 'US')
+    const dtiResult = calculateDTIRatio(monthlyDebt, monthlyIncome, region)
+    
+    // Status and Recommendation overrides for complex cases
+    let { status, color, label: recommendation } = dtiResult as any
+    if (status === 'low') color = '#1A7A7A'
+    else if (status === 'medium') color = '#EAB308'
+    else { color = '#D4522A' }
 
     if (baseCurrency === 'USD') {
       const frontEnd = (housingOnlyDebt / (monthlyIncome || 1)) * 100
@@ -134,15 +96,15 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        ratio: Number(ratio.toFixed(2)),
-        status,
+        ratio: Number(dtiResult.ratio * 100).toFixed(2),
+        status: dtiResult.isHealthy ? 'low' : 'high', // Simplified mapping for UI compatibility
         color,
         gross_income: Number(monthlyIncome.toFixed(2)),
         total_debt: Number(monthlyDebt.toFixed(2)),
         housing_debt: Number(housingOnlyDebt.toFixed(2)),
         front_end_ratio: Number(((housingOnlyDebt / (monthlyIncome || 1)) * 100).toFixed(2)),
         currency: baseCurrency,
-        recommendation,
+        recommendation: dtiResult.label + " — " + recommendation,
         breakdown: {
           income_sources: incomes?.filter((i: any) => i.frequency !== 'one-time').length || 0,
           active_loans: loans?.length || 0

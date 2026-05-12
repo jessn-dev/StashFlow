@@ -1,0 +1,4 @@
+# @stashflow/core and supabase migrations require owner review
+packages/core/ @mrbubbles
+supabase/migrations/ @mrbubbles
+.github/workflows/ @mrbubbles

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '~/lib/supabase/client';
 import { ProfileQuery } from '@stashflow/api';
 import { CURRENCIES } from '@stashflow/core';
 import type { Profile } from '@stashflow/core';

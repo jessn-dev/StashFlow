@@ -3,22 +3,44 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Papa from 'papaparse';
-import { SecureImportZone } from '@/modules/import/components/SecureImportZone';
-import { CsvMapper } from '@/modules/import/components/CsvMapper';
-import { createClient } from '@/lib/supabase/client';
-import { ArrowLeft, CheckCircle2, ChevronRight, LayoutDashboard, History } from 'lucide-react';
+import { SecureImportZone } from '~/modules/import/components/SecureImportZone';
+import { CsvMapper } from '~/modules/import/components/CsvMapper';
+import { createClient } from '~/lib/supabase/client';
+import { ArrowLeft, CheckCircle2, LayoutDashboard, History, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 type ImportStage = 'upload' | 'mapping' | 'preview' | 'success';
 
+/**
+ * Page component for importing transactions via CSV or AI-powered PDF parsing.
+ * Manages the multi-stage import workflow: Upload -> Mapping -> Preview -> Success.
+ */
 export default function TransactionImportPage() {
   const [stage, setStage] = useState<ImportStage>('upload');
   const [csvData, setCsvData] = useState<{ headers: string[]; rows: any[] } | null>(null);
   const [mappedData, setMappedData] = useState<any[]>([]);
   const [importResult, setImportResult] = useState<{ count: number } | null>(null);
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [processingError, setProcessingError] = useState<string | null>(null);
+  
   const router = useRouter();
+  const supabase = createClient();
 
+  /**
+   * Handles the file upload and initial processing (CSV parsing or PDF AI extraction).
+   * 
+   * PSEUDOCODE: Transaction Upload & Process
+   * 1. Detect file extension (CSV or PDF).
+   * 2. For CSV: Parse using PapaParse and transition to mapping stage.
+   * 3. For PDF: 
+   *    a. Upload to private storage.
+   *    b. Insert document record with 'pending' status.
+   *    c. Invoke 'parse-document' edge function.
+   *    d. Poll database until status is 'success' or 'error'.
+   *    e. Map AI-extracted transactions to internal preview format.
+   */
   const handleUpload = async (file: File, password?: string) => {
+    setProcessingError(null);
     const ext = file.name.split('.').pop()?.toLowerCase();
     
     if (ext === 'csv') {
@@ -44,9 +66,99 @@ export default function TransactionImportPage() {
     }
 
     if (ext === 'pdf') {
-      // PDF handling will involve uploading to Supabase and triggering edge function
-      // For now, we'll throw "not implemented" until we have the edge function
-      throw new Error('PDF transaction parsing is coming soon. Please use CSV for now.');
+      setIsAiProcessing(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        // 1. Upload to storage
+        const storagePath = `${user.id}/${Date.now()}.pdf`;
+        const { error: uploadError } = await supabase.storage
+          .from('user_documents')
+          .upload(storagePath, file);
+
+        if (uploadError) throw uploadError;
+
+        // 2. Insert document record
+        const { data: doc, error: docError } = await supabase
+          .from('documents')
+          .insert({
+            user_id: user.id,
+            file_name: file.name,
+            file_size: file.size,
+            content_type: 'application/pdf',
+            storage_path: storagePath,
+            inferred_type: 'Bank Statement',
+            source: 'web',
+            processing_status: 'pending'
+          })
+          .select('id')
+          .single();
+
+        if (docError) throw docError;
+
+        // 3. Trigger edge function
+        const { error: funcError } = await supabase.functions.invoke('parse-document', {
+          body: { record: { id: doc.id } },
+          headers: password ? { 'x-document-password': password } : {}
+        });
+
+        if (funcError) throw funcError;
+
+        // 4. Poll for success
+        let attempts = 0;
+        const maxAttempts = 60; // 2 minutes with 2s interval
+        
+        const poll = async (): Promise<any> => {
+          if (attempts >= maxAttempts) throw new Error('Processing timed out. The statement might be very large.');
+          
+          const { data, error } = await supabase
+            .from('documents')
+            .select('processing_status, extracted_data, processing_error')
+            .eq('id', doc.id)
+            .single();
+
+          if (error) throw error;
+
+          if (data.processing_status === 'success') {
+            return data.extracted_data;
+          }
+
+          if (data.processing_status.startsWith('error')) {
+            const err = (data.processing_error as any);
+            throw new Error(err?.message || 'AI extraction failed.');
+          }
+
+          attempts++;
+          await new Promise(r => setTimeout(r, 2000));
+          return poll();
+        };
+
+        const extractedData = await poll();
+        
+        // 5. Map AI data to internal format
+        if (extractedData?.transactions) {
+          const aiMapped = extractedData.transactions.map((t: any) => ({
+            date: t.date,
+            description: t.description,
+            amount: t.amount,
+            type: t.amount >= 0 ? 'income' : 'expense'
+          }));
+          setMappedData(aiMapped);
+          setStage('preview');
+        } else {
+          throw new Error('No transactions found in statement.');
+        }
+
+      } catch (err: any) {
+        console.error('[TransactionImport] PDF processing failed:', err);
+        setProcessingError(err.message || 'Failed to process PDF statement.');
+        setIsAiProcessing(false);
+        throw err; // Re-throw so SecureImportZone shows the error
+      } finally {
+        setIsAiProcessing(false);
+      }
+      return;
     }
   };
 
@@ -55,19 +167,37 @@ export default function TransactionImportPage() {
     setStage('preview');
   };
 
+  /**
+   * Finalizes the import by bulk inserting incomes and expenses into the database.
+   * 
+   * PSEUDOCODE: Execute Import
+   * 1. Resolve user profile and preferred currency.
+   * 2. Separate mapped data into 'incomes' and 'expenses' arrays.
+   * 3. Normalize amounts and add metadata (user_id, source/description, currency).
+   * 4. Perform bulk inserts using Supabase.
+   * 5. Redirect to success stage.
+   */
   const executeImport = async () => {
-    const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+
+    // Fetch user's preferred currency
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('preferred_currency')
+      .eq('id', user.id)
+      .single();
+
+    const userCurrency = profile?.preferred_currency || 'USD';
 
     // Filter into incomes and expenses
     const incomes = mappedData.filter(d => d.type === 'income').map(d => ({
       user_id: user.id,
       amount: Math.abs(d.amount),
-      description: d.description,
+      source: d.description,
       date: d.date,
-      currency: 'USD', // TODO: Allow currency selection
-      frequency: 'one-time'
+      currency: userCurrency,
+      frequency: 'one-time' as const
     }));
 
     const expenses = mappedData.filter(d => d.type === 'expense').map(d => ({
@@ -75,8 +205,8 @@ export default function TransactionImportPage() {
       amount: Math.abs(d.amount),
       description: d.description,
       date: d.date,
-      currency: 'USD',
-      category: 'other'
+      currency: userCurrency,
+      category: 'other' as const
     }));
 
     // Bulk insert
@@ -141,12 +271,19 @@ export default function TransactionImportPage() {
         <div className="bg-white rounded-[32px] border border-gray-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="p-8 border-b border-gray-50 flex items-center justify-between">
              <div>
-               <h3 className="text-xl font-black text-gray-900 tracking-tight">Review Import</h3>
+               <div className="flex items-center gap-2 mb-1">
+                 <h3 className="text-xl font-black text-gray-900 tracking-tight">Review Import</h3>
+                 {isAiProcessing && (
+                    <span className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md text-[10px] font-black uppercase tracking-widest border border-blue-100">
+                      <Sparkles size={10} /> AI Enhanced
+                    </span>
+                 )}
+               </div>
                <p className="text-sm text-gray-400 font-medium mt-1">We detected {mappedData.length} transactions.</p>
              </div>
              <div className="flex items-center gap-3">
                <button 
-                 onClick={() => setStage('mapping')}
+                 onClick={() => setStage('upload')}
                  className="px-6 h-12 text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors"
                >
                  Back

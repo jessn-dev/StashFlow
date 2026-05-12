@@ -1,8 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '~/lib/supabase/server';
 import { ProfileQuery } from '@stashflow/api';
-import { MfaManager } from '@/modules/settings/components/MfaManager';
-import { ProfileEditForm } from '@/modules/settings/components/ProfileEditForm';
-import { DeleteAccountButton } from '@/modules/settings/components/DeleteAccountButton';
+import { MfaManager } from '~/modules/settings/components/MfaManager';
+import { ProfileEditForm } from '~/modules/settings/components/ProfileEditForm';
+import { DeleteAccountButton } from '~/modules/settings/components/DeleteAccountButton';
+import { LedgerHealthIndicator } from '~/modules/settings/components/LedgerHealthIndicator';
+import { ShieldCheck, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -34,7 +37,30 @@ export default async function SettingsPage() {
 
       <section className="space-y-4">
         <h2 className="text-sm font-black uppercase tracking-widest text-gray-400 ml-1">Security</h2>
-        <MfaManager />
+        <div className="space-y-6">
+          <MfaManager />
+
+          <Link 
+            href="/dashboard/settings/sessions"
+            className="flex items-center justify-between p-6 bg-white rounded-2xl border border-gray-100 shadow-sm hover:border-blue-100 transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gray-50 rounded-xl group-hover:bg-blue-50 transition-colors">
+                <ShieldCheck className="w-6 h-6 text-gray-400 group-hover:text-blue-500" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-900">Active Sessions</h3>
+                <p className="text-xs text-gray-400 font-medium">Manage devices logged into your account.</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-blue-500" />
+          </Link>
+
+          <div className="p-6 bg-white rounded-2xl border border-gray-100 shadow-sm">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Ledger Integrity</h3>
+            <LedgerHealthIndicator />
+          </div>
+        </div>
       </section>
 
       <section className="space-y-4">

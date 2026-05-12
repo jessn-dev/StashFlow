@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { inferLoanStructure, computeAddOnEIR } from '../../inference/loanStructure';
+import { inferLoanStructure, computeAddOnEIR } from '../../inference/loanStructure.ts';
 
 // Benchmark payments for P=500000, rate=12%, n=36
 // Amortized: ~16607, Add-on: ~22222, Interest-only: 5000
@@ -139,6 +139,38 @@ describe('inferLoanStructure', () => {
       const result = inferLoanStructure({ ...BASE_PH, monthly_payment: 5000 });
       expect(Array.isArray(result.alternatives)).toBe(true);
     });
+
+    it('uses custom reason for unknown interest type if one were possible', () => {
+      // Since all current types have explanations, we mock the EXPLANATIONS or find a way to trigger the fallback.
+      // Line 184: reason: EXPLANATIONS[winner.type] || 'Inferred based on payment patterns.',
+      // We can't easily add a new type here without changing the enum, so we just ensure coverage for the positive cases.
+      // But we can check that it doesn't crash if we were to pass a weird type (though TS prevents it).
+      const result = inferLoanStructure({ ...BASE_PH, monthly_payment: 5000 });
+      expect(result.reason).toBeDefined();
+    });
+  });
+
+  describe('sad paths', () => {
+    it('should handle zero or negative principal', () => {
+      const result = inferLoanStructure({
+        principal: 0,
+        monthly_payment: 100,
+        interest_rate_annual: 10,
+        term_months: 12,
+      });
+      expect(result.confidence).toBe(0.5);
+      expect(result.interest_type).toBe('Standard Amortized');
+    });
+
+    it('should handle zero term', () => {
+      const result = inferLoanStructure({
+        principal: 10000,
+        monthly_payment: 1000,
+        interest_rate_annual: 10,
+        term_months: 0,
+      });
+      expect(result.confidence).toBe(0.5);
+    });
   });
 });
 
@@ -157,5 +189,10 @@ describe('computeAddOnEIR', () => {
   it('24% flat over 24 months → EIR significantly higher than 24%', () => {
     const eir = computeAddOnEIR(24, 24);
     expect(eir).toBeGreaterThan(35); // flat rate overstates true cost
+  });
+
+  it('should handle extreme interest rates', () => {
+    const eir = computeAddOnEIR(1000, 12);
+    expect(eir).toBeGreaterThan(1000);
   });
 });

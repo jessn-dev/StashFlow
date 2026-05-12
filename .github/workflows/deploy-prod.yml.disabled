@@ -1,0 +1,101 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # 1. Supabase Deployment (Backend & Keys First)
+  deploy-supabase-prod:
+    name: Deploy Supabase (Production)
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_PROD }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_PROD }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: supabase/setup-cli@v1
+        with:
+          version: "2.98.2"
+
+      - name: Link to Supabase Project (Prod)
+
+      - name: Setup shared code for Supabase
+        run: |
+          mkdir -p supabase/functions/_shared
+          rm -rf supabase/functions/_shared/core
+          rm -rf supabase/functions/_shared/document-parser
+          cp -R packages/core supabase/functions/_shared/core
+          cp -R packages/document-parser supabase/functions/_shared/document-parser
+        run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_PROD }} -p ${{ secrets.SUPABASE_DB_PASSWORD_PROD }}
+
+      - name: Set Supabase Secrets (Prod)
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_VISION_API_KEY: ${{ secrets.GOOGLE_VISION_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          LEDGER_SECRET: ${{ secrets.LEDGER_SECRET }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          PARSE_LOAN_WEBHOOK_SECRET: ${{ secrets.PARSE_LOAN_WEBHOOK_SECRET }}
+        run: |
+          supabase secrets set \
+            GROQ_API_KEY="$GROQ_API_KEY" \
+            GEMINI_API_KEY="$GEMINI_API_KEY" \
+            ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+            GOOGLE_VISION_API_KEY="$GOOGLE_VISION_API_KEY" \
+            FRED_API_KEY="$FRED_API_KEY" \
+            LEDGER_SECRET="$LEDGER_SECRET" \
+            CRON_SECRET="$CRON_SECRET" \
+            PARSE_LOAN_WEBHOOK_SECRET="$PARSE_LOAN_WEBHOOK_SECRET" \
+            --project-ref ${{ secrets.SUPABASE_PROJECT_REF_PROD }}
+
+      - name: Deploy Edge Functions (Prod)
+        run: supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_REF_PROD }}
+
+  # 2. Vercel Deployment (Frontend Second)
+  deploy-prod:
+    name: Deploy to Vercel (Prod)
+    needs: deploy-supabase-prod
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_PROD }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_PROD }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+          
+      - name: Install Vercel CLI
+        run: npm install --global vercel
+
+      - name: Pull Vercel Project Settings
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Project Artifacts to Vercel
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '~/lib/supabase/client';
 import { BudgetQuery } from '@stashflow/api';
 import { CURRENCIES, EXPENSE_CATEGORIES, formatCurrency } from '@stashflow/core';
 import type { Budget, BudgetPeriod, ExpenseCategory } from '@stashflow/core';

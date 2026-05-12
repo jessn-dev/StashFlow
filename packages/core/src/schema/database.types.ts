@@ -61,6 +61,53 @@ export type Database = {
         }
         Relationships: []
       }
+      assets: {
+        Row: {
+          balance: number
+          created_at: string | null
+          currency: string
+          id: string
+          institution: string | null
+          name: string
+          notes: string | null
+          type: Database["public"]["Enums"]["asset_type"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          institution?: string | null
+          name: string
+          notes?: string | null
+          type?: Database["public"]["Enums"]["asset_type"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          institution?: string | null
+          name?: string
+          notes?: string | null
+          type?: Database["public"]["Enums"]["asset_type"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_periods: {
         Row: {
           budgeted: number
@@ -174,6 +221,7 @@ export type Database = {
       }
       documents: {
         Row: {
+          content_hash: string | null
           content_type: string
           created_at: string | null
           extracted_data: Json | null
@@ -184,6 +232,7 @@ export type Database = {
           inferred_type: string | null
           last_processed_at: string | null
           loan_id: string | null
+          ocr_telemetry: Json | null
           processing_attempts: number
           processing_error: Json | null
           processing_status: string
@@ -192,6 +241,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          content_hash?: string | null
           content_type: string
           created_at?: string | null
           extracted_data?: Json | null
@@ -202,6 +252,7 @@ export type Database = {
           inferred_type?: string | null
           last_processed_at?: string | null
           loan_id?: string | null
+          ocr_telemetry?: Json | null
           processing_attempts?: number
           processing_error?: Json | null
           processing_status?: string
@@ -210,6 +261,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          content_hash?: string | null
           content_type?: string
           created_at?: string | null
           extracted_data?: Json | null
@@ -220,6 +272,7 @@ export type Database = {
           inferred_type?: string | null
           last_processed_at?: string | null
           loan_id?: string | null
+          ocr_telemetry?: Json | null
           processing_attempts?: number
           processing_error?: Json | null
           processing_status?: string
@@ -279,6 +332,9 @@ export type Database = {
           id: string
           is_recurring: boolean | null
           notes: string | null
+          provenance: Json | null
+          signature: string
+          source_document_id: string | null
           user_id: string
         }
         Insert: {
@@ -291,6 +347,9 @@ export type Database = {
           id?: string
           is_recurring?: boolean | null
           notes?: string | null
+          provenance?: Json | null
+          signature?: string
+          source_document_id?: string | null
           user_id: string
         }
         Update: {
@@ -303,9 +362,19 @@ export type Database = {
           id?: string
           is_recurring?: boolean | null
           notes?: string | null
+          provenance?: Json | null
+          signature?: string
+          source_document_id?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_user_id_fkey"
             columns: ["user_id"]
@@ -368,7 +437,10 @@ export type Database = {
           frequency: Database["public"]["Enums"]["income_frequency"] | null
           id: string
           notes: string | null
+          provenance: Json | null
+          signature: string
           source: string
+          source_document_id: string | null
           user_id: string
         }
         Insert: {
@@ -379,7 +451,10 @@ export type Database = {
           frequency?: Database["public"]["Enums"]["income_frequency"] | null
           id?: string
           notes?: string | null
+          provenance?: Json | null
+          signature?: string
           source: string
+          source_document_id?: string | null
           user_id: string
         }
         Update: {
@@ -390,10 +465,20 @@ export type Database = {
           frequency?: Database["public"]["Enums"]["income_frequency"] | null
           id?: string
           notes?: string | null
+          provenance?: Json | null
+          signature?: string
           source?: string
+          source_document_id?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "incomes_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "incomes_user_id_fkey"
             columns: ["user_id"]
@@ -643,6 +728,47 @@ export type Database = {
         }
         Relationships: []
       }
+      net_worth_snapshots: {
+        Row: {
+          created_at: string | null
+          currency: string
+          id: string
+          net_worth: number
+          snapshot_date: string
+          total_assets: number
+          total_liabilities: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string
+          id?: string
+          net_worth: number
+          snapshot_date: string
+          total_assets: number
+          total_liabilities: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string
+          id?: string
+          net_worth?: number
+          snapshot_date?: string
+          total_assets?: number
+          total_liabilities?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "net_worth_snapshots_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           budgeting_enabled: boolean | null
@@ -679,6 +805,36 @@ export type Database = {
           preferred_currency?: string | null
           rollover_start_month?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      session_events: {
+        Row: {
+          country: string | null
+          created_at: string
+          id: string
+          ip: string
+          session_id: string | null
+          user_agent: string
+          user_id: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          id?: string
+          ip: string
+          session_id?: string | null
+          user_agent: string
+          user_id: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          id?: string
+          ip?: string
+          session_id?: string | null
+          user_agent?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -725,12 +881,29 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      unified_transactions: {
+        Row: {
+          amount: number | null
+          category: Database["public"]["Enums"]["expense_category"] | null
+          created_at: string | null
+          currency: string | null
+          date: string | null
+          description: string | null
+          id: string | null
+          notes: string | null
+          provenance: Json | null
+          source_document_id: string | null
+          type: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       prune_stale_test_data: { Args: never; Returns: undefined }
     }
     Enums: {
+      asset_type: "cash" | "investment" | "property" | "retirement" | "other"
       expense_category:
         | "housing"
         | "food"
@@ -888,6 +1061,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      asset_type: ["cash", "investment", "property", "retirement", "other"],
       expense_category: [
         "housing",
         "food",
@@ -921,3 +1095,4 @@ export const Constants = {
     },
   },
 } as const
+

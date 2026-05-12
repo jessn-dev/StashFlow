@@ -12,6 +12,7 @@
 #   db:start                  Start local Supabase (Docker)
 #   db:stop                   Stop local Supabase
 #   db:reset                  Reset DB — reapply all migrations + seed data
+#   db:clean                  Stop and prune all local Supabase containers and volumes
 #   db:functions              Serve Edge Functions locally with .env loading
 #   db:status                 Show running Supabase service URLs & ports
 #   db:port <port>            Change the local Supabase API port
@@ -25,6 +26,9 @@
 # =============================================================================
 
 set -e
+
+# Suppress Node.js experimental warnings (e.g. loading ESM via require)
+export NODE_NO_WARNINGS=1
 
 # ── Colours ──────────────────────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -73,6 +77,14 @@ require_pnpm() {
 
 require_supabase() {
   command -v supabase &>/dev/null || die "Supabase CLI is required but not installed.\n   Install via brew: brew install supabase/tap/supabase"
+  return 0
+}
+
+require_uv() {
+  command -v uv &>/dev/null || {
+    info "uv is not installed. Installing uv..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  }
   return 0
 }
 
@@ -132,6 +144,7 @@ cmd_help() {
   echo -e "    db:start                   Start local Supabase instance (Docker)"
   echo -e "    db:stop                    Stop local Supabase instance"
   echo -e "    db:reset                   Drop + reapply migrations + seed data"
+  echo -e "    db:clean                   Stop and prune all local Supabase containers and volumes"
   echo -e "    db:functions               Serve Edge Functions locally with .env loading"
   echo -e "    db:status                  Show service URLs and running status"
   echo -e "    db:port <port>             Change the Supabase API port (config.toml)"
@@ -139,23 +152,47 @@ cmd_help() {
   echo -e "    db:env                     Overwrite .env files with current local Supabase keys"
   echo -e "    db:jwt                     Regenerate dev service_role JWT and update pg_net trigger"
   echo -e "    db:types                   Regenerate TypeScript types from local schema"
+  echo -e "    db:backup                  Create a local logical backup of the development database"
+  echo -e "    db:restore <file>          Restore a logical backup to the development database"
+
+  echo -e "    db:shared                  Sync monorepo packages to Supabase _shared directory"
+  echo -e "    schema:sync                Sync AI schemas from Python to TypeScript"
   echo ""
-  echo -e "  ${CYAN}Testing${RESET}"
-  echo -e "    test                       Run all package unit tests"
-  echo -e "    test <pkg>                 Run unit tests for one package (e.g. @stashflow/core)"
-  echo -e "    test coverage              Run all unit tests with coverage (enforces thresholds)"
-  echo -e "    test <pkg> coverage        Run coverage for one package"
-  echo -e "    test:e2e                   Run Playwright E2E tests against local web server"
-  echo -e "    typecheck                  TypeScript typecheck across all packages"
+
+  echo -e "  ${CYAN}Logging (Sentry/GlitchTip)${RESET}"
+  echo -e "    logging:start              Start local GlitchTip logging stack (Docker)"
+  echo -e "    logging:stop               Stop local GlitchTip logging stack"
   echo ""
+
+  echo -e "  ${CYAN}Python Backend${RESET}"
+
+  echo -e "    py:docker                  Build the Python backend Docker container for local testing"
+  echo -e "    py:worker                  Start the Python background worker (RQ)"
+
+  echo ""
+  echo -e "  ${CYAN}Testing & Quality${RESET}"
+    echo -e "    check:all                  Run ALL quality gates (typecheck, lint, tests + coverage)"
+    echo -e "    lint                       Run ESLint across all packages"
+    echo -e "    typecheck                  Run TypeScript typecheck across all packages"
+    echo -e "    test                       Run all package unit tests"
+    echo -e "    test <pkg>                 Run unit tests for one package (e.g. @stashflow/core)"
+    echo -e "    test coverage              Run all unit tests with coverage (enforces thresholds)"
+    echo -e "    test <pkg> coverage        Run coverage for one package"
+    echo -e "    test:e2e                   Run Playwright E2E tests against local web server"
+    echo -e "    py:check                   Run Python quality gates (ruff, mypy, pytest + coverage)"
+  echo ""
+
   echo -e "  ${CYAN}Maintenance${RESET}"
-  echo -e "    clean                      Remove build artifacts + stop & prune Supabase/Docker"
+    echo -e "    docker:clean               Stop and remove all project containers (Supabase + Python + Logging)"
+    echo -e "    clean                      Remove build artifacts + stop & prune Supabase/Docker"
+    echo -e "    shutdown                   Full cleanup: Stop all services, prune Docker, clear caches"
   echo ""
 }
 
 cmd_init() {
   require_node
   require_pnpm
+  require_uv
   info "Initializing StashFlow monorepo..."
   pnpm install
   success "Workspace dependencies installed."
@@ -168,18 +205,79 @@ cmd_init() {
   info "Validating local Supabase configuration..."
   require_supabase
 
+  cmd_db_shared
+
   success "Initialization complete."
+}
+
+cmd_py_docker() {
+  if ! command -v docker &>/dev/null; then
+    die "Docker is required to build the container."
+  fi
+  info "Building Python backend Docker container..."
+  docker build -t stashflow-backend-py ./apps/backend-py
+  success "Docker image built: stashflow-backend-py"
+}
+
+cmd_py_worker() {
+  require_uv
+  info "Starting Python background worker (RQ)..."
+  cd apps/backend-py
+  uv run python worker.py
+}
+
+cmd_logging_start() {
+  if ! command -v docker &>/dev/null; then
+    die "Docker is required for logging."
+  fi
+  info "Checking local logging stack (GlitchTip)..."
+  if ! docker ps --filter "name=glitchtip" | grep -q "glitchtip"; then
+    info "Starting GlitchTip..."
+    docker-compose -f docker-compose.logging.yml up -d
+    success "GlitchTip is running at http://localhost:8000"
+    info "Default SENTRY_DSN for local dev: http://local-public-key@localhost:8000/1"
+  else
+    info "GlitchTip is already running."
+  fi
+}
+
+cmd_logging_stop() {
+  info "Stopping local logging stack..."
+  docker-compose -f docker-compose.logging.yml stop
+  success "Logging stack stopped."
 }
 
 cmd_dev() {
   local target=$1
+  local clean=0
+
+  # Support --clean flag or --clean as first arg
+  if [[ "$target" == "--clean" ]]; then
+    clean=1
+    target=$2
+  elif [[ "$2" == "--clean" ]]; then
+    clean=1
+  fi
+
+  if [ $clean -eq 1 ]; then
+    cmd_docker_clean
+    info "Starting with a fresh Docker environment..."
+  fi
+
   require_pnpm
   require_supabase
 
   # ── Preflight: Supabase must be running ───────────────────────────────────
   if ! supabase status &>/dev/null; then
-    die "Supabase is not running. Start it first:\n   ./setup.sh db:start"
+    info "Supabase is not running. Starting it now..."
+    cmd_db_start
   fi
+
+  # ── Preflight: Logging must be running ─────────────────────────────────────
+  cmd_logging_start
+
+  # ── Preflight: Sync environment variables ──────────────────────────────────
+  cmd_db_env
 
   # ── Preflight: edge function env must exist ────────────────────────────────
   if [ ! -f "supabase/functions/.env" ]; then
@@ -206,7 +304,6 @@ cmd_dev() {
   info "Launching local Edge Functions server..."
   supabase functions serve \
     --env-file supabase/functions/.env \
-    --import-map supabase/functions/import_map.json \
     --no-verify-jwt &
   FUNC_PID=$!
 
@@ -270,7 +367,6 @@ cmd_db_functions() {
   info "Serving Edge Functions locally..."
   supabase functions serve \
     --env-file supabase/functions/.env \
-    --import-map supabase/functions/import_map.json \
     --no-verify-jwt
 }
 
@@ -310,7 +406,15 @@ cmd_db_env() {
   upsert_env_var apps/web/.env.local NEXT_PUBLIC_SUPABASE_URL      "$api_url"
   upsert_env_var apps/web/.env.local NEXT_PUBLIC_SUPABASE_ANON_KEY "$anon_key"
   upsert_env_var apps/web/.env.local SUPABASE_SERVICE_ROLE_KEY     "$service_key"
+  upsert_env_var apps/web/.env.local NEXT_PUBLIC_SENTRY_DSN        "http://local-public-key@localhost:8000/1"
   success "Updated apps/web/.env.local"
+
+  # ── Python Backend ────────────────────────────────────────────────────────
+  touch apps/backend-py/.env
+  upsert_env_var apps/backend-py/.env SUPABASE_URL                "http://127.0.0.1:54321"
+  upsert_env_var apps/backend-py/.env SUPABASE_SERVICE_ROLE_KEY   "$service_key"
+  upsert_env_var apps/backend-py/.env REDIS_URL                   "redis://127.0.0.1:6379/0"
+  success "Updated apps/backend-py/.env"
 
   # ── Mobile ────────────────────────────────────────────────────────────────
   touch apps/mobile/.env
@@ -321,9 +425,16 @@ cmd_db_env() {
   # ── Edge functions ────────────────────────────────────────────────────────
   # Edge functions run inside Docker — must use Docker-internal Kong URL, not the host-mapped port
   touch supabase/functions/.env
-  upsert_env_var supabase/functions/.env SUPABASE_URL      "http://supabase_kong_StashFlow:8000"
-  upsert_env_var supabase/functions/.env SUPABASE_ANON_KEY "$anon_key"
+  upsert_env_var supabase/functions/.env SUPABASE_URL         "http://supabase_kong_StashFlow:8000"
+  upsert_env_var supabase/functions/.env SUPABASE_ANON_KEY    "$anon_key"
+  upsert_env_var supabase/functions/.env PYTHON_BACKEND_URL  "http://host.docker.internal:8008"
+  upsert_env_var supabase/functions/.env PARSE_LOAN_WEBHOOK_SECRET "dev-secret-123"
   success "Updated supabase/functions/.env"
+
+  # ── Supabase CLI (Local Dev) ──────────────────────────────────────────────
+  touch supabase/.env
+  upsert_env_var supabase/.env SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI "http://127.0.0.1:54321/auth/v1/callback"
+  success "Updated supabase/.env"
 }
 
 cmd_db_jwt() {
@@ -364,8 +475,55 @@ cmd_db_jwt() {
 cmd_db_types() {
   require_supabase
   info "Regenerating TypeScript types from local schema..."
-  supabase gen types typescript --local > packages/core/src/schema/database.types.ts
+  supabase gen types typescript --local | tail -n +2 > packages/core/src/schema/database.types.ts
   success "Types updated → packages/core/src/schema/database.types.ts"
+}
+
+cmd_db_backup() {
+  require_supabase
+  local filename="backup_$(date +%Y%m%d_%H%M%S).sql"
+  info "Creating local logical backup: $filename..."
+  supabase db dump --local -f "$filename"
+  success "Backup created: $filename"
+}
+
+cmd_db_restore() {
+  require_supabase
+  local file=$1
+  if [[ -z "$file" ]]; then
+    die "Usage: ./setup.sh db:restore <filename.sql>"
+  fi
+  if [[ ! -f "$file" ]]; then
+    die "Backup file not found: $file"
+  fi
+  warn "This will overwrite your local database data. Proceed? (y/n)"
+  read -r confirm
+  if [[ "$confirm" != "y" ]]; then
+    die "Restore cancelled."
+  fi
+  info "Restoring backup from $file..."
+  supabase db reset
+  psql "postgres://postgres:postgres@localhost:54322/postgres" -f "$file"
+  success "Database restored from $file."
+}
+
+cmd_db_shared() {
+  info "Syncing shared monorepo packages to Supabase Edge Functions..."
+  rm -rf supabase/functions/_shared/core supabase/functions/_shared/document-parser
+  mkdir -p supabase/functions/_shared/core/src supabase/functions/_shared/document-parser/src
+  cp -r packages/core/src/* supabase/functions/_shared/core/src/
+  cp -r packages/document-parser/src/* supabase/functions/_shared/document-parser/src/
+  cp packages/core/deno.json supabase/functions/_shared/core/ 2>/dev/null || true
+  cp packages/document-parser/deno.json supabase/functions/_shared/document-parser/ 2>/dev/null || true
+  success "Shared packages synchronized."
+}
+
+cmd_schema_sync() {
+  info "Synchronizing schemas from Python to TypeScript..."
+  pnpm --filter @stashflow/backend-py export:schema
+  pnpm --filter @stashflow/document-parser gen:types
+  cmd_db_shared
+  success "Schema synchronization complete."
 }
 
 cmd_test() {
@@ -399,8 +557,97 @@ cmd_test_e2e() {
 cmd_typecheck() {
   require_pnpm
   info "Typechecking all packages..."
-  turbo run typecheck
+  pnpm typecheck
   success "Typecheck passed."
+}
+
+cmd_lint() {
+  require_pnpm
+  info "Linting all packages..."
+  pnpm lint
+  success "Linting passed."
+}
+
+cmd_py_check() {
+  require_uv
+  info "Running Python quality gates for backend-py..."
+  cd apps/backend-py
+  
+  info "[1/3] Linting with Ruff..."
+  uv run ruff check .
+  
+  info "[2/3] Typechecking with MyPy..."
+  uv run mypy src
+  
+  info "[3/3] Running tests..."
+  uv run pytest
+  
+  cd ../..
+  success "Python quality gates passed."
+}
+
+cmd_check_all() {
+  divider
+  info "STARTING FULL MONOREPO QUALITY GATE"
+  divider
+  
+  cmd_typecheck
+  cmd_lint
+  cmd_test coverage
+  cmd_py_check
+  
+  divider
+  success "FULL QUALITY GATE PASSED"
+  divider
+}
+
+cmd_docker_clean() {
+  info "Stopping and removing all project containers..."
+  
+  if command -v supabase &>/dev/null; then
+    supabase stop --no-backup 2>/dev/null || true
+  fi
+
+  # Stop and remove Python backend container
+  docker stop stashflow-backend-py 2>/dev/null || true
+  docker rm stashflow-backend-py 2>/dev/null || true
+
+  # Stop and remove logging stack
+  docker-compose -f docker-compose.logging.yml down 2>/dev/null || true
+
+  if command -v docker &>/dev/null; then
+    # Prune anything with 'supabase' or project labels
+    local containers
+    containers=$(docker ps -aq --filter "name=supabase" --filter "label=com.supabase.project=StashFlow")
+    if [ -n "$containers" ]; then
+      echo "$containers" | xargs docker rm -f 2>/dev/null || true
+    fi
+    success "Project containers cleaned."
+  else
+    warn "Docker not found — skipping container cleanup."
+  fi
+}
+
+cmd_db_clean() {
+  cmd_docker_clean
+
+  if command -v docker &>/dev/null; then
+    info "Pruning local Supabase and Logging volumes..."
+    local volumes
+    volumes=$(docker volume ls --filter "name=supabase" --filter "name=glitchtip" --format "{{.Name}}")
+    if [ -n "$volumes" ]; then
+      echo "$volumes" | xargs docker volume rm 2>/dev/null || true
+    fi
+
+    local networks
+    networks=$(docker network ls --filter "name=supabase" --filter "name=stashflow-logging" --format "{{.ID}}")
+    if [ -n "$networks" ]; then
+      echo "$networks" | xargs docker network rm 2>/dev/null || true
+    fi
+    success "Docker resources pruned."
+  else
+    warn "Docker not found — skipping container cleanup."
+  fi
 }
 
 cmd_clean() {
@@ -412,24 +659,24 @@ cmd_clean() {
   find . -type d -name "node_modules"                              -exec rm -rf {} + 2>/dev/null || true
   success "Build artifacts removed."
 
-  # ── Docker / Supabase cleanup ─────────────────────────────────────────────
-  if command -v supabase &>/dev/null; then
-    info "Stopping Supabase containers..."
-    supabase stop --no-backup 2>/dev/null || true
-    success "Supabase containers stopped."
-  fi
-
-  if command -v docker &>/dev/null; then
-    info "Pruning stopped Supabase Docker containers..."
-    docker ps -a --filter "name=supabase" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null || true
-    info "Pruning dangling Docker volumes..."
-    docker volume ls --filter "name=supabase" --format "{{.Name}}" | xargs -r docker volume rm 2>/dev/null || true
-    success "Docker cleanup complete."
-  else
-    warn "Docker not found — skipping container cleanup."
-  fi
+  cmd_db_clean
 
   success "Workspace fully clean. Run ./setup.sh install to rebuild."
+}
+
+cmd_shutdown() {
+  warn "This will perform a FULL CLEANUP: stopping all services, pruning Docker, and clearing all caches."
+  read -p "   Are you sure? [y/N] " confirm
+  if [[ $confirm == [yY] ]]; then
+    cmd_clean
+    info "Pruning Docker system..."
+    docker system prune -f --volumes
+    info "Clearing pnpm store..."
+    pnpm store prune
+    success "Full shutdown and cleanup complete."
+  else
+    info "Shutdown cancelled."
+  fi
 }
 
 cmd_env_init() {
@@ -456,6 +703,17 @@ cmd_env_init() {
     else
       touch supabase/functions/.env
       info "Created supabase/functions/.env"
+    fi
+    created=1
+  fi
+
+  if [ ! -f "supabase/.env" ]; then
+    if [ -f "supabase/.env.example" ]; then
+      cp supabase/.env.example supabase/.env
+      info "Created supabase/.env from .env.example"
+    else
+      touch supabase/.env
+      info "Created supabase/.env"
     fi
     created=1
   fi
@@ -494,7 +752,12 @@ cmd_env_init() {
   # Edge functions run inside Docker — must use Docker-internal Kong URL, not the host-mapped port
   upsert_env_var supabase/functions/.env SUPABASE_URL      "http://supabase_kong_StashFlow:8000"
   upsert_env_var supabase/functions/.env SUPABASE_ANON_KEY "$anon_key"
+  upsert_env_var supabase/functions/.env SENTRY_DSN        "http://local-public-key@localhost:8000/1"
   success "Updated supabase/functions/.env"
+
+  # ── Supabase CLI (Local Dev) ──────────────────────────────────────────────
+  upsert_env_var supabase/.env SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI "http://127.0.0.1:54321/auth/v1/callback"
+  success "Updated supabase/.env"
 
   success "All env files ready."
 }
@@ -509,6 +772,7 @@ case "$1" in
   db:start)     cmd_db_start ;;
   db:stop)      supabase stop ;;
   db:reset)     cmd_db_reset ;;
+  db:clean)     cmd_db_clean ;;
   db:functions) cmd_db_functions ;;
   db:status)    cmd_db_status ;;
   db:port)      cmd_db_port "$2" ;;
@@ -516,9 +780,22 @@ case "$1" in
   db:env)       cmd_db_env ;;
   db:jwt)       cmd_db_jwt ;;
   db:types)     cmd_db_types ;;
+  db:backup)    cmd_db_backup ;;
+  db:restore)   cmd_db_restore "$2" ;;
+  db:shared)    cmd_db_shared ;;
+  schema:sync)  cmd_schema_sync ;;
+  py:docker)    cmd_py_docker ;;
+  py:worker)    cmd_py_worker ;;
+  py:check)     cmd_py_check ;;
+  logging:start) cmd_logging_start ;;
+  logging:stop)  cmd_logging_stop ;;
+  docker:clean) cmd_docker_clean ;;
   test)         cmd_test "$2" "$3" ;;
   test:e2e)     cmd_test_e2e ;;
+  lint)         cmd_lint ;;
   typecheck)    cmd_typecheck ;;
+  check:all)    cmd_check_all ;;
   clean)        cmd_clean ;;
+  shutdown)     cmd_shutdown ;;
   help|*)       cmd_help ;;
 esac

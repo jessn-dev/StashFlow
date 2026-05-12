@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { FileText, Upload, Lock, ShieldCheck, AlertCircle, X, ChevronRight, Loader2 } from 'lucide-react';
-import { isPdfEncrypted, validatePdfPassword } from '@/lib/utils/pdf';
+import { isPdfEncrypted, validatePdfPassword } from '~/lib/utils/pdf';
 
 export type ImportType = 'loan' | 'transaction';
 

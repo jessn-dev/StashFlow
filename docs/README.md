@@ -20,10 +20,24 @@ Data entry is manual or via PDF upload. The AI pipeline extracts loan terms from
 - **Loan management** — Supports Standard Amortized, Add-on Interest, Interest-Only, and Fixed Principal loan types. Generates full amortization schedules. Tracks payment status.
 - **AI loan document parsing** — Upload a loan contract PDF; the 3-tier pipeline (regex → OCR → LLM) extracts principal, rate, term, and payment structure automatically.
 - **Intelligent loan modeling** — Numerical inference engine classifies loan type from principal/payment/rate/term without asking technical questions.
+- **Cryptographic ledger integrity** — HMAC-SHA256 signatures on financial records to detect unauthorized tampering.
+- **Session anomaly detection** — Monitors login patterns and geographic shifts to identify and block potential account takeovers.
 - **DTI health** — Debt-to-income ratio with regional thresholds (PH 40%, US 36%, SG 55%). Zero-income edge case handled correctly.
 - **Plans** — Savings and debt goals with progress tracking. Per-category budgets with monthly spend snapshots.
 - **Transaction timeline** — Unified income + expense feed with URL-driven filtering, inline edit/delete, and date-range presets.
 - **MFA** — TOTP-based multi-factor authentication via Supabase Auth.
+
+---
+
+## Engineering Standards
+
+We maintain high standards for code readability and maintainability. All contributions must adhere to our **Three-Layer Documentation** mandate:
+
+1.  **High-Level Docstrings**: TSDoc or Google-style documentation for all classes and functions.
+2.  **Algorithmic Pseudocode**: Human-readable logic outlines prefixed with `PSEUDOCODE:` before complex blocks.
+3.  **Strategic Inline Comments**: Focused on the "Why" behind non-obvious logic, business rules, and workarounds.
+
+Detailed guidelines can be found in **[docs/CONTRIBUTING.md](./CONTRIBUTING.md)** and the project-wide **`GEMINI.md`**.
 
 ---
 
@@ -56,21 +70,51 @@ For full architecture detail: `docs/ARCHITECTURE.md`
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Language | TypeScript | 6.0.3 |
-| Web framework | Next.js | 16.2.4 |
-| UI runtime | React | 19.2.5 |
-| Mobile | Expo SDK | 55.0.17 |
+| Language | TypeScript | 5.9.0 |
+| Web framework | Next.js | 16.2.6 |
+| UI runtime | React | 19.2.0 |
+| Mobile | Expo SDK | ~55.0.23 |
 | Styling (web) | Tailwind CSS | 4.2.4 |
-| Styling (mobile) | NativeWind | latest stable |
+| Styling (mobile) | NativeWind | ^4.1.23 |
+| Backend | Python (Intelligence) | 3.12 |
 | Component library | shadcn/ui | latest |
-| Database + Auth | Supabase | — |
-| Supabase JS | @supabase/supabase-js | 2.104.1 |
-| SSR auth | @supabase/ssr | 0.10.2 |
-| Unit testing | Vitest | 4.1.5 |
-| E2E testing | Playwright | 1.59.1 |
-| Monorepo | Turborepo | 2.9.6 |
+| Database + Auth | Supabase | Postgres 17 |
+| Supabase JS | @supabase/supabase-js | ^2.105.4 |
+| SSR auth | @supabase/ssr | ^0.10.3 |
+| Unit testing | Vitest / Pytest | ^4.1.5 / latest |
+| E2E testing | Playwright | ^1.59.1 |
+| Monorepo | Turborepo | 2.9.12 |
 | Package manager | pnpm | 10.33.2 |
-| Edge functions | Deno | — |
+| Edge functions | Deno | 2 |
+| Observability | GlitchTip (Sentry) | latest (Docker) |
+
+---
+
+## CLI Reference
+
+The `./setup.sh` script is the primary entry point for managing the workspace.
+
+### Core Commands
+- `./setup.sh dev` — Start all dev servers (Web, Mobile, Supabase, Logging) and sync envs.
+- `./setup.sh db:env` — Automatically synchronize all `.env` files with local Supabase keys and Sentry DSN.
+- `./setup.sh shutdown` — **Full System Cleanup**: Stop all Docker services, prune volumes, and clear all caches (`node_modules`, `.next`, `turbo`, `pnpm`, `.venv`).
+
+### Quality Gates
+- `./setup.sh check:all` — Master gate: runs typecheck, lint, and tests (with coverage) for the entire monorepo.
+- `./setup.sh typecheck` — TypeScript static analysis for all packages.
+- `./setup.sh lint` — Workspace-wide ESLint.
+- `./setup.sh test` — Run all unit tests.
+- `./setup.sh py:check` — Python-specific quality gate (Ruff + MyPy + Pytest).
+
+---
+
+## Local Observability
+
+StashFlow includes a centralized logging dashboard for local development.
+
+1.  Run `./setup.sh dev` (starts automatically).
+2.  Access the **GlitchTip** (Sentry-compatible) dashboard at: **http://localhost:8000**
+3.  View errors, performance events, and audit logs from the Web app and Supabase Edge Functions in one place.
 
 ---
 
@@ -80,19 +124,23 @@ For full architecture detail: `docs/ARCHITECTURE.md`
 StashFlow/
 ├── apps/
 │   ├── web/                  # Next.js 16, App Router, RSC, Tailwind 4, shadcn/ui
-│   └── mobile/               # Expo SDK 55, React Native, NativeWind
+│   ├── mobile/               # Expo SDK 55, React Native, NativeWind
+│   └── backend-py/           # FastAPI, Python 3.12, ML, OCR
 │
 ├── packages/
 │   ├── core/                 # @stashflow/core — pure TS, zero deps, Deno-compatible
 │   ├── api/                  # @stashflow/api  — Supabase queries, service layer (web/Node only)
+│   ├── db/                   # @stashflow/db   — platform-specific client factories (browser/server/mobile)
+│   ├── auth/                 # @stashflow/auth — server-side session helpers
 │   ├── ui/                   # @stashflow/ui   — shared component primitives
 │   └── theme/                # @stashflow/theme — design tokens
 │
 ├── supabase/
 │   ├── functions/            # Deno edge functions
-│   └── migrations/           # Versioned SQL migrations (16+)
+│   └── migrations/           # Versioned SQL migrations (20+)
 │
 ├── docs/                     # Engineering documentation
+├── .node-version             # Node.js 24
 ├── deno.json                 # Deno workspace root
 ├── turbo.json                # Turborepo pipeline
 └── pnpm-workspace.yaml
@@ -104,9 +152,10 @@ StashFlow/
 
 ### Prerequisites
 
-- Node.js 22 LTS
+- Node.js 24 LTS
 - Docker Desktop
 - pnpm 10
+- Python 3.12 (via uv)
 
 ### Setup
 
@@ -167,7 +216,8 @@ Coverage thresholds enforced in CI:
 |---------|----------|
 | `@stashflow/core` | 90% |
 | `@stashflow/api` | 70% |
-| `apps/web` | 20% |
+| `apps/web` | 30% |
+| `apps/backend-py` | 80% |
 
 ---
 
@@ -224,3 +274,10 @@ See `docs/OPERATIONS.md` for deployment procedures.
 ## License
 
 MIT. See `LICENSE.md`.
+
+
+
+
+
+
+

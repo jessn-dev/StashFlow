@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LoanUploadZone } from '@/modules/loans/components/LoanUploadZone';
+import { LoanUploadZone } from '~/modules/loans/components/LoanUploadZone';
 
 export default function UploadLoanPage() {
   return (

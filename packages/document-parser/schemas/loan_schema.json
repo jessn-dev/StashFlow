@@ -1,0 +1,152 @@
+{
+  "$defs": {
+    "LoanInterestType": {
+      "enum": [
+        "Standard Amortized",
+        "Interest-Only",
+        "Add-on Interest",
+        "Fixed Principal"
+      ],
+      "title": "LoanInterestType",
+      "type": "string"
+    },
+    "Provenance": {
+      "description": "Metadata linking extracted data back to its source in the document.",
+      "properties": {
+        "page": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The 1-indexed page number where the information was found",
+          "title": "Page"
+        },
+        "snippet": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The exact text snippet used as source context",
+          "title": "Snippet"
+        }
+      },
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "description": "Schema for extracting loan details from a document.",
+  "properties": {
+    "name": {
+      "description": "The name of the loan or lender",
+      "title": "Name",
+      "type": "string"
+    },
+    "principal": {
+      "description": "The original principal amount of the loan",
+      "title": "Principal",
+      "type": "number"
+    },
+    "interest_rate": {
+      "description": "The annual interest rate as a percentage (e.g., 12.0)",
+      "title": "Interest Rate",
+      "type": "number"
+    },
+    "installment_amount": {
+      "description": "The monthly or per-period installment amount",
+      "title": "Installment Amount",
+      "type": "number"
+    },
+    "duration_months": {
+      "description": "The total duration of the loan in months",
+      "title": "Duration Months",
+      "type": "integer"
+    },
+    "start_date": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The start date of the loan in YYYY-MM-DD format",
+      "title": "Start Date"
+    },
+    "currency": {
+      "default": "PHP",
+      "description": "The ISO 4217 currency code (e.g., PHP, USD, SGD)",
+      "title": "Currency",
+      "type": "string"
+    },
+    "interest_type": {
+      "$ref": "#/$defs/LoanInterestType",
+      "default": "Standard Amortized",
+      "description": "The type of interest calculation"
+    },
+    "lender": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The name of the lending institution",
+      "title": "Lender"
+    },
+    "confidence": {
+      "default": 0.0,
+      "description": "Confidence score from 0.0 to 1.0",
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "reasoning": {
+      "default": "",
+      "description": "Brief explanation of the extraction results",
+      "title": "Reasoning",
+      "type": "string"
+    },
+    "provenance": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/Provenance"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Map of field names to their source provenance",
+      "title": "Provenance"
+    }
+  },
+  "required": [
+    "name",
+    "principal",
+    "interest_rate",
+    "installment_amount",
+    "duration_months"
+  ],
+  "title": "LoanExtractionSchema",
+  "type": "object"
+}

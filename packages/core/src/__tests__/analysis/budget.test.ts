@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateSmartBudget } from '../../analysis/budget';
+import { generateSmartBudget } from '../../analysis/budget.ts';
 
 describe('budget analysis', () => {
   it('should generate recommendations following 50/30 rule across essentials and wants', () => {

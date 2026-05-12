@@ -36,18 +36,18 @@ export function CsvMapper({ data, headers, onConfirm, onCancel }: CsvMapperProps
   const previewData = useMemo(() => {
     if (!isComplete) return [];
     return data.slice(0, 5).map(row => ({
-      date: row[mappings.date],
-      description: row[mappings.description],
-      amount: row[mappings.amount],
+      date: row[mappings.date!],
+      description: row[mappings.description!],
+      amount: row[mappings.amount!],
     }));
   }, [data, mappings, isComplete]);
 
   const handleConfirm = () => {
     const mapped = data.map(row => ({
-      date: row[mappings.date],
-      description: row[mappings.description],
-      amount: parseFloat(String(row[mappings.amount] || '0').replace(/[^0-9.-]+/g, '')),
-      type: parseFloat(String(row[mappings.amount] || '0').replace(/[^0-9.-]+/g, '')) >= 0 ? 'income' : 'expense'
+      date: row[mappings.date!],
+      description: row[mappings.description!],
+      amount: parseFloat(String(row[mappings.amount!] || '0').replace(/[^0-9.-]+/g, '')),
+      type: parseFloat(String(row[mappings.amount!] || '0').replace(/[^0-9.-]+/g, '')) >= 0 ? 'income' : 'expense'
     }));
     onConfirm(mapped);
   };

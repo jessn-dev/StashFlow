@@ -1,0 +1,12 @@
+.git
+.turbo
+.next
+node_modules
+supabase
+terraform
+docs
+fonts
+scripts
+setup.sh
+audit.sh
+!apps/web/.vercel/output

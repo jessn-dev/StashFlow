@@ -7,11 +7,15 @@ import type { Loan, LoanPayment, Profile, Income, ExchangeRate } from '@stashflo
 
 const mockProfile: Profile = {
   id: 'user-1',
+  email: 'test@example.com',
   full_name: 'Test User',
   preferred_currency: 'USD',
   budgeting_enabled: false,
   global_rollover_enabled: false,
   rollover_start_month: null,
+  contingency_mode_active: false,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
 };
 
 const mockLoan: Loan = {
@@ -33,6 +37,11 @@ const mockLoan: Loan = {
   inference_confidence: null,
   inference_source: null,
   source_document_id: null,
+  completed_at: null,
+  country_code: 'US',
+  created_at: '2026-01-01T00:00:00Z',
+  effective_interest_rate: null,
+  payment_start_date: null,
 };
 
 const mockPayment: LoanPayment = {
@@ -47,15 +56,20 @@ const mockPayment: LoanPayment = {
 };
 
 const mockIncome: Income = {
-  id: 'inc-1',
-  user_id: 'user-1',
+  id: 'inc-123',
+  user_id: 'user-123',
   amount: 5000,
-  currency: 'USD',
+  currency: 'PHP',
   source: 'Salary',
   frequency: 'monthly',
-  date: '2026-01-01',
+  date: '2026-05-01',
   notes: null,
+  signature: 'sig',
+  created_at: '2026-05-01T00:00:00Z',
+  provenance: null,
+  source_document_id: null,
 };
+
 
 const mockRates: ExchangeRate[] = [];
 
@@ -193,6 +207,61 @@ describe('LoansService.getLoansPageData', () => {
     const result = await service.getLoansPageData('user-1');
     // 18 / 36 months = 50%
     expect(result.loanMetrics['loan-1']?.paidPercent).toBe(50);
+  });
+
+  it('calculates remainingBalance correctly when payments are made', async () => {
+    const service = new LoansService(
+      makeLoanQuery({
+        getPaymentSummaries: vi.fn().mockResolvedValue([
+          { loanId: 'loan-1', paidCount: 1, nextDueDate: null } satisfies PaymentSummary,
+        ]),
+      }),
+      makeExchangeRateQuery(),
+      makeProfileQuery(),
+      makeTransactionQuery(),
+    );
+
+    const result = await service.getLoansPageData('user-1');
+    // For P=10000, 12% rate, 36 months.
+    // Standard Amortized payment ~332.14. First month interest 100. Principal 232.14.
+    // Remaining balance ~9767.86
+    expect(result.loanMetrics['loan-1']?.remainingBalance).toBeLessThan(10000);
+    expect(result.loanMetrics['loan-1']?.remainingBalance).toBeGreaterThan(9700);
+  });
+
+  it('falls back to principal for remainingBalance if schedule generation fails', async () => {
+    const brokenLoan: Loan = { ...mockLoan, duration_months: 0 }; // Causes division by zero/error
+    const service = new LoansService(
+      makeLoanQuery({ 
+        getAll: vi.fn().mockResolvedValue([brokenLoan]),
+        getPaymentSummaries: vi.fn().mockResolvedValue([
+          { loanId: 'loan-1', paidCount: 1, nextDueDate: null } satisfies PaymentSummary,
+        ]),
+      }),
+      makeExchangeRateQuery(),
+      makeProfileQuery(),
+      makeTransactionQuery(),
+    );
+
+    const result = await service.getLoansPageData('user-1');
+    expect(result.loanMetrics['loan-1']?.remainingBalance).toBe(10000);
+  });
+
+  it('falls back to principal if payment count exceeds schedule length', async () => {
+    const service = new LoansService(
+      makeLoanQuery({
+        getPaymentSummaries: vi.fn().mockResolvedValue([
+          { loanId: 'loan-1', paidCount: 99, nextDueDate: null } satisfies PaymentSummary,
+        ]),
+      }),
+      makeExchangeRateQuery(),
+      makeProfileQuery(),
+      makeTransactionQuery(),
+    );
+
+    const result = await service.getLoansPageData('user-1');
+    // Should hit the Math.min and potentially the ?? fallback if entry is undefined
+    expect(result.loanMetrics['loan-1']?.remainingBalance).toBeDefined();
   });
 
   it('computes DTI as healthy when monthly debt is below threshold', async () => {

@@ -12,13 +12,13 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
-      include: ['modules/**/*.{ts,tsx}'],
-      exclude: ['modules/**/*.test.{ts,tsx}', '**/*.d.ts'],
+      include: ['app/**/*.ts', 'lib/**/*.ts', 'middleware.ts'],
+      exclude: ['**/*.d.ts', 'app/**/layout.tsx', 'app/**/page.tsx', 'app/auth/**'],
       thresholds: {
-        lines: 20,
-        functions: 20,
-        branches: 20,
-        statements: 20,
+        lines: 30, // Starting low since we only have one test
+        functions: 30,
+        branches: 30,
+        statements: 30,
       },
     },
   },

@@ -66,11 +66,14 @@ Via `@stashflow/api TransactionQuery.getTransactionsFiltered(userId, opts)`:
 interface TransactionFilterOpts {
   dateFrom?: string    // ISO date
   dateTo?: string      // ISO date
-  type?: 'income' | 'expense'
+  type?: 'all' | 'income' | 'expense'
   search?: string      // matches description/source
-  limit?: number
+  limit?: number       // defaults to 100
+  cursor?: string      // Format: "date|id" for stable pagination
 }
 ```
+
+This method queries the `unified_transactions` view. Sorting is always `date DESC, id DESC`.
 
 ### Period summary
 
@@ -199,6 +202,61 @@ Via `LoanQuery.getPaymentSummaries(userId)`. Returns payments with due dates, lo
 
 ---
 
+## Assets
+
+### List assets
+
+Via `AssetQuery.getAll(userId)`.
+
+### Create / update / delete
+
+```typescript
+// Create
+await supabase.from('assets').insert({
+  user_id: userId,
+  name: string,
+  type: 'cash' | 'investment' | 'property' | 'retirement' | 'other',
+  balance: number,
+  currency: string,
+  institution?: string,
+  notes?: string
+})
+
+// Update
+await supabase.from('assets').update(payload).eq('id', id)
+
+// Delete
+await supabase.from('assets').delete().eq('id', id)
+```
+
+---
+
+## Net Worth Snapshots
+
+### List snapshots
+
+Via `NetWorthSnapshotQuery.getAll(userId)`.
+
+### Get latest snapshot
+
+Via `NetWorthSnapshotQuery.getLatest(userId)`.
+
+### Create snapshot
+
+Via `NetWorthSnapshotQuery.create(userId, snapshot)`:
+
+```typescript
+interface SnapshotInput {
+  snapshot_date: string;
+  total_assets: number;
+  total_liabilities: number;
+  net_worth: number;
+  currency: string;
+}
+```
+
+---
+
 ## Goals
 
 ### List goals
@@ -252,7 +310,7 @@ Via `BudgetQuery.delete(userId, category)`.
 
 ## Exchange Rates
 
-Rates are cached in `exchange_rates`, synced hourly by the `sync-exchange-rates` cron.
+Rates are cached in `exchange_rates`, synced daily (or manually) by the `sync-exchange-rates` edge function.
 
 ### Get latest rates
 
@@ -261,6 +319,10 @@ Via `ExchangeRateQuery.getLatest(userId)`. Returns rates relevant to the user's 
 ### Currency conversion
 
 Via `convertToBase(amount, rate)` from `@stashflow/core`. `rate` = units of base currency per 1 unit of foreign currency.
+
+### `sync-exchange-rates` (Edge Function)
+
+Syncs daily reference rates from the **Frankfurter API**. Computes bidirectional cross-rates via a USD bridge.
 
 ---
 
@@ -316,21 +378,122 @@ POST /functions/v1/macro-financial-advisor
 Authorization: Bearer <access_token>
 ```
 
-### `parse-loan-document`
+### `parse-document`
 
-Webhook-triggered or manually invoked for password-protected files.
+Unified entry point for AI-driven document processing. Triggered automatically on `INSERT` to the `documents` table via database webhook, or manually invoked for password-protected files.
+
+**Async Workflow:** This function validates basic file properties and enqueues a job in the Python worker layer (Redis) before returning immediately.
 
 **Manual Invocation (Auth required):**
 ```
-POST /functions/v1/parse-loan-document
+POST /functions/v1/parse-document
 Authorization: Bearer <access_token>
 x-document-password: <password>
 Content-Type: application/json
 
-Body: { "id": "<document_id>" }
+Body: { "record": { "id": "<document_id>" } }
 ```
 
-Processes PDF through 3-tier AI pipeline; writes `extracted_data` + `processing_status` back to the row. Supports `x-document-password` for encrypted PDFs.
+### `document-processed-webhook` (Internal)
+
+Receives processing results from the Python background worker. Validates Rule 1 financial integrity and persists data.
+
+```
+POST /functions/v1/document-processed-webhook
+x-webhook-secret: <secret>
+Body: { "document_id": "...", "result": { ... }, "error": "..." }
+```
+
+### `categorize-transaction` (New in v0.19.0)
+
+AI-driven classification of bank transaction descriptions.
+
+```
+POST /functions/v1/categorize-transaction
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+Body: { "description": "Starbucks Manila", "amount": 250.00 }
+
+Response 200: { "category": "food", "confidence": 0.98, "reasoning": "..." }
+```
+
+### `detect-anomalies` (New in v0.19.0)
+
+Statistical and AI-driven analysis of spending spikes.
+
+```
+POST /functions/v1/detect-anomalies
+Authorization: Bearer <access_token>
+```
+
+Fetches last 6 months of expenses and returns an `AnomalyReport` containing detected spikes and actionable insights.
+
+### `get-user-sessions` (New in v0.18.0)
+
+Returns active sessions for the user with calculated anomaly risk scores.
+
+```
+GET /functions/v1/get-user-sessions
+Authorization: Bearer <access_token>
+```
+
+### `revoke-session` (New in v0.18.0)
+
+Forces logout of a specific session.
+
+```
+POST /functions/v1/revoke-session
+Authorization: Bearer <access_token>
+Body: { "sessionId": "<session_id>" }
+```
+
+### `log-session-event` (Webhook)
+
+Supabase Auth Webhook that captures login metadata.
+
+```
+POST /functions/v1/log-session-event
+x-webhook-secret: <secret>
+Body: { "user_id": "...", "ip": "...", "user_agent": "...", "session_id": "..." }
+```
+
+### `verify-ledger-integrity` (New in v0.18.0)
+
+Scans financial records for HMAC-SHA256 signature validity.
+
+```
+POST /functions/v1/verify-ledger-integrity
+Authorization: Bearer <access_token>
+```
+
+Returns `{ status: 'valid' | 'invalid', invalidCount: number }`.
+
+---
+
+## Python Intelligence Layer (Internal)
+
+These endpoints are internal to the StashFlow network and are called by Supabase Edge Functions. They are hosted by the `stashflow-backend-py` service.
+
+### `POST /api/v1/documents/process`
+Unified classification and extraction (Synchronous).
+- **Input**: PDF file + optional password.
+- **Output**: `UnifiedDocumentResponse` (Loan or Statement data).
+
+### `POST /api/v1/documents/enqueue` (Async)
+Enqueues a document for background processing.
+- **Input**: `document_id`, `storage_path`, `password`.
+- **Output**: `job_id`.
+
+### `POST /api/v1/transactions/categorize`
+High-precision transaction classification.
+- **Input**: Description + optional amount.
+- **Output**: Category, confidence, and reasoning.
+
+### `POST /api/v1/analysis/anomalies`
+Spend analysis engine.
+- **Input**: Transaction history list.
+- **Output**: List of statistical anomalies with AI insights.
 
 ---
 

@@ -3,8 +3,8 @@
 > Strategic direction, production-readiness goals, and architectural evolution.
 > For a record of what shipped, see `docs/CHANGELOG.md`.
 >
-> Last updated: 2026-05-08 (Post-Phase 3 Completion)
-> Active branch: `develop` — Final Launch Prep in progress
+> Last updated: 2026-05-11 (Phase 4 — High-Fidelity Launch Prep Complete)
+> Active branch: `develop` — Ready for Public Beta
 
 ---
 
@@ -33,16 +33,17 @@ Build a calm financial command center powered by invisible intelligence and secu
 
 | Phase | Milestone | Description | Date |
 |-------|-----------|-------------|------|
-| **DevOps** | **Workflow Security** | pnpm lockfile gates (Husky/lint-staged) + setup automation (`db:clean`) | 2026-05-18 |
-| P1/P2 | Stability & Scaling | Multi-currency, unified feed, AI parser hardening, architectural consolidation | 2026-05-15 |
+| **DevOps** | **Workflow Security** | pnpm lockfile gates (Husky/lint-staged) + setup automation (`db:clean`) | 2026-05-11 |
+| P1/P2 | Stability & Scaling | Multi-currency, unified feed, AI parser hardening, architectural consolidation | 2026-05-11 |
 | **P3-A** | **Session Intel** | Active session revocation UI + anomaly scoring webhook | 2026-05-08 |
 | **P3-B** | **CI/CD Security** | pgTAP RLS tests, CODEOWNERS, automated audit gates | 2026-05-08 |
 | **P3-C** | **Ledger Integrity** | Cryptographic ledger signatures + Live Frankfurter FX Feed | 2026-05-08 |
-| **P3-D** | **MVP Observability** | Native Logs strategy (Supabase + Vercel) implemented; Sentry dropped to reduce MVP billing dependencies | 2026-05-18 |
+| **P3-D** | **MVP Observability** | Sentry (GlitchTip) + Native Logs architecture implemented | 2026-05-11 |
+| **P4** | **High-Fidelity Intel** | Trend detection, provenance tooltips, and polymorphic review flows | 2026-05-11 |
 
 ---
 
-## 3. Active — Final Launch Prep
+## 3. Active — Ready for Launch
 
 ### Legal & Compliance ✅
 
@@ -73,4 +74,5 @@ Build a calm financial command center powered by invisible intelligence and secu
 | 1 | Bank Feed Integration | `/dashboard/bank/connect` | Legal Entity + Regional Compliance |
 | 2 | Mobile App (Expo) | `apps/mobile/` | MVP Web Stable |
 | 3 | Advanced Goal Automations | `/dashboard/plans` | Multi-currency Goal Logic |
-| 4 | P3-D Observability | Transaction spike alerts | Bank feed volume |
+| 4 | P3-D Observability | Visual Ingestion & Integrity Dashboards | Production volume |
+| 5 | Storage Security | Automated Malware Scanning (ClamAV) | Public Document Sharing |

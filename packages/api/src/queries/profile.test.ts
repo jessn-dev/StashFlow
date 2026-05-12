@@ -44,4 +44,11 @@ describe('ProfileQuery', () => {
     const result = await query.update('user-1', { full_name: 'John Updated' });
     expect(result.full_name).toBe('John Updated');
   });
+
+  it('should throw error on update if db fails', async () => {
+    const { from } = makeMockSupabase();
+    from._error = { message: 'Update failed' };
+    const query = new ProfileQuery({ from } as any);
+    await expect(query.update('user-1', {})).rejects.toThrow('Update failed');
+  });
 });

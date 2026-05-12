@@ -7,21 +7,31 @@ describe('TransactionQuery', () => {
     _data?: any;
     _error?: any;
     _data_map?: Record<string, any>;
+    _call_counts: Record<string, number>;
   }
 
   const makeMockSupabase = () => {
     const from: MockFrom = vi.fn().mockImplementation((table) => {
       const chain = {} as any;
-      ['select', 'eq', 'gte', 'lte', 'or', 'order', 'limit', 'single', 'maybeSingle'].forEach(m => {
+      ['select', 'eq', 'gte', 'lte', 'lt', 'or', 'order', 'limit', 'single', 'maybeSingle'].forEach(m => {
         chain[m] = vi.fn().mockReturnValue(chain);
       });
       chain.then = (onFullfilled: any) => {
-        const data = from._data_map?.[table] ?? from._data;
+        from._call_counts[table] = (from._call_counts[table] || 0) + 1;
+        let data = from._data_map?.[table] ?? from._data;
+        
+        // Handle sequence of results for the same table
+        if (Array.isArray(data) && data.length > 0 && (data[0] as any)._is_mock_sequence) {
+           const idx = from._call_counts[table] - 1;
+           data = data[idx]?.items ?? [];
+        }
+        
         return Promise.resolve({ data, error: from._error }).then(onFullfilled);
       };
       return chain;
-    }) as MockFrom;
+    }) as unknown as MockFrom;
     from._data_map = {};
+    from._call_counts = {};
     return { from };
   };
 
@@ -107,15 +117,29 @@ describe('TransactionQuery', () => {
     const { from } = makeMockSupabase();
     from._data_map = {
       profiles: { preferred_currency: 'USD' },
-      exchange_rates: [],
-      incomes: [{ id: 'i1', amount: 1000, currency: 'USD', date: '2026-05-01' }],
-      expenses: [{ id: 'e1', amount: 500, currency: 'USD', date: '2026-05-02' }]
+      exchange_rates: [{ target: 'PHP', rate: 50 }],
+      incomes: [
+        { id: 'i1', amount: 1000, currency: 'USD', date: '2026-05-01' },
+        { id: 'i2', amount: 5000, currency: 'PHP', date: '2026-05-01' }
+      ],
+      expenses: [
+        { id: 'e1', amount: 500, currency: 'USD', date: '2026-05-02' }
+      ]
     };
 
     const query = new TransactionQuery({ from } as any);
     const result = await query.getTransactionSummary('user-1', '2026-05');
-    expect(result.totalIncome).toBe(1000);
+    expect(result.totalIncome).toBe(1100);
     expect(result.totalExpenses).toBe(500);
+    expect(result.netFlow).toBe(600);
+    expect(result.currency).toBe('USD');
+  });
+
+  it('should throw error if getTransactionsFiltered fails', async () => {
+    const { from } = makeMockSupabase();
+    from._error = { message: 'Filter failed' };
+    const query = new TransactionQuery({ from } as any);
+    await expect(query.getTransactionsFiltered('u', {})).rejects.toThrow('Filter failed');
   });
 
   it('should throw error if db fails', async () => {
@@ -139,5 +163,20 @@ describe('TransactionQuery', () => {
     const query = new TransactionQuery({ from } as any);
     const result = await query.getExpenses('user-1');
     expect(result).toHaveLength(1);
+  });
+
+  it('should analyze spending trends', async () => {
+    const { from } = makeMockSupabase();
+    from._data_map = {
+      exchange_rates: [],
+      expenses: [
+        { _is_mock_sequence: true, items: [{ amount: 200, currency: 'USD', category: 'food', date: '2026-05-10' }] }, // first call (current)
+        { _is_mock_sequence: true, items: [{ amount: 100, currency: 'USD', category: 'food', date: '2026-04-10' }] }  // second call (previous)
+      ]
+    };
+    const query = new TransactionQuery({ from } as any);
+    const result = await query.getTrendAnalysis('user-1');
+    expect(result).toHaveLength(1);
+    expect(result[0]?.changePercent).toBe(100);
   });
 })

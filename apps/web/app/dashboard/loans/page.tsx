@@ -1,6 +1,11 @@
 import { createClient } from '~/lib/supabase/server';
-import { LoansServiceFactory } from '@stashflow/api';
-import { formatCurrency, generateAmortizationSchedule, Loan, LoanInterestType, LoanMetrics } from '@stashflow/core';
+import { ApiServiceFactory } from '@stashflow/api';
+import { 
+  formatCurrency, 
+  computeLoanSparkline, 
+  Loan, 
+  LoanMetrics 
+} from '@stashflow/core';
 import Link from 'next/link';
 import { AddLoanButton } from '~/modules/loans/components/AddLoanButton';
 import { LoanUploadZone } from '~/modules/loans/components/LoanUploadZone';
@@ -62,7 +67,7 @@ function StatusBadge({ status }: { status: string | null }) {
 }
 
 function LoanCard({ loan, metrics }: { loan: Loan; metrics: LoanMetrics }) {
-  const sparkPoints = buildSparkline(loan);
+  const sparkPoints = computeLoanSparkline(loan);
   const nextPayment = metrics.nextDueDate
     ? new Date(metrics.nextDueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : null;
@@ -149,9 +154,19 @@ export default async function LoansPage() {
 
   if (!user) return null;
 
-  const loansService = LoansServiceFactory.create(supabase);
-  const data = await loansService.getLoansPageData(user.id);
-  const { loans, loanMetrics, totalDebt, totalMonthlyInstallment, avgInterestRate, activeLoanCount, dtiRatio, dtiHealthy, currency } = data;
+  const api = new ApiServiceFactory(supabase);
+  const data = await api.loansService.getLoansPageData(user.id);
+  const { 
+    loans, 
+    loanMetrics, 
+    totalDebt, 
+    totalMonthlyInstallment, 
+    avgInterestRate, 
+    activeLoanCount, 
+    dtiRatio, 
+    dtiHealthy, 
+    currency 
+  } = data;
 
   return (
     <div>

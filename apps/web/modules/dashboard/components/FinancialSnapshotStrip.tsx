@@ -1,16 +1,39 @@
-import { formatCurrency } from '@stashflow/core';
+import { formatCurrency, convertToBase } from '@stashflow/core';
+import { SnapshotCard } from './SnapshotCard';
 
+/**
+ * Properties for the FinancialSnapshotStrip component.
+ */
 interface Props {
+  /** The current month's net cash flow. */
   netCashFlow: number;
+  /** The user's total net worth. */
   netWorth: number;
+  /** Total value of all active liabilities. */
   totalLiabilities: number;
+  /** Percentage of income saved this month. */
   savingsRate: number;
+  /** Debt-to-Income ratio (decimal). */
   dtiRatio: number;
+  /** Whether the DTI ratio is within healthy limits. */
   dtiHealthy: boolean;
+  /** Count of active loan accounts. */
   activeLoansCount: number;
+  /** The primary currency code (e.g., "USD"). */
   currency: string;
+  /** The base currency for normalization (optional). */
+  baseCurrency?: string;
+  /** Exchange rates for currency conversion (optional). */
+  rates?: Record<string, number>;
 }
 
+/**
+ * A horizontal strip of SnapshotCards providing a high-level overview of 
+ * the user's financial status on the main dashboard.
+ * 
+ * @param props - Component properties.
+ * @returns A JSX element containing a grid of financial summary cards.
+ */
 export function FinancialSnapshotStrip({
   netCashFlow,
   netWorth,
@@ -20,26 +43,41 @@ export function FinancialSnapshotStrip({
   dtiHealthy,
   activeLoansCount,
   currency,
+  baseCurrency,
+  rates,
 }: Props) {
+  /*
+   * PSEUDOCODE:
+   * 1. Determine if net cash flow is positive for display purposes.
+   * 2. Check if a base currency conversion should be shown (multi-currency context).
+   * 3. Render a responsive grid with 6 SnapshotCards.
+   * 4. Map each financial metric to a SnapshotCard with appropriate formatting, colors, and indicators.
+   */
   const cashFlowPositive = netCashFlow >= 0;
+
+  // Decide whether to show the base currency equivalent to help users with multi-currency accounts
+  const showBase = baseCurrency && rates && currency !== baseCurrency;
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
       <SnapshotCard
         label="Net Cash Flow"
         value={(cashFlowPositive ? '+' : '') + formatCurrency(netCashFlow, currency)}
+        baseValue={showBase ? formatCurrency(convertToBase(netCashFlow, rates![currency] ?? 1), baseCurrency!) : undefined}
         valueColor={cashFlowPositive ? 'text-emerald-600' : 'text-red-500'}
         supporting={cashFlowPositive ? 'Positive this month' : 'Negative this month'}
       />
       <SnapshotCard
         label="Net Worth"
         value={formatCurrency(netWorth, currency)}
+        baseValue={showBase ? formatCurrency(convertToBase(netWorth, rates![currency] ?? 1), baseCurrency!) : undefined}
         valueColor={netWorth >= 0 ? 'text-gray-900' : 'text-gray-500'}
         supporting="Excl. untracked assets"
       />
       <SnapshotCard
         label="Total Liabilities"
         value={formatCurrency(totalLiabilities, currency)}
+        baseValue={showBase ? formatCurrency(convertToBase(totalLiabilities, rates![currency] ?? 1), baseCurrency!) : undefined}
         supporting={`${activeLoansCount} active loan${activeLoansCount !== 1 ? 's' : ''}`}
       />
       <SnapshotCard
@@ -60,49 +98,6 @@ export function FinancialSnapshotStrip({
         value={String(activeLoansCount)}
         supporting="Tracked liabilities"
       />
-    </div>
-  );
-}
-
-function SnapshotCard({
-  label,
-  value,
-  supporting,
-  valueColor = 'text-gray-900',
-  indicator,
-}: {
-  label: string;
-  value: string;
-  supporting?: string;
-  valueColor?: string;
-  indicator?: 'healthy' | 'warning';
-}) {
-  return (
-    <div
-      className="bg-white rounded-[20px] border border-gray-200 shadow-sm flex flex-col justify-between"
-      style={{ minHeight: '112px', padding: '20px' }}
-    >
-      <div className="flex items-center justify-between">
-        <p className="text-[13px] font-medium text-gray-400 leading-tight">{label}</p>
-        {indicator && (
-          <span
-            className={`w-2 h-2 rounded-full flex-shrink-0 ${
-              indicator === 'healthy' ? 'bg-emerald-500' : 'bg-amber-500'
-            }`}
-          />
-        )}
-      </div>
-      <div>
-        <p
-          className={`font-bold tabular-nums leading-none mb-1 ${valueColor}`}
-          style={{ fontSize: '30px', letterSpacing: '-0.02em' }}
-        >
-          {value}
-        </p>
-        {supporting && (
-          <p className="text-[12px] text-gray-400 leading-tight">{supporting}</p>
-        )}
-      </div>
     </div>
   );
 }

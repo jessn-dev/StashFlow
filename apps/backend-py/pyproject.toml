@@ -22,6 +22,12 @@ dependencies = [
     "structlog>=24.1.0",
     "asgi-correlation-id>=4.3.0",
     "sentry-sdk[fastapi]>=1.40.0",
+    "redis>=7.4.0",
+    "rq>=2.8.0",
+    "supabase>=2.30.0",
+    "httpx>=0.28.1",
+    "coverage>=7.14.0",
+    "pytest-cov>=7.1.0",
 ]
 
 [project.optional-dependencies]
@@ -58,6 +64,9 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 pythonpath = ["."]
+filterwarnings = [
+    "ignore:builtin type .* has no __module__ attribute:DeprecationWarning",
+]
 
 [tool.coverage.run]
 source = ["src"]

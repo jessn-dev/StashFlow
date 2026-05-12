@@ -37,6 +37,8 @@ User preferences and global settings. One-to-one with auth.users.
 | `frequency` | `TEXT` | enum: 'one-time', 'weekly', 'monthly' |
 | `date` | `DATE` | |
 | `signature` | `TEXT` | HMAC-SHA256 ledger integrity signature |
+| `provenance` | `JSONB` | { page, snippet } for document-extracted entries |
+| `source_document_id` | `UUID` | references `documents(id)` |
 
 ### `expenses`
 | Column | Type | Notes |
@@ -50,6 +52,8 @@ User preferences and global settings. One-to-one with auth.users.
 | `date` | `DATE` | |
 | `is_recurring` | `BOOLEAN` | |
 | `signature` | `TEXT` | HMAC-SHA256 ledger integrity signature |
+| `provenance` | `JSONB` | { page, snippet } for document-extracted entries |
+| `source_document_id` | `UUID` | references `documents(id)` |
 
 ---
 
@@ -178,6 +182,8 @@ Unified read-only view of `incomes` and `expenses`. Uses `security_invoker = tru
 | `category` | `TEXT` | NULL for incomes |
 | `notes` | `TEXT` | |
 | `created_at` | `TIMESTAMPTZ` | |
+| `provenance` | `JSONB` | |
+| `source_document_id` | `UUID` | |
 
 ---
 

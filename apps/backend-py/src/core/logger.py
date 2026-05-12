@@ -1,3 +1,10 @@
+"""
+Logging Configuration Module for StashFlow.
+
+This module sets up structured logging using the structlog library, providing 
+consistent JSON output in production and human-readable output in development. 
+It also integrates with ASGI correlation IDs for request tracing.
+"""
 import logging
 import sys
 from typing import Any
@@ -8,6 +15,12 @@ from .config import settings
 def setup_logging():
     """
     Configures structlog for structured JSON logging.
+
+    The configuration includes:
+    - Injecting correlation IDs into log records.
+    - Adding log levels and timestamps.
+    - Switching between JSON and Console rendering based on the environment.
+    - Bridging the standard library logging to structlog.
     """
     # 1. Standard library logging setup
     # This filter injects the correlation_id from asgi-correlation-id into standard log records
@@ -47,4 +60,13 @@ def setup_logging():
     )
 
 def get_logger(name: str):
+    """
+    Creates and returns a structured logger instance.
+
+    Args:
+        name (str): The name of the logger, typically __name__.
+
+    Returns:
+        structlog.BoundLogger: A configured structlog logger.
+    """
     return structlog.get_logger(name)

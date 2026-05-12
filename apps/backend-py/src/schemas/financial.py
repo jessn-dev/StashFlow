@@ -33,6 +33,13 @@ class ExpenseCategory(str, Enum):
     SHOPPING = "shopping"
     OTHER = "other"
 
+class Provenance(BaseModel):
+    """
+    Metadata linking extracted data back to its source in the document.
+    """
+    page: Optional[int] = Field(None, description="The 1-indexed page number where the information was found")
+    snippet: Optional[str] = Field(None, description="The exact text snippet used as source context")
+
 class LoanExtractionSchema(BaseModel):
     """
     Schema for extracting loan details from a document.
@@ -51,6 +58,7 @@ class LoanExtractionSchema(BaseModel):
     lender: str | None = Field(default=None, description="The name of the lending institution")
     confidence: float = Field(default=0.0, ge=0, le=1, description="Confidence score from 0.0 to 1.0")
     reasoning: str = Field(default="", description="Brief explanation of the extraction results")
+    provenance: Optional[dict[str, Provenance]] = Field(None, description="Map of field names to their source provenance")
 
 class TransactionExtractionItem(BaseModel):
     """
@@ -59,8 +67,10 @@ class TransactionExtractionItem(BaseModel):
     date: str = Field(description="The transaction date in YYYY-MM-DD format")
     description: str = Field(description="The transaction description or merchant name")
     amount: float = Field(description="The transaction amount (negative for expenses, positive for income/deposits)")
+    provenance: Optional[Provenance] = Field(None, description="Source provenance for this transaction")
 
 class StatementExtractionSchema(BaseModel):
+
     """
     Structured extraction of multiple transactions from a bank statement.
     """

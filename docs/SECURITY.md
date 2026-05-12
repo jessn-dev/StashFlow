@@ -81,8 +81,17 @@ TOTP via Supabase Auth. `MfaManager` component in Settings allows enrollment. Lo
 
 StashFlow monitors session health to detect potential account takeovers.
 - **Event Logging**: The `log-session-event` webhook captures IP, country, and User-Agent metadata on every login, stored in `session_events`.
-- **Anomaly Scoring**: A pure algorithm in `@stashflow/core` scores logins based on geographic shifts and unusual hours.
-- **Management**: Users can view risk scores for all active sessions and revoke access (force logout) from the Settings dashboard.
+### Anomaly Scoring
+
+A pure algorithm in `@stashflow/core` scores logins based on geographic shifts and unusual hours. Users can view risk scores for all active sessions and revoke access (force logout) from the Settings dashboard.
+
+### AI Safety & Hallucination Defense (P4)
+
+To protect financial integrity from AI hallucinations, StashFlow implements multi-stage defensive extraction:
+- **Parser Disagreement Detection**: Every document is processed by two parallel LLM instances at different temperatures. 
+- **Confidence Penalties**: If models disagree on core facts (principal, interest, etc.), the system automatically caps confidence at `0.4`.
+- **Human-in-the-Loop Review**: Extractions with low confidence or statistical anomalies (Rule 1 violations) are forced into a non-persistent "Review State" in the UI. Data only enters the ledger after manual user confirmation.
+- **Explainable Provenance**: Every extracted field is linked to a specific PDF text snippet, allowing users to verify AI work with one click.
 
 ---
 
@@ -232,7 +241,7 @@ Edge functions return explicit CORS headers. Allowed origins are restricted in p
 ### Remaining Gaps
 
 - **No malware scanning** — files parsed directly; no pre-processing antivirus step.
-- **No async job queue** — synchronous processing; edge function timeout risk on large files remains.
+- [x] **Async job queue** — integrated Redis (RQ) to move heavy processing out of the edge function request-response cycle.
 
 ---
 

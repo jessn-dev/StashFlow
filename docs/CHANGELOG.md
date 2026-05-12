@@ -6,6 +6,28 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 
 ---
 
+## [0.22.0] - 2026-05-11
+
+### Added
+- **Async Queue Ingestion Architecture**
+  - **Background Worker Layer**: Integrated **Redis Queue (RQ)** into the Python backend for asynchronous document processing.
+  - **Local Redis Stack**: Updated Docker Compose to expose Redis (port 6379) for local development and testing.
+  - **Non-blocking Edge Functions**: Refactored `parse-document` to immediately enqueue jobs, preventing 60s gateway timeouts for heavy PDF/OCR tasks.
+  - **Result Webhooks**: Implemented `document-processed-webhook` to securely receive and persist results from background workers.
+- **AI Safety & Hallucination Defense**
+  - **Parser Disagreement Detection**: Implemented parallel LLM extraction at different temperatures. System automatically penalizes confidence if results disagree on core financial facts.
+  - **Human-in-the-Loop Review**: Created a polymorphic review interface that handles both Loans and Bank Statements with mandatory validation gates for low-confidence data.
+  - **Inline Decryption**: Added a secure, session-only password prompt for encrypted PDFs, allowing users to continue processing without re-uploading.
+- **Financial Provenance (Audit Trail)**
+  - **Source Evidence tooltips**: Users can now hover over any auto-extracted field in the review UI to see the exact PDF page and text snippet that justified the data.
+  - **Persistence Layer**: Extended `expenses` and `incomes` tables with `provenance` (JSONB) and `source_document_id` columns to maintain a permanent link between transactions and source files.
+- **Operational Hardening**
+  - **Disaster Recovery CLI**: Added `db:backup` and `db:restore` commands to `setup.sh` to facilitate local logical restore testing.
+  - **Intelligence Feed Evolution**: Enhanced the dashboard feed with **Trend Analysis** (proactive spending alerts) and **Process Monitoring** (real-time visibility into the background queue).
+  - **Quality Gates**: Achieved **100% test pass rate** with expanded coverage for core math, middleware, and database error paths. Resolved all `DeprecationWarnings` and terminal noise.
+
+---
+
 ## [0.21.0] - 2026-05-19
 
 ### Added

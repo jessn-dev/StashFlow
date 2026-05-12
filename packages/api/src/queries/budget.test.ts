@@ -49,6 +49,13 @@ describe('BudgetQuery', () => {
     expect(result.category).toBe('food');
   });
 
+  it('should throw error on upsert if db fails', async () => {
+    const { from } = makeMockSupabase();
+    from._error = { message: 'Upsert failed' };
+    const query = new BudgetQuery({ from } as any);
+    await expect(query.upsert('user-1', 'food', 500, 'USD')).rejects.toThrow('Upsert failed');
+  });
+
   it('should get periods', async () => {
     const { from } = makeMockSupabase();
     from._data = [{ period: '2026-05', budgeted: 500 }];
@@ -57,9 +64,31 @@ describe('BudgetQuery', () => {
     expect(result).toHaveLength(1);
   });
 
+  it('should return empty array if getPeriods has no data', async () => {
+    const { from } = makeMockSupabase();
+    from._data = null;
+    const query = new BudgetQuery({ from } as any);
+    const result = await query.getPeriods('user-1', '2026-05');
+    expect(result).toEqual([]);
+  });
+
+  it('should throw error on getPeriods if db fails', async () => {
+    const { from } = makeMockSupabase();
+    from._error = { message: 'Get periods failed' };
+    const query = new BudgetQuery({ from } as any);
+    await expect(query.getPeriods('user-1', '2026-05')).rejects.toThrow('Get periods failed');
+  });
+
   it('should delete a budget', async () => {
     const { from } = makeMockSupabase();
     const query = new BudgetQuery({ from } as any);
     await expect(query.delete('1')).resolves.not.toThrow();
+  });
+
+  it('should throw error on delete if db fails', async () => {
+    const { from } = makeMockSupabase();
+    from._error = { message: 'Delete failed' };
+    const query = new BudgetQuery({ from } as any);
+    await expect(query.delete('1')).rejects.toThrow('Delete failed');
   });
 });

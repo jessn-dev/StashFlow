@@ -180,8 +180,8 @@ async function processUnified(
     log('processing-failed', String(err))
     await storeFailed(supabase, documentId, {
       stage: 'extract',
-      code: 'PYTHON_PROCESSING_FAILED',
-      message: `Intelligence service failed: ${String(err)}`,
+      code: 'PYTHON_ENQUEUE_FAILED',
+      message: `Intelligence service failed to enqueue: ${String(err)}`,
       retryable: true,
     })
   }

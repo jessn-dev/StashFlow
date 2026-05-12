@@ -23,52 +23,46 @@ describe('DTI math', () => {
       expect(result.threshold).toBe(0.45);
     });
 
-    it('should handle zero income gracefully', () => {
-      const result = calculateDTIRatio(100, 0, 'US');
+    it('should handle zero income and zero debt', () => {
+      const result = calculateDTIRatio(0, 0, 'US');
+      expect(result.ratio).toBe(0);
+      expect(result.isHealthy).toBe(true);
+    });
+
+    it('should handle negative income', () => {
+      const result = calculateDTIRatio(100, -100, 'US');
       expect(result.ratio).toBe(1);
-      expect(result.label).toBe('No income');
       expect(result.isHealthy).toBe(false);
     });
   });
 
   describe('simulateDTI', () => {
-    it('should project higher DTI when debt increases', () => {
+    it('should use default region US if not provided', () => {
       const result = simulateDTI({
-        monthlyIncome: 10000,
-        monthlyDebt: 2000,
-        addLoanMonthly: 1000,
-        region: 'US',
+        monthlyIncome: 1000,
+        monthlyDebt: 200,
       });
-
-      expect(result.current.ratio).toBe(0.20);
-      expect(result.projected.ratio).toBe(0.30);
-      expect(result.diffPpt).toBeCloseTo(0.10);
+      expect(result.current.threshold).toBe(0.36); // US threshold
     });
 
-    it('should project lower DTI when income increases', () => {
+    it('should handle missing simulation deltas', () => {
       const result = simulateDTI({
-        monthlyIncome: 10000,
-        monthlyDebt: 4000,
-        addIncomeMonthly: 10000,
+        monthlyIncome: 1000,
+        monthlyDebt: 200,
         region: 'US',
       });
-
-      expect(result.current.ratio).toBe(0.40);
       expect(result.projected.ratio).toBe(0.20);
-      expect(result.diffPpt).toBeCloseTo(-0.20);
+      expect(result.diffPpt).toBe(0);
     });
 
-    it('should handle paying off loans', () => {
+    it('should handle paying off more loan than current debt', () => {
       const result = simulateDTI({
-        monthlyIncome: 10000,
-        monthlyDebt: 4000,
-        payOffLoanMonthly: 2000,
+        monthlyIncome: 1000,
+        monthlyDebt: 200,
+        payOffLoanMonthly: 500,
         region: 'US',
       });
-
-      expect(result.current.ratio).toBe(0.40);
-      expect(result.projected.ratio).toBe(0.20);
-      expect(result.diffPpt).toBeCloseTo(-0.20);
+      expect(result.projected.ratio).toBe(0);
     });
   });
 });

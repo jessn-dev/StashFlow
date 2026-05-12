@@ -1,16 +1,5 @@
 import Link from 'next/link';
-
-export type IntelligenceType = 'attention' | 'health' | 'trend' | 'forecast' | 'anomaly';
-export type IntelligencePriority = 'high' | 'medium' | 'low';
-
-export interface IntelligenceItem {
-  id: string;
-  type: IntelligenceType;
-  priority: IntelligencePriority;
-  summary: string;
-  context?: string;
-  actions?: { label: string; href: string }[];
-}
+import type { IntelligenceItem, IntelligenceType } from '@stashflow/core';
 
 const TYPE_CONFIG: Record<
   IntelligenceType,
@@ -58,8 +47,15 @@ const TYPE_CONFIG: Record<
   },
 };
 
-// High-priority attention items use a stronger red tint
+/**
+ * Determines the visual configuration for an intelligence item.
+ * 
+ * @param item - The intelligence item to evaluate.
+ * @returns An object containing style and label configuration.
+ */
 function getConfig(item: IntelligenceItem) {
+  // BUSINESS RULE: High-priority health alerts use a stronger "Risk" styling
+  // to grab the user's attention immediately.
   if (item.type === 'health' && item.priority === 'high') {
     return {
       label: 'Financial Health',
@@ -73,6 +69,12 @@ function getConfig(item: IntelligenceItem) {
   return TYPE_CONFIG[item.type];
 }
 
+/**
+ * Renders an individual intelligence insight card.
+ * 
+ * @param props - Component properties.
+ * @param props.item - The intelligence data item.
+ */
 function IntelligenceCard({ item }: { item: IntelligenceItem }) {
   const cfg = getConfig(item);
 
@@ -140,11 +142,28 @@ function IntelligenceCard({ item }: { item: IntelligenceItem }) {
   );
 }
 
+/**
+ * Properties for the IntelligenceFeed component.
+ */
 interface Props {
+  /** Array of intelligence insights to display. */
   items: IntelligenceItem[];
 }
 
+/**
+ * Renders a feed of financial intelligence insights and alerts.
+ * 
+ * @param props - Component properties.
+ * @returns A JSX element containing the intelligence feed.
+ */
 export function IntelligenceFeed({ items }: Props) {
+  /*
+   * PSEUDOCODE:
+   * 1. Check if the items array is empty.
+   * 2. If empty, render a centered empty state with guidance.
+   * 3. If items exist, render a vertical stack of IntelligenceCard components.
+   * 4. Map each item ID to a card to maintain stable list rendering.
+   */
   if (items.length === 0) {
     return (
       <div

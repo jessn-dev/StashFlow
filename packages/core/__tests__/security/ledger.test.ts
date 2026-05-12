@@ -51,6 +51,11 @@ describe('Ledger Integrity', () => {
     expect(isValid).toBe(false);
   });
 
+  it('should return false for invalid signature format (non-hex)', async () => {
+    const isValid = await verifyEntry(entry, 'invalid-signature-format', secret);
+    expect(isValid).toBe(false);
+  });
+
   it('should produce stable signatures for identical inputs', async () => {
     const sig1 = await signEntry(entry, secret);
     const sig2 = await signEntry(entry, secret);

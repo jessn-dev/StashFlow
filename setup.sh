@@ -27,6 +27,9 @@
 
 set -e
 
+# Suppress Node.js experimental warnings (e.g. loading ESM via require)
+export NODE_NO_WARNINGS=1
+
 # ── Colours ──────────────────────────────────────────────────────────────────
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -149,6 +152,9 @@ cmd_help() {
   echo -e "    db:env                     Overwrite .env files with current local Supabase keys"
   echo -e "    db:jwt                     Regenerate dev service_role JWT and update pg_net trigger"
   echo -e "    db:types                   Regenerate TypeScript types from local schema"
+  echo -e "    db:backup                  Create a local logical backup of the development database"
+  echo -e "    db:restore <file>          Restore a logical backup to the development database"
+
   echo -e "    db:shared                  Sync monorepo packages to Supabase _shared directory"
   echo -e "    schema:sync                Sync AI schemas from Python to TypeScript"
   echo ""
@@ -161,6 +167,8 @@ cmd_help() {
   echo -e "  ${CYAN}Python Backend${RESET}"
 
   echo -e "    py:docker                  Build the Python backend Docker container for local testing"
+  echo -e "    py:worker                  Start the Python background worker (RQ)"
+
   echo ""
   echo -e "  ${CYAN}Testing & Quality${RESET}"
     echo -e "    check:all                  Run ALL quality gates (typecheck, lint, tests + coverage)"
@@ -209,6 +217,13 @@ cmd_py_docker() {
   info "Building Python backend Docker container..."
   docker build -t stashflow-backend-py ./apps/backend-py
   success "Docker image built: stashflow-backend-py"
+}
+
+cmd_py_worker() {
+  require_uv
+  info "Starting Python background worker (RQ)..."
+  cd apps/backend-py
+  uv run python worker.py
 }
 
 cmd_logging_start() {
@@ -394,6 +409,13 @@ cmd_db_env() {
   upsert_env_var apps/web/.env.local NEXT_PUBLIC_SENTRY_DSN        "http://local-public-key@localhost:8000/1"
   success "Updated apps/web/.env.local"
 
+  # ── Python Backend ────────────────────────────────────────────────────────
+  touch apps/backend-py/.env
+  upsert_env_var apps/backend-py/.env SUPABASE_URL                "http://127.0.0.1:54321"
+  upsert_env_var apps/backend-py/.env SUPABASE_SERVICE_ROLE_KEY   "$service_key"
+  upsert_env_var apps/backend-py/.env REDIS_URL                   "redis://127.0.0.1:6379/0"
+  success "Updated apps/backend-py/.env"
+
   # ── Mobile ────────────────────────────────────────────────────────────────
   touch apps/mobile/.env
   upsert_env_var apps/mobile/.env EXPO_PUBLIC_SUPABASE_URL      "$api_url"
@@ -406,6 +428,7 @@ cmd_db_env() {
   upsert_env_var supabase/functions/.env SUPABASE_URL         "http://supabase_kong_StashFlow:8000"
   upsert_env_var supabase/functions/.env SUPABASE_ANON_KEY    "$anon_key"
   upsert_env_var supabase/functions/.env PYTHON_BACKEND_URL  "http://host.docker.internal:8008"
+  upsert_env_var supabase/functions/.env PARSE_LOAN_WEBHOOK_SECRET "dev-secret-123"
   success "Updated supabase/functions/.env"
 
   # ── Supabase CLI (Local Dev) ──────────────────────────────────────────────
@@ -454,6 +477,34 @@ cmd_db_types() {
   info "Regenerating TypeScript types from local schema..."
   supabase gen types typescript --local | tail -n +2 > packages/core/src/schema/database.types.ts
   success "Types updated → packages/core/src/schema/database.types.ts"
+}
+
+cmd_db_backup() {
+  require_supabase
+  local filename="backup_$(date +%Y%m%d_%H%M%S).sql"
+  info "Creating local logical backup: $filename..."
+  supabase db dump --local -f "$filename"
+  success "Backup created: $filename"
+}
+
+cmd_db_restore() {
+  require_supabase
+  local file=$1
+  if [[ -z "$file" ]]; then
+    die "Usage: ./setup.sh db:restore <filename.sql>"
+  fi
+  if [[ ! -f "$file" ]]; then
+    die "Backup file not found: $file"
+  fi
+  warn "This will overwrite your local database data. Proceed? (y/n)"
+  read -r confirm
+  if [[ "$confirm" != "y" ]]; then
+    die "Restore cancelled."
+  fi
+  info "Restoring backup from $file..."
+  supabase db reset
+  psql "postgres://postgres:postgres@localhost:54322/postgres" -f "$file"
+  success "Database restored from $file."
 }
 
 cmd_db_shared() {
@@ -729,9 +780,12 @@ case "$1" in
   db:env)       cmd_db_env ;;
   db:jwt)       cmd_db_jwt ;;
   db:types)     cmd_db_types ;;
+  db:backup)    cmd_db_backup ;;
+  db:restore)   cmd_db_restore "$2" ;;
   db:shared)    cmd_db_shared ;;
   schema:sync)  cmd_schema_sync ;;
   py:docker)    cmd_py_docker ;;
+  py:worker)    cmd_py_worker ;;
   py:check)     cmd_py_check ;;
   logging:start) cmd_logging_start ;;
   logging:stop)  cmd_logging_stop ;;

@@ -9,6 +9,39 @@
       ],
       "title": "LoanInterestType",
       "type": "string"
+    },
+    "Provenance": {
+      "description": "Metadata linking extracted data back to its source in the document.",
+      "properties": {
+        "page": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The 1-indexed page number where the information was found",
+          "title": "Page"
+        },
+        "snippet": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The exact text snippet used as source context",
+          "title": "Snippet"
+        }
+      },
+      "title": "Provenance",
+      "type": "object"
     }
   },
   "description": "Schema for extracting loan details from a document.",
@@ -89,6 +122,22 @@
       "description": "Brief explanation of the extraction results",
       "title": "Reasoning",
       "type": "string"
+    },
+    "provenance": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/Provenance"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Map of field names to their source provenance",
+      "title": "Provenance"
     }
   },
   "required": [

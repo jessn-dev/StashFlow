@@ -19,20 +19,16 @@ interface Group {
 }
 
 /**
- * Organizes a flat list of transactions into semantic time-based groups.
+ * Groups a flat list of transactions into relative date buckets for timeline display.
  * 
- * @param transactions - The array of transactions to group.
- * @returns An array of Group objects, sorted from newest to oldest.
+ * @param transactions - List of transactions to group.
+ * @returns An array of Group objects containing a label and its transactions.
  */
 function groupByDate(transactions: UnifiedTransaction[]): Group[] {
-  // PSEUDOCODE:
-  // 1. Calculate boundary dates for buckets: Today, Yesterday, 1 week ago, start of current month.
-  // 2. Initialize a Map with predefined labels and empty arrays.
-  // 3. Iterate through each transaction:
-  //    - Compare transaction date against boundaries.
-  //    - Push transaction into the most specific matching bucket.
-  // 4. Convert the Map back into an array of Group objects.
-  // 5. Filter out empty groups to avoid rendering empty headers.
+  // PSEUDOCODE: Date Grouping Logic
+  // 1. Define anchor points: Today, Yesterday, Start of Week, Start of Month.
+  // 2. Iterate through transactions and assign each to the most specific matching bucket.
+  // 3. Return non-empty buckets as labeled Groups.
 
   const today = new Date().toISOString().split('T')[0]!;
   const yesterday = (() => {
@@ -371,11 +367,7 @@ interface Props {
 }
 
 /**
- * Main chronological list of transactions. Supports infinite scrolling, 
- * date grouping, and detailed record inspection.
- * 
- * @param props - Component properties.
- * @returns A grouped chronological list of transactions.
+ * Main component for rendering the transaction history timeline with infinite scroll.
  */
 export function TransactionTimeline({
   initialTransactions,
@@ -399,7 +391,13 @@ export function TransactionTimeline({
   }, [initialTransactions]);
 
   /**
-   * Fetches the next page of transactions based on the current cursor.
+   * Fetches the next page of transactions based on the date and ID of the last item.
+   * 
+   * PSEUDOCODE: Infinite Scroll Pagination
+   * 1. Extract cursor from the last transaction (Date | ID).
+   * 2. Call TransactionQuery with current filters and cursor.
+   * 3. Append results to existing transactions list.
+   * 4. Disable further loading if fewer than 'limit' results are returned.
    */
   async function handleLoadMore() {
     // PSEUDOCODE:
@@ -413,7 +411,7 @@ export function TransactionTimeline({
     setLoading(true);
 
     try {
-      const last = transactions[transactions.length - 1];
+      const last = transactions.at(-1);
       const cursor = last ? `${last.date}|${last.id}` : undefined;
 
       const supabase = createClient();

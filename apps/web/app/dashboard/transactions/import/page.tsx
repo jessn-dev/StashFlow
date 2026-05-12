@@ -6,11 +6,15 @@ import Papa from 'papaparse';
 import { SecureImportZone } from '~/modules/import/components/SecureImportZone';
 import { CsvMapper } from '~/modules/import/components/CsvMapper';
 import { createClient } from '~/lib/supabase/client';
-import { ArrowLeft, CheckCircle2, ChevronRight, LayoutDashboard, History, Sparkles } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, LayoutDashboard, History, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 type ImportStage = 'upload' | 'mapping' | 'preview' | 'success';
 
+/**
+ * Page component for importing transactions via CSV or AI-powered PDF parsing.
+ * Manages the multi-stage import workflow: Upload -> Mapping -> Preview -> Success.
+ */
 export default function TransactionImportPage() {
   const [stage, setStage] = useState<ImportStage>('upload');
   const [csvData, setCsvData] = useState<{ headers: string[]; rows: any[] } | null>(null);
@@ -22,6 +26,19 @@ export default function TransactionImportPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  /**
+   * Handles the file upload and initial processing (CSV parsing or PDF AI extraction).
+   * 
+   * PSEUDOCODE: Transaction Upload & Process
+   * 1. Detect file extension (CSV or PDF).
+   * 2. For CSV: Parse using PapaParse and transition to mapping stage.
+   * 3. For PDF: 
+   *    a. Upload to private storage.
+   *    b. Insert document record with 'pending' status.
+   *    c. Invoke 'parse-document' edge function.
+   *    d. Poll database until status is 'success' or 'error'.
+   *    e. Map AI-extracted transactions to internal preview format.
+   */
   const handleUpload = async (file: File, password?: string) => {
     setProcessingError(null);
     const ext = file.name.split('.').pop()?.toLowerCase();
@@ -150,6 +167,16 @@ export default function TransactionImportPage() {
     setStage('preview');
   };
 
+  /**
+   * Finalizes the import by bulk inserting incomes and expenses into the database.
+   * 
+   * PSEUDOCODE: Execute Import
+   * 1. Resolve user profile and preferred currency.
+   * 2. Separate mapped data into 'incomes' and 'expenses' arrays.
+   * 3. Normalize amounts and add metadata (user_id, source/description, currency).
+   * 4. Perform bulk inserts using Supabase.
+   * 5. Redirect to success stage.
+   */
   const executeImport = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;

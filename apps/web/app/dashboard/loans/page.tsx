@@ -10,6 +10,48 @@ import Link from 'next/link';
 import { AddLoanButton } from '~/modules/loans/components/AddLoanButton';
 import { LoanUploadZone } from '~/modules/loans/components/LoanUploadZone';
 
+/**
+ * Generates an SVG polyline string representing the loan's declining balance over time.
+ * 
+ * @param loan - The loan object containing principal, rate, and schedule details.
+ * @returns A string of space-separated X,Y coordinates for an SVG <polyline>.
+ */
+function buildSparkline(loan: Loan): string {
+  // PSEUDOCODE: Sparkline Generation
+  // 1. Generate the full amortization schedule for the loan.
+  // 2. Downsample the schedule entries to ~60 points for a smooth but performant sparkline.
+  // 3. Map the remaining balance of each sampled entry to a 120x36 coordinate space.
+  // 4. Invert the Y-axis (since SVG Y increases downwards) to show declining balance correctly.
+
+  try {
+    const schedule = generateAmortizationSchedule({
+      principal: loan.principal,
+      annualInterestRate: loan.interest_rate,
+      durationMonths: loan.duration_months,
+      startDate: loan.start_date,
+      interestType: (loan.interest_type ?? 'Standard Amortized') as LoanInterestType,
+      ...(loan.interest_basis ? { interestBasis: loan.interest_basis } : {}),
+    });
+
+    const entries = schedule.entries;
+    const step = Math.max(1, Math.floor(entries.length / 60));
+    const sampled = entries.filter((_, i) => i % step === 0);
+    const max = sampled[0]?.remainingBalance ?? loan.principal;
+    const min = sampled.at(-1)?.remainingBalance ?? 0;
+    const range = max - min || 1;
+
+    const W = 120, H = 36;
+    const points = sampled.map((e, i) => {
+      const x = (i / (sampled.length - 1)) * W;
+      const y = H - ((e.remainingBalance - min) / range) * H;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    return points.join(' ');
+  } catch {
+    return `0,${36} ${120},${36}`;
+  }
+}
+
 function StatusBadge({ status }: { status: string | null }) {
   const s = status ?? 'active';
   const styles: Record<string, string> = {
@@ -102,6 +144,10 @@ function LoanCard({ loan, metrics }: { loan: Loan; metrics: LoanMetrics }) {
   );
 }
 
+/**
+ * Main dashboard page for managing user loans.
+ * Displays aggregate debt metrics, DTI ratio, and a list of active loans with amortization sparklines.
+ */
 export default async function LoansPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

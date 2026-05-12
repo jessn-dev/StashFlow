@@ -56,129 +56,176 @@ export function generateAmortizationSchedule(params: {
   /** The day-count convention (reserved for future use) */
   interestBasis?: LoanInterestBasis;
 }): AmortizationSchedule {
-  const { principal, annualInterestRate, durationMonths, startDate, interestType } = params;
+  const { interestType } = params;
+
+  switch (interestType) {
+    case 'Standard Amortized':
+      return calculateStandardAmortized(params);
+    case 'Interest-Only':
+      return calculateInterestOnly(params);
+    case 'Add-on Interest':
+      return calculateAddOnInterest(params);
+    case 'Fixed Principal':
+      return calculateFixedPrincipal(params);
+    default:
+      throw new Error(`Unsupported interest type: ${interestType}`);
+  }
+}
+
+/**
+ * Calculates an amortization schedule using the Standard Amortized (level payment) method.
+ * 
+ * @param params - Calculation parameters including principal, rate, and duration.
+ * @returns A complete AmortizationSchedule.
+ */
+function calculateStandardAmortized(params: any): AmortizationSchedule {
+  const { principal, annualInterestRate, durationMonths, startDate } = params;
   const monthlyRate = annualInterestRate / 12;
-  
   let entries: AmortizationEntry[] = [];
   let totalInterest = 0;
   let monthlyPayment = 0;
 
-  if (interestType === 'Standard Amortized') {
-    // PSEUDOCODE: Standard Amortization (Level Payment)
-    // 1. Calculate a fixed monthly payment using the annuity formula: P * (r(1+r)^n) / ((1+r)^n - 1)
-    // 2. For each period:
-    //    a. Interest for period = Current Balance * Monthly Rate
-    //    b. Principal for period = Fixed Monthly Payment - Period Interest
-    //    c. Update Balance = Current Balance - Period Principal
-    //    d. Record entry and accumulate total interest.
+  // PSEUDOCODE: Standard Amortization (Level Payment)
+  // 1. Calculate a fixed monthly payment using the annuity formula.
+  // 2. For each period, calculate interest on current balance, then principal as remainder of payment.
+  // 3. Update balance and record entry.
 
-    if (monthlyRate === 0) {
-      monthlyPayment = principal / durationMonths;
-    } else {
-      monthlyPayment = (principal * monthlyRate * Math.pow(1 + monthlyRate, durationMonths)) / 
-                       (Math.pow(1 + monthlyRate, durationMonths) - 1);
-    }
-
-    let balance = principal;
-    for (let i = 1; i <= durationMonths; i++) {
-      const interestPayment = balance * monthlyRate;
-      const principalPayment = monthlyPayment - interestPayment;
-      balance -= principalPayment;
-      totalInterest += interestPayment;
-
-      entries.push({
-        period: i,
-        principalPayment,
-        interestPayment,
-        remainingBalance: Math.max(0, balance),
-        dueDate: addMonths(startDate, i),
-      });
-    }
-  } else if (interestType === 'Interest-Only') {
-    // PSEUDOCODE: Interest-Only Loan
-    // 1. Monthly payment is strictly the interest on the full principal: P * r
-    // 2. For every period except the last:
-    //    a. Principal payment is 0.
-    //    b. Balance remains the original principal.
-    // 3. In the final period:
-    //    a. Principal payment is the full original principal (Balloon Payment).
-    //    b. Balance becomes 0.
-
-    monthlyPayment = principal * monthlyRate;
-    let balance = principal;
-    for (let i = 1; i <= durationMonths; i++) {
-      const interestPayment = monthlyPayment;
-      const principalPayment = i === durationMonths ? principal : 0;
-      if (i === durationMonths) balance = 0;
-      totalInterest += interestPayment;
-
-      entries.push({
-        period: i,
-        principalPayment,
-        interestPayment,
-        remainingBalance: balance,
-        dueDate: addMonths(startDate, i),
-      });
-    }
-  } else if (interestType === 'Add-on Interest') {
-    // PSEUDOCODE: Add-on Interest
-    // 1. Calculate total interest upfront on the full principal for the full term: P * r * t
-    // 2. Total amount to be repaid = Principal + Total Interest
-    // 3. Divide this total by duration to get a fixed monthly payment.
-    // 4. Principal is repaid in equal monthly installments: P / n.
-    // 5. Interest is also "repaid" in equal monthly installments: Total Interest / n.
-
-    const totalInterestForPeriod = principal * annualInterestRate * (durationMonths / 12);
-    monthlyPayment = (principal + totalInterestForPeriod) / durationMonths;
-    const monthlyPrincipal = principal / durationMonths;
-    const monthlyInterest = totalInterestForPeriod / durationMonths;
-    
-    let balance = principal;
-    for (let i = 1; i <= durationMonths; i++) {
-      balance -= monthlyPrincipal;
-      totalInterest += monthlyInterest;
-      entries.push({
-        period: i,
-        principalPayment: monthlyPrincipal,
-        interestPayment: monthlyInterest,
-        remainingBalance: Math.max(0, balance),
-        dueDate: addMonths(startDate, i),
-      });
-    }
-  } else if (interestType === 'Fixed Principal') {
-    // PSEUDOCODE: Fixed Principal (Decreasing Payment)
-    // 1. Principal repayment is constant: P / n.
-    // 2. Monthly payment = Constant Principal + (Current Balance * Monthly Rate).
-    // 3. Because the balance decreases, the interest (and total payment) decreases each month.
-
-    const principalPayment = principal / durationMonths;
-    let balance = principal;
-    for (let i = 1; i <= durationMonths; i++) {
-      const interestPayment = balance * monthlyRate;
-      const currentMonthlyPayment = principalPayment + interestPayment;
-      balance -= principalPayment;
-      totalInterest += interestPayment;
-
-      // In Fixed Principal, the monthlyPayment varies. We return the first payment
-      // as the 'representative' monthly payment for summary displays.
-      if (i === 1) monthlyPayment = currentMonthlyPayment;
-
-      entries.push({
-        period: i,
-        principalPayment,
-        interestPayment,
-        remainingBalance: Math.max(0, balance),
-        dueDate: addMonths(startDate, i),
-      });
-    }
+  if (monthlyRate === 0) {
+    monthlyPayment = principal / durationMonths;
+  } else {
+    monthlyPayment = (principal * monthlyRate * Math.pow(1 + monthlyRate, durationMonths)) / 
+                     (Math.pow(1 + monthlyRate, durationMonths) - 1);
   }
 
-  return {
-    monthlyPayment,
-    totalInterest,
-    totalPayment: principal + totalInterest,
-    entries,
-  };
+  let balance = principal;
+  for (let i = 1; i <= durationMonths; i++) {
+    const interestPayment = balance * monthlyRate;
+    const principalPayment = monthlyPayment - interestPayment;
+    balance -= principalPayment;
+    totalInterest += interestPayment;
+
+    entries.push({
+      period: i,
+      principalPayment,
+      interestPayment,
+      remainingBalance: Math.max(0, balance),
+      dueDate: addMonths(startDate, i),
+    });
+  }
+
+  return { monthlyPayment, totalInterest, totalPayment: principal + totalInterest, entries };
+}
+
+/**
+ * Calculates an amortization schedule using the Interest-Only method.
+ * 
+ * @param params - Calculation parameters including principal, rate, and duration.
+ * @returns A complete AmortizationSchedule.
+ */
+function calculateInterestOnly(params: any): AmortizationSchedule {
+  const { principal, annualInterestRate, durationMonths, startDate } = params;
+  const monthlyRate = annualInterestRate / 12;
+  let entries: AmortizationEntry[] = [];
+  let totalInterest = 0;
+  const monthlyPayment = principal * monthlyRate;
+
+  // PSEUDOCODE: Interest-Only Loan
+  // 1. Monthly payment covers only interest: P * r.
+  // 2. Final payment includes a balloon payment of the entire principal.
+
+  let balance = principal;
+  for (let i = 1; i <= durationMonths; i++) {
+    const interestPayment = monthlyPayment;
+    const principalPayment = i === durationMonths ? principal : 0;
+    if (i === durationMonths) balance = 0;
+    totalInterest += interestPayment;
+
+    entries.push({
+      period: i,
+      principalPayment,
+      interestPayment,
+      remainingBalance: balance,
+      dueDate: addMonths(startDate, i),
+    });
+  }
+
+  return { monthlyPayment, totalInterest, totalPayment: principal + totalInterest, entries };
+}
+
+/**
+ * Calculates an amortization schedule using the Add-on Interest method.
+ * 
+ * @param params - Calculation parameters including principal, rate, and duration.
+ * @returns A complete AmortizationSchedule.
+ */
+function calculateAddOnInterest(params: any): AmortizationSchedule {
+  const { principal, annualInterestRate, durationMonths, startDate } = params;
+  let entries: AmortizationEntry[] = [];
+  let totalInterest = 0;
+
+  // PSEUDOCODE: Add-on Interest
+  // 1. Calculate total interest upfront for the full term.
+  // 2. Repay principal and interest in equal installments over the duration.
+
+  const totalInterestForPeriod = principal * annualInterestRate * (durationMonths / 12);
+  const monthlyPayment = (principal + totalInterestForPeriod) / durationMonths;
+  const monthlyPrincipal = principal / durationMonths;
+  const monthlyInterest = totalInterestForPeriod / durationMonths;
+  
+  let balance = principal;
+  for (let i = 1; i <= durationMonths; i++) {
+    balance -= monthlyPrincipal;
+    totalInterest += monthlyInterest;
+    entries.push({
+      period: i,
+      principalPayment: monthlyPrincipal,
+      interestPayment: monthlyInterest,
+      remainingBalance: Math.max(0, balance),
+      dueDate: addMonths(startDate, i),
+    });
+  }
+
+  return { monthlyPayment, totalInterest, totalPayment: principal + totalInterest, entries };
+}
+
+/**
+ * Calculates an amortization schedule using the Fixed Principal (decreasing payment) method.
+ * 
+ * @param params - Calculation parameters including principal, rate, and duration.
+ * @returns A complete AmortizationSchedule.
+ */
+function calculateFixedPrincipal(params: any): AmortizationSchedule {
+  const { principal, annualInterestRate, durationMonths, startDate } = params;
+  const monthlyRate = annualInterestRate / 12;
+  let entries: AmortizationEntry[] = [];
+  let totalInterest = 0;
+  let monthlyPayment = 0;
+
+  // PSEUDOCODE: Fixed Principal (Decreasing Payment)
+  // 1. Constant principal repayment: P / n.
+  // 2. Monthly interest calculated on declining balance.
+  // 3. Total payment decreases over time.
+
+  const principalPayment = principal / durationMonths;
+  let balance = principal;
+  for (let i = 1; i <= durationMonths; i++) {
+    const interestPayment = balance * monthlyRate;
+    const currentMonthlyPayment = principalPayment + interestPayment;
+    balance -= principalPayment;
+    totalInterest += interestPayment;
+
+    if (i === 1) monthlyPayment = currentMonthlyPayment;
+
+    entries.push({
+      period: i,
+      principalPayment,
+      interestPayment,
+      remainingBalance: Math.max(0, balance),
+      dueDate: addMonths(startDate, i),
+    });
+  }
+
+  return { monthlyPayment, totalInterest, totalPayment: principal + totalInterest, entries };
 }
 
 /**

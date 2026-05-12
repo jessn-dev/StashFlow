@@ -1,39 +1,14 @@
 import { createClient } from '~/lib/supabase/server';
-import { LoansServiceFactory } from '@stashflow/api';
-import { formatCurrency, generateAmortizationSchedule, Loan, LoanInterestType, LoanMetrics } from '@stashflow/core';
+import { ApiServiceFactory } from '@stashflow/api';
+import { 
+  formatCurrency, 
+  computeLoanSparkline, 
+  Loan, 
+  LoanMetrics 
+} from '@stashflow/core';
 import Link from 'next/link';
 import { AddLoanButton } from '~/modules/loans/components/AddLoanButton';
 import { LoanUploadZone } from '~/modules/loans/components/LoanUploadZone';
-
-function buildSparkline(loan: Loan): string {
-  try {
-    const schedule = generateAmortizationSchedule({
-      principal: loan.principal,
-      annualInterestRate: loan.interest_rate,
-      durationMonths: loan.duration_months,
-      startDate: loan.start_date,
-      interestType: (loan.interest_type ?? 'Standard Amortized') as LoanInterestType,
-      ...(loan.interest_basis ? { interestBasis: loan.interest_basis } : {}),
-    });
-
-    const entries = schedule.entries;
-    const step = Math.max(1, Math.floor(entries.length / 60));
-    const sampled = entries.filter((_, i) => i % step === 0);
-    const max = sampled[0]?.remainingBalance ?? loan.principal;
-    const min = sampled[sampled.length - 1]?.remainingBalance ?? 0;
-    const range = max - min || 1;
-
-    const W = 120, H = 36;
-    const points = sampled.map((e, i) => {
-      const x = (i / (sampled.length - 1)) * W;
-      const y = H - ((e.remainingBalance - min) / range) * H;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    });
-    return points.join(' ');
-  } catch {
-    return `0,${36} ${120},${36}`;
-  }
-}
 
 function StatusBadge({ status }: { status: string | null }) {
   const s = status ?? 'active';
@@ -50,7 +25,7 @@ function StatusBadge({ status }: { status: string | null }) {
 }
 
 function LoanCard({ loan, metrics }: { loan: Loan; metrics: LoanMetrics }) {
-  const sparkPoints = buildSparkline(loan);
+  const sparkPoints = computeLoanSparkline(loan);
   const nextPayment = metrics.nextDueDate
     ? new Date(metrics.nextDueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : null;
@@ -133,9 +108,19 @@ export default async function LoansPage() {
 
   if (!user) return null;
 
-  const loansService = LoansServiceFactory.create(supabase);
-  const data = await loansService.getLoansPageData(user.id);
-  const { loans, loanMetrics, totalDebt, totalMonthlyInstallment, avgInterestRate, activeLoanCount, dtiRatio, dtiHealthy, currency } = data;
+  const api = new ApiServiceFactory(supabase);
+  const data = await api.loansService.getLoansPageData(user.id);
+  const { 
+    loans, 
+    loanMetrics, 
+    totalDebt, 
+    totalMonthlyInstallment, 
+    avgInterestRate, 
+    activeLoanCount, 
+    dtiRatio, 
+    dtiHealthy, 
+    currency 
+  } = data;
 
   return (
     <div>

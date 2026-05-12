@@ -1,4 +1,5 @@
 import { LoanInterestType, LoanInterestBasis } from '../schema/mod.ts';
+import { convertToBase } from './currency.ts';
 
 /**
  * Represents a single payment period in an amortization schedule.
@@ -178,6 +179,125 @@ export function generateAmortizationSchedule(params: {
     totalPayment: principal + totalInterest,
     entries,
   };
+}
+
+/**
+ * Data point for a debt payoff chart.
+ */
+export interface DebtPayoffPoint {
+  /** Label for the point, usually month (e.g. 'Jan 26') */
+  month: string;
+  /** Total remaining debt across all loans at this point, in base currency */
+  total: number;
+}
+
+/**
+ * Projects the decline of total debt across multiple loans over time.
+ * 
+ * @param loans - List of active loans.
+ * @param rates - Exchange rates for currency conversion to base.
+ * @returns Array of data points for chart visualization.
+ */
+export function projectDebtPayoff(loans: any[], rates: Record<string, number>): DebtPayoffPoint[] {
+  const active = loans.filter((l) => l.status === 'active');
+  if (!active.length) return [];
+
+  const now = new Date();
+
+  // Compute schedules and current month offset per loan
+  const schedules = active.map((loan) => {
+    const start = new Date(loan.start_date);
+    const elapsed = Math.max(
+      0,
+      (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()),
+    );
+    const schedule = generateAmortizationSchedule({
+      principal: loan.principal,
+      annualInterestRate: loan.interest_rate / 100,
+      durationMonths: loan.duration_months,
+      startDate: loan.start_date,
+      interestType: (loan.interest_type ?? 'Standard Amortized') as any,
+    });
+    
+    // Fallback rate to 1 if not found
+    const currency = loan.currency || 'USD';
+    const rate = rates[currency] ?? 1;
+    
+    return { schedule, elapsed, rate };
+  });
+
+  const maxRemaining = Math.max(
+    ...schedules.map((s) => Math.max(0, s.schedule.entries.length - s.elapsed)),
+  );
+  
+  // Cap projection at 10 years (120 months)
+  const months = Math.min(maxRemaining + 1, 121);
+
+  return Array.from({ length: months }, (_, k) => {
+    const date = new Date(now.getFullYear(), now.getMonth() + k, 1);
+    const month = date.toLocaleString('default', { month: 'short', year: '2-digit' });
+    const total = schedules.reduce((sum, { schedule, elapsed, rate }) => {
+      const idx = elapsed + k - 1;
+      
+      let remaining = 0;
+      if (k === 0) {
+         // Current month balance
+         remaining = schedule.entries[elapsed - 1]?.remainingBalance ?? schedule.entries[0]?.remainingBalance ?? (schedule.monthlyPayment * schedule.entries.length);
+      } else {
+         remaining = schedule.entries[idx]?.remainingBalance ?? 0;
+      }
+      
+      // Convert to base currency
+      const converted = convertToBase(remaining, rate);
+      
+      return sum + converted;
+    }, 0);
+    
+    return { month, total: Math.round(total * 100) / 100 };
+  });
+}
+
+/**
+ * Computes SVG points for a loan's principal decline sparkline.
+ * 
+ * @param loan - The loan data.
+ * @param width - SVG viewbox width (default 120).
+ * @param height - SVG viewbox height (default 36).
+ * @returns Space-separated SVG points string.
+ */
+export function computeLoanSparkline(loan: any, width: number = 120, height: number = 36): string {
+  try {
+    const schedule = generateAmortizationSchedule({
+      principal: loan.principal,
+      annualInterestRate: loan.interest_rate / 100, // Fixed: handle percentage properly
+      durationMonths: loan.duration_months,
+      startDate: loan.start_date,
+      interestType: (loan.interest_type ?? 'Standard Amortized') as any,
+    });
+
+    const entries = schedule.entries;
+    // Sample max 60 points for performance/clarity
+    const step = Math.max(1, Math.floor(entries.length / 60));
+    const sampled = entries.filter((_, i) => i % step === 0);
+    
+    // Add current balance as first point if needed, or just start from principal
+    const max = loan.principal;
+    const min = 0;
+    const range = max || 1;
+
+    const points = sampled.map((e, i) => {
+      const x = (i / (sampled.length - 1)) * width;
+      const y = height - (e.remainingBalance / range) * height;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    
+    if (points.length === 0) return `0,${height} ${width},${height}`;
+    
+    return points.join(' ');
+  } catch {
+    // Fallback: horizontal line at bottom
+    return `0,${height} ${width},${height}`;
+  }
 }
 
 /**

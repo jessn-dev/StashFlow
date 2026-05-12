@@ -21,7 +21,22 @@ interface Props {
   savingsRate: number;
 }
 
+/**
+ * Calculates upcoming loan payments within a 30-day window.
+ * 
+ * @param loans - Array of all active loans.
+ * @param summaries - Payment summaries containing due dates.
+ * @returns Array of formatted upcoming payment objects, sorted by proximity.
+ */
 function computeUpcoming(loans: Loan[], summaries: PaymentSummary[]): UpcomingPayment[] {
+  /*
+   * PSEUDOCODE:
+   * 1. Map payment summaries by loan ID for efficient lookup.
+   * 2. Iterate through each loan and check for a corresponding summary.
+   * 3. Calculate the day difference between today and the next due date.
+   * 4. Filter for dates that fall within the next 30 days (excluding past dates).
+   * 5. Sort the resulting list so the most immediate payments appear first.
+   */
   const today = Date.now();
   const summaryMap = new Map(summaries.map((s) => [s.loanId, s]));
 
@@ -31,7 +46,10 @@ function computeUpcoming(loans: Loan[], summaries: PaymentSummary[]): UpcomingPa
       if (!summary?.nextDueDate) return [];
       const due = new Date(summary.nextDueDate).getTime();
       const daysUntil = Math.ceil((due - today) / 86400000);
+      
+      // BUSINESS RULE: Only show payments due in the next 30 days to keep the rail focused.
       if (daysUntil < 0 || daysUntil > 30) return [];
+      
       return [{
         loanId: loan.id,
         loanName: loan.name,
@@ -44,7 +62,19 @@ function computeUpcoming(loans: Loan[], summaries: PaymentSummary[]): UpcomingPa
     .sort((a, b) => a.daysUntil - b.daysUntil);
 }
 
-function RailCard({ children, title, action }: { children: React.ReactNode; title: string; action?: React.ReactNode }) {
+/**
+ * A standard container for items in the right utility rail.
+ * 
+ * @param props - Component properties.
+ */
+function RailCard({ children, title, action }: { 
+  /** Content to display within the card. */
+  children: React.ReactNode; 
+  /** The title shown in the card header. */
+  title: string; 
+  /** Optional action element (e.g., a "View All" link) in the header. */
+  action?: React.ReactNode 
+}) {
   return (
     <div className="bg-white rounded-[20px] border border-gray-200 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
@@ -56,6 +86,13 @@ function RailCard({ children, title, action }: { children: React.ReactNode; titl
   );
 }
 
+/**
+ * Renders the right-hand utility rail containing upcoming payments, 
+ * financial health indicators, and active plans.
+ * 
+ * @param props - Component properties.
+ * @returns A JSX element representing the utility rail.
+ */
 export function RightUtilityRail({ loans, paymentSummaries, currency, dtiRatio, dtiHealthy, savingsRate }: Props) {
   const upcoming = computeUpcoming(loans, paymentSummaries);
 

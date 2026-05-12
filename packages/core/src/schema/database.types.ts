@@ -221,6 +221,7 @@ export type Database = {
       }
       documents: {
         Row: {
+          content_hash: string | null
           content_type: string
           created_at: string | null
           extracted_data: Json | null
@@ -240,6 +241,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          content_hash?: string | null
           content_type: string
           created_at?: string | null
           extracted_data?: Json | null
@@ -259,6 +261,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          content_hash?: string | null
           content_type?: string
           created_at?: string | null
           extracted_data?: Json | null
@@ -329,7 +332,9 @@ export type Database = {
           id: string
           is_recurring: boolean | null
           notes: string | null
+          provenance: Json | null
           signature: string
+          source_document_id: string | null
           user_id: string
         }
         Insert: {
@@ -342,7 +347,9 @@ export type Database = {
           id?: string
           is_recurring?: boolean | null
           notes?: string | null
+          provenance?: Json | null
           signature?: string
+          source_document_id?: string | null
           user_id: string
         }
         Update: {
@@ -355,10 +362,19 @@ export type Database = {
           id?: string
           is_recurring?: boolean | null
           notes?: string | null
+          provenance?: Json | null
           signature?: string
+          source_document_id?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_user_id_fkey"
             columns: ["user_id"]
@@ -421,8 +437,10 @@ export type Database = {
           frequency: Database["public"]["Enums"]["income_frequency"] | null
           id: string
           notes: string | null
+          provenance: Json | null
           signature: string
           source: string
+          source_document_id: string | null
           user_id: string
         }
         Insert: {
@@ -433,8 +451,10 @@ export type Database = {
           frequency?: Database["public"]["Enums"]["income_frequency"] | null
           id?: string
           notes?: string | null
+          provenance?: Json | null
           signature?: string
           source: string
+          source_document_id?: string | null
           user_id: string
         }
         Update: {
@@ -445,11 +465,20 @@ export type Database = {
           frequency?: Database["public"]["Enums"]["income_frequency"] | null
           id?: string
           notes?: string | null
+          provenance?: Json | null
           signature?: string
           source?: string
+          source_document_id?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "incomes_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "incomes_user_id_fkey"
             columns: ["user_id"]
@@ -862,6 +891,8 @@ export type Database = {
           description: string | null
           id: string | null
           notes: string | null
+          provenance: Json | null
+          source_document_id: string | null
           type: string | null
           user_id: string | null
         }

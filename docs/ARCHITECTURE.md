@@ -208,15 +208,17 @@ User uploads PDF → Supabase Storage (user_documents bucket)
     ├─ Security Gate (Deno Edge Function):
     │       1. inspect MIME type
     │       2. validate Magic Bytes (file signature)
+    │       3. enqueue job to Redis (local/Upstash)
     │
-    ├─ Intelligence Layer (Python FastAPI):
-    │       1. extract text (PyMuPDF) with local OCR fallback (Tesseract)
-    │       2. AI Classification (Loan vs. Bank Statement)
-    │       3. AI Structured Extraction (Instructor + LLM)
+    ├─ Intelligence Worker Layer (Python RQ/Celery):
+    │       1. download file from Supabase Storage
+    │       2. extract text (PyMuPDF) with local OCR fallback (Tesseract)
+    │       3. Parallel AI Classification & Structured Extraction
+    │       4. callback to Supabase via document-processed-webhook
     │
-    └─ persistence path (Deno Edge Function):
-            1. validate AI output against business rules
-            2. write extracted data back to documents.extracted_data (JSONB)
+    └─ persistence path (Deno Edge Function - Webhook):
+            1. enforce "Rule 1" financial validation
+            2. write extracted data + provenance to documents.extracted_data (JSONB)
             3. update processing_status to 'success'
 ```
 

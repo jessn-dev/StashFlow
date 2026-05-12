@@ -3,14 +3,37 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useTransition, useCallback } from 'react';
 
+/**
+ * Properties for the TransactionFiltersBar component.
+ */
 interface Props {
+  /** The starting ISO date string (YYYY-MM-DD) for the filter range. */
   dateFrom: string;
+  /** The ending ISO date string (YYYY-MM-DD) for the filter range. */
   dateTo: string;
+  /** The transaction category type filter. */
   type: 'all' | 'income' | 'expense';
+  /** The current search query string. */
   search: string;
 }
 
+/**
+ * Calculates start and end dates based on predefined time range presets.
+ * 
+ * @param preset - The identifier for the date range (e.g., '7d', 'month').
+ * @returns An object containing the from and to date strings in ISO format.
+ */
 function computePresetRange(preset: string): { from: string; to: string } {
+  // PSEUDOCODE:
+  // 1. Get current date as baseline.
+  // 2. Based on preset key:
+  //    - '7d'/'30d': Subtract N-1 days from today.
+  //    - 'month': Set start to 1st of current month, end to today.
+  //    - 'last-month': Set start to 1st of previous month, end to last day of previous month.
+  //    - 'quarter': Calculate start of current calendar quarter.
+  //    - 'year': Set start to Jan 1st of current year.
+  // 3. Format result as YYYY-MM-DD strings.
+
   const today = new Date();
   const toStr = today.toISOString().split('T')[0]!;
 
@@ -43,6 +66,13 @@ function computePresetRange(preset: string): { from: string; to: string } {
   }
 }
 
+/**
+ * Determines which preset, if any, matches the current date filter range.
+ * 
+ * @param dateFrom - Current start date string.
+ * @param dateTo - Current end date string.
+ * @returns The key of the matching preset, or 'custom' if none match.
+ */
 function detectActivePreset(dateFrom: string, dateTo: string): string {
   const presets = ['7d', '30d', 'month', 'last-month', 'quarter', 'year'];
   for (const p of presets) {
@@ -67,19 +97,33 @@ const TYPES = [
   { key: 'expense', label: 'Expense' },
 ] as const;
 
+/**
+ * Interactive filter bar for transactions including search, date presets, and type filters.
+ * Synchronizes filter state with the URL query parameters.
+ * 
+ * @param props - Component properties.
+ * @returns A rendered filter bar component.
+ */
 export function TransactionFiltersBar({ dateFrom, dateTo, type, search }: Props) {
   const router = useRouter();
+  // useTransition allows the UI to stay responsive during navigation-triggered re-renders
   const [, startTransition] = useTransition();
+  // Local state for search value to allow for immediate UI feedback before debounced sync
   const [searchValue, setSearchValue] = useState(search);
 
+  // Keep local search state in sync with external prop changes (e.g., from browser back button)
   useEffect(() => { setSearchValue(search); }, [search]);
 
+  /**
+   * Constructs the target dashboard URL with merged filter parameters.
+   */
   const buildUrl = useCallback(
     (updates: Partial<{ from: string; to: string; type: string; q: string }>) => {
       const merged = { from: dateFrom, to: dateTo, type, q: searchValue, ...updates };
       const params = new URLSearchParams();
       if (merged.from) params.set('from', merged.from);
       if (merged.to) params.set('to', merged.to);
+      // 'all' is the default and omitted from URL to keep it clean
       if (merged.type && merged.type !== 'all') params.set('type', merged.type);
       if (merged.q) params.set('q', merged.q);
       return `/dashboard/transactions?${params.toString()}`;
@@ -88,6 +132,14 @@ export function TransactionFiltersBar({ dateFrom, dateTo, type, search }: Props)
   );
 
   useEffect(() => {
+    // PSEUDOCODE:
+    // 1. Check if local search value differs from current filter prop.
+    // 2. If same, do nothing.
+    // 3. If different, start a debounce timer (400ms).
+    // 4. On timer expiry, trigger a router replacement to update URL with new search term.
+    // 5. Wrap router call in startTransition to keep search input fluid.
+    // 6. Cleanup timer if value changes before expiry.
+
     if (searchValue === search) return;
     const timer = setTimeout(() => {
       startTransition(() => { router.replace(buildUrl({ q: searchValue })); });
@@ -134,6 +186,7 @@ export function TransactionFiltersBar({ dateFrom, dateTo, type, search }: Props)
             {p.label}
           </button>
         ))}
+        {/* Custom state shown when manual dates are in effect and don't match any preset */}
         {activePreset === 'custom' && (
           <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-gray-900 shadow-sm">
             Custom

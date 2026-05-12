@@ -49,6 +49,13 @@ describe('AssetQuery', () => {
     expect(result.name).toBe('Stock');
   });
 
+  it('should throw error on create if db fails', async () => {
+    const { from } = makeMockSupabase();
+    from._error = { message: 'Create failed' };
+    const query = new AssetQuery({ from } as any);
+    await expect(query.create('user-1', {} as any)).rejects.toThrow('Create failed');
+  });
+
   it('should update an asset', async () => {
     const { from } = makeMockSupabase();
     from._data = { id: '1', balance: 2000 };
@@ -57,9 +64,23 @@ describe('AssetQuery', () => {
     expect(result.balance).toBe(2000);
   });
 
+  it('should throw error on update if db fails', async () => {
+    const { from } = makeMockSupabase();
+    from._error = { message: 'Update failed' };
+    const query = new AssetQuery({ from } as any);
+    await expect(query.update('1', 'user-1', {})).rejects.toThrow('Update failed');
+  });
+
   it('should delete an asset', async () => {
     const { from } = makeMockSupabase();
     const query = new AssetQuery({ from } as any);
     await expect(query.delete('1', 'user-1')).resolves.not.toThrow();
+  });
+
+  it('should throw error on delete if db fails', async () => {
+    const { from } = makeMockSupabase();
+    from._error = { message: 'Delete failed' };
+    const query = new AssetQuery({ from } as any);
+    await expect(query.delete('1', 'user-1')).rejects.toThrow('Delete failed');
   });
 });

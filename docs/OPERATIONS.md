@@ -190,6 +190,60 @@ In `.github/workflows/ci.yml`, the `deploy` job is currently a stub.
 | Error Tracking (Backend) | Supabase Logs | Edge Function failures, DB errors |
 | Anomaly detection | Custom | Transaction spike detection, unusual login patterns |
 
+---
+
+## Disaster Recovery
+
+StashFlow maintains a **15-minute RPO** (Recovery Point Objective) and a **1-hour RTO** (Recovery Time Objective).
+
+### Database Backups & Restore
+
+**Point-in-Time Recovery (PITR)**:
+- Enabled on production projects via Supabase Dashboard.
+- Allows restoration to any second within the last 7 days.
+
+**Manual Logical Backups**:
+```bash
+# Export the entire schema and data to a local SQL file
+supabase db dump --project-ref <ref> -f backup_$(date +%Y%m%d).sql
+```
+
+**Restoration (Logical)**:
+1.  Create a new Supabase project.
+2.  Run `supabase db push` to apply the latest schema.
+3.  Import data from the backup file via the SQL Editor or CLI.
+
+### Migration Rollback
+
+If a migration fails or introduces a regression:
+1.  Identify the problematic migration timestamp.
+2.  Revert the local schema to the previous state.
+3.  For production, the primary recovery path is **Restoration from PITR** followed by a corrected deployment.
+
+### Queue Replay Tooling (Async Ingestion)
+
+If document processing fails at scale (e.g., AI provider outage):
+1.  Identify failed documents in the `documents` table:
+    ```sql
+    SELECT id, storage_path FROM public.documents WHERE processing_status = 'error_generic';
+    ```
+2.  Manually re-enqueue via the Python backend API (or local worker):
+    ```bash
+    curl -X POST http://<python-api>/api/v1/documents/enqueue \
+      -H "Content-Type: application/json" \
+      -d '{"document_id": "UUID", "storage_path": "PATH"}'
+    ```
+3.  **Dead Letter Queue (DLQ)**: Failed jobs in the `stashflow-ingestion` queue are automatically moved to the failed registry by RQ. Use the RQ CLI or Dashboard to inspect and retry them.
+
+### Incident Runbooks
+
+| Incident | Immediate Action |
+|----------|------------------|
+| **AI Provider Outage** | Notify users via banner; the queue will automatically retry jobs (Max 3 attempts). |
+| **Edge Function Timeout** | Ensure heavy processing is correctly handed off to the Python Worker Layer. |
+| **Auth System Down** | Check Supabase Status. Pause automated workflows that require user-context. |
+| **Storage Quota Reached** | Increase Supabase Storage limits or archive documents older than 90 days. |
+
 ...
 tterns |
 

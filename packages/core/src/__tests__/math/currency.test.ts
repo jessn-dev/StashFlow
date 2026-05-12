@@ -45,6 +45,16 @@ describe('currency math', () => {
     it('should return val if no rate found', () => {
       expect(convertToBase(100, 'JPY', 'USD', rates)).toBe(100);
     });
+
+    it('should return 0 if amount is not a number', () => {
+      expect(convertToBase('abc' as any, 50)).toBe(0);
+    });
+
+    it('should handle triangulation when only base to USD exists', () => {
+      // Base: SGD, From: PHP. SGD->USD exists, but PHP->USD doesn't.
+      const partialRates: ExchangeRate[] = [{ base: 'USD', target: 'SGD', rate: 1.35 }];
+      expect(convertToBase(1000, 'PHP', 'SGD', partialRates)).toBe(1000);
+    });
   });
 
   describe('formatCurrency', () => {

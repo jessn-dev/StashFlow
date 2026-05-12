@@ -38,3 +38,33 @@ async def test_detect_anomalies_spikes(mock_ai_create, client):
     data = response.json()
     assert len(data["anomalies"]) == 1
     assert data["anomalies"][0]["category"] == "shopping"
+
+@pytest.mark.asyncio
+async def test_detect_anomalies_no_baseline(client):
+    # Only one month of data - cannot establish baseline
+    transactions = [
+        {"id": "1", "date": "2026-05-01", "amount": 100, "category": "food", "description": "cur"}
+    ]
+    response = await client.post("/api/v1/analysis/anomalies", json={"transactions": transactions})
+    assert response.status_code == 200
+    assert response.json() == {"anomalies": []}
+
+@pytest.mark.asyncio
+async def test_detect_anomalies_no_spike(client):
+    # Spending decreased or stayed same
+    transactions = [
+        {"id": "1", "date": "2026-04-01", "amount": 100, "category": "food", "description": "old"},
+        {"id": "2", "date": "2026-05-01", "amount": 80, "category": "food", "description": "cur"}
+    ]
+    response = await client.post("/api/v1/analysis/anomalies", json={"transactions": transactions})
+    assert response.status_code == 200
+    assert response.json() == {"anomalies": []}
+
+@pytest.mark.asyncio
+@patch("src.api.endpoints.analysis.pd.DataFrame")
+async def test_detect_anomalies_exception(mock_df, client):
+    mock_df.side_effect = Exception("Pandas failed")
+    transactions = [{"id": "1", "date": "2026-05-01", "amount": 10, "category": "food", "description": "x"}]
+    response = await client.post("/api/v1/analysis/anomalies", json={"transactions": transactions})
+    assert response.status_code == 500
+    assert "Analysis failed" in response.json()["detail"]

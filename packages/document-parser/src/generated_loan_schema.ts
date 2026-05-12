@@ -49,6 +49,20 @@ export type Confidence = number;
  * Brief explanation of the extraction results
  */
 export type Reasoning = string;
+/**
+ * Map of field names to their source provenance
+ */
+export type Provenance = {
+  [k: string]: Provenance1;
+} | null;
+/**
+ * The 1-indexed page number where the information was found
+ */
+export type Page = number | null;
+/**
+ * The exact text snippet used as source context
+ */
+export type Snippet = string | null;
 
 /**
  * Schema for extracting loan details from a document.
@@ -65,5 +79,14 @@ export interface LoanExtractionSchema {
   lender?: Lender;
   confidence?: Confidence;
   reasoning?: Reasoning;
+  provenance?: Provenance;
+  [k: string]: unknown;
+}
+/**
+ * Metadata linking extracted data back to its source in the document.
+ */
+export interface Provenance1 {
+  page?: Page;
+  snippet?: Snippet;
   [k: string]: unknown;
 }

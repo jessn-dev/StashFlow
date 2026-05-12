@@ -1,73 +1,50 @@
+"""
+Document Management Endpoints for StashFlow.
+
+This module provides API endpoints for uploading, extracting text from, 
+and processing financial PDF documents. It supports both synchronous 
+extraction and asynchronous background processing.
+"""
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 from pydantic import BaseModel
-import fitz  # PyMuPDF
-import instructor
-from litellm import completion
 from src.schemas.financial import UnifiedDocumentResponse
-from src.core.config import settings
-from src.utils.ocr import extract_text_with_ocr
+from src.core.document_service import get_text_from_pdf, process_document_content
 from src.core.logger import get_logger
+from src.core.queue import ingestion_queue
+from src.tasks.document_processing import run_process_document_task
 
 router = APIRouter()
 logger = get_logger(__name__)
 
-# Patch litellm with instructor
-client = instructor.from_litellm(completion)
-
 class DocumentExtractionResponse(BaseModel):
+    """
+    Schema for raw document text extraction response.
+    
+    Attributes:
+        text (str): The raw text extracted from the document.
+        page_count (int): Number of pages in the PDF.
+        success (bool): Whether the extraction was successful.
+        method (str): The method used ("standard" or "ocr").
+        telemetry (dict | None): Performance metrics and extraction details.
+    """
     text: str
     page_count: int
     success: bool
     method: str  # "standard" or "ocr"
     telemetry: dict | None = None
 
-async def _get_text_from_pdf(content: bytes, password: str | None = None) -> tuple[str, int, str, dict]:
+class EnqueueRequest(BaseModel):
     """
-    Helper to extract text from PDF with OCR fallback and password support.
-    Returns (text, page_count, method, telemetry)
+    Schema for enqueuing a document for background processing.
+    
+    Attributes:
+        document_id (str): UUID of the document in the database.
+        storage_path (str): Path to the file in Supabase storage.
+        password (str | None): Optional password for the PDF.
     """
-    telemetry = {"standard_char_count": 0, "ocr_char_count": 0}
-    try:
-        doc = fitz.open(stream=content, filetype="pdf")
-        
-        # Handle password protection
-        if doc.needs_pass:
-            if password:
-                doc.authenticate(password)
-            else:
-                raise Exception("PDF is encrypted and requires a password")
-                
-        if doc.is_encrypted:
-             raise Exception("Invalid password for encrypted PDF")
-
-        page_count = len(doc)
-        if page_count > 20:
-             raise Exception(f"Document exceeds the 20-page safety limit (detected {page_count} pages). Please upload a smaller document.")
-
-        text = ""
-        for page in doc:
-            text += page.get_text()
-
-        telemetry["standard_char_count"] = len(text.strip())
-
-        # Threshold for triggering OCR fallback (e.g., < 150 characters across entire doc)
-        if len(text.strip()) < 150:
-            logger.info("triggering_ocr_fallback", char_count=len(text.strip()), page_count=page_count)
-            text = extract_text_with_ocr(content, password=password)
-            telemetry["ocr_char_count"] = len(text.strip())
-            return text, page_count, "ocr", telemetry
-            
-        return text, page_count, "standard", telemetry
-    except Exception as e:
-        logger.warning("fitz_extraction_failed", error=str(e))
-        # If fitz fails entirely, try OCR
-        try:
-            text = extract_text_with_ocr(content, password=password)
-            telemetry["ocr_char_count"] = len(text.strip())
-            return text, 0, "ocr", telemetry
-        except Exception as ocr_e:
-            logger.error("all_extraction_methods_failed", standard_error=str(e), ocr_error=str(ocr_e))
-            raise Exception(f"Both standard and OCR extraction failed. Standard: {str(e)}, OCR: {str(ocr_e)}")
+    document_id: str
+    storage_path: str
+    password: str | None = None
 
 @router.post("/extract", response_model=DocumentExtractionResponse)
 async def extract_document_text(
@@ -75,8 +52,25 @@ async def extract_document_text(
     password: str | None = Form(None)
 ):
     """
-    Extracts raw text from an uploaded PDF document with OCR fallback and password support.
+    Extracts raw text from an uploaded PDF document with OCR fallback.
+
+    Args:
+        file (UploadFile): The uploaded PDF file.
+        password (str | None): Optional password for encrypted PDFs.
+
+    Returns:
+        DocumentExtractionResponse: The extracted text and metadata.
+
+    Raises:
+        HTTPException: 400 for invalid file types, 413 for oversized files, 
+            or 500 for internal processing failures.
     """
+    # PSEUDOCODE: Raw Text Extraction Endpoint Flow
+    # 1. Validate the file type: Reject if not 'application/pdf'.
+    # 2. Security Check: Read content and verify size is under 10MB limit.
+    # 3. Call 'get_text_from_pdf' in the document service (handles OCR fallback).
+    # 4. Return structured response with extraction telemetry.
+
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
 
@@ -85,12 +79,12 @@ async def extract_document_text(
     try:
         content = await file.read()
         
-        # Enforce 10MB limit
+        # STRATEGIC LIMIT: Enforce 10MB limit to prevent memory exhaustion on worker nodes.
         if len(content) > 10 * 1024 * 1024:
             logger.warning("file_size_limit_exceeded", filename=file.filename, size=len(content))
             raise HTTPException(status_code=413, detail="File is too large. Maximum allowed size is 10MB.")
 
-        text, page_count, method, telemetry = await _get_text_from_pdf(content, password=password)
+        text, page_count, method, telemetry = await get_text_from_pdf(content, password=password)
             
         logger.info("extract_text_success", method=method, page_count=page_count, text_length=len(text))
         
@@ -114,7 +108,27 @@ async def process_document(
 ):
     """
     Unified endpoint that classifies and extracts data from any financial PDF.
+
+    Args:
+        file (UploadFile): The uploaded PDF file.
+        password (str | None): Optional password for encrypted PDFs.
+
+    Returns:
+        UnifiedDocumentResponse: The structured AI-extracted data.
+
+    Raises:
+        HTTPException: 400 for invalid file types, 413 for oversized files, 
+            or 500 for extraction failures.
     """
+    # PSEUDOCODE: Unified Processing Endpoint Flow
+    # 1. Validate the file type: Ensure it is a PDF.
+    # 2. Enforce 10MB size limit for performance and cost control.
+    # 3. Call 'process_document_content':
+    #    a. Extract text.
+    #    b. Perform dual AI-extraction for verification.
+    #    c. Classify (LOAN vs BANK_STATEMENT).
+    # 4. Return the most deterministic extraction result.
+
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
 
@@ -128,44 +142,7 @@ async def process_document(
             logger.warning("file_size_limit_exceeded", filename=file.filename, size=len(content))
             raise HTTPException(status_code=413, detail="File is too large. Maximum allowed size is 10MB.")
 
-        text, _, method, telemetry = await _get_text_from_pdf(content, password=password)
-
-        if not text.strip():
-            logger.warning("no_text_extracted", method=method)
-            raise HTTPException(status_code=400, detail="No text could be extracted from the PDF, even with OCR.")
-
-        # 2. Use AI to classify and extract
-        logger.info("unified_ai_extraction_start", model=settings.DEFAULT_AI_MODEL, text_length=len(text))
-        extraction = client.chat.completions.create(
-            model=settings.DEFAULT_AI_MODEL,
-            response_model=UnifiedDocumentResponse,
-            messages=[
-                {
-                    "role": "system",
-                    "content": """You are an elite financial document classifier and analyst. 
-                    1. First, classify the provided document as a LOAN contract or a BANK_STATEMENT.
-                    2. If it is a LOAN, extract the loan details into the loan_data field.
-                    3. If it is a BANK_STATEMENT, extract the transaction list into the statement_data field.
-                    4. Provide a classification confidence score and reasoning.
-                    
-                    Be extremely precise with amounts and dates. Use negative numbers for expenses in statements."""
-                },
-                {
-                    "role": "user",
-                    "content": f"Analyze this document (Method: {method}):\n\n{text}"
-                }
-            ]
-        )
-        
-        if extraction.confidence < 0.5:
-            logger.warning("unified_ai_low_confidence", type=extraction.document_type, confidence=extraction.confidence)
-            
-        logger.info("unified_ai_success", type=extraction.document_type, confidence=extraction.confidence)
-        
-        # Attach telemetry for operational tracking
-        extraction.ocr_telemetry = telemetry
-        extraction.ocr_telemetry["method"] = method
-        
+        extraction = await process_document_content(content, file.filename or "unknown", password=password)
         return extraction
 
     except HTTPException:
@@ -173,3 +150,27 @@ async def process_document(
     except Exception as e:
         logger.error("process_document_failed", error=str(e))
         raise HTTPException(status_code=500, detail=f"Unified processing failed: {str(e)}")
+
+@router.post("/enqueue")
+async def enqueue_document_processing(req: EnqueueRequest):
+    """
+    Enqueues a document for background processing via Redis Queue (RQ).
+
+    Args:
+        req (EnqueueRequest): The request containing document and storage details.
+
+    Returns:
+        dict: A success indicator and the background job ID.
+    """
+    logger.info("enqueue_request", document_id=req.document_id)
+    
+    # We set a 5-minute timeout for the job to account for large PDFs or high OCR load.
+    job = ingestion_queue.enqueue(
+        run_process_document_task,
+        document_id=req.document_id,
+        storage_path=req.storage_path,
+        password=req.password,
+        job_timeout='5m'
+    )
+    
+    return {"success": True, "job_id": job.id}

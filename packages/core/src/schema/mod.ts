@@ -3,6 +3,8 @@ import { type Json, Database, Tables, Enums, Constants } from './database.types.
 export type { Database, Json };
 export { Constants };
 
+export * from './intelligence.ts';
+
 // Entities
 export type Profile = Tables<'profiles'>;
 export type Income = Tables<'incomes'>;
@@ -80,6 +82,8 @@ export interface UnifiedTransaction {
   date: string;
   category?: ExpenseCategory | null;
   notes?: string | null;
+  provenance?: { page?: number; snippet?: string } | null;
+  source_document_id?: string | null;
 }
 
 export interface TransactionSummary {

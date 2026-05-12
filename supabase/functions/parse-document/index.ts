@@ -163,21 +163,20 @@ async function processUnified(
     return
   }
 
-  // [1] Call Python Backend for Unified Processing
-  log('python-processing-start', { url: PYTHON_BACKEND_URL })
+  // [1] Call Python Backend for ASYNC Processing
+  log('python-enqueue-start', { url: PYTHON_BACKEND_URL })
   
-  const correlationId = crypto.randomUUID()
-  const formData = new FormData()
-  formData.append('file', new Blob([buffer], { type: contentType }), 'document.pdf')
-  if (password) formData.append('password', password)
-
   try {
-    const res = await fetch(`${PYTHON_BACKEND_URL}/api/v1/documents/process`, {
+    const res = await fetch(`${PYTHON_BACKEND_URL}/api/v1/documents/enqueue`, {
       method: 'POST',
       headers: {
-        'X-Correlation-ID': correlationId,
+        'Content-Type': 'application/json',
       },
-      body: formData,
+      body: JSON.stringify({
+        document_id: documentId,
+        storage_path: docRecord.storage_path,
+        password: password
+      }),
     })
 
     if (!res.ok) {
@@ -185,92 +184,19 @@ async function processUnified(
       throw new Error(`Python backend error ${res.status}: ${errorText}`)
     }
 
-    const unifiedResult: UnifiedDocumentResult = await res.json()
-    log('python-processing-success', { type: unifiedResult.document_type, confidence: unifiedResult.confidence })
+    const enqueueResult = await res.json()
+    log('python-enqueue-success', { job_id: enqueueResult.job_id })
 
-    // [2] Mandatory Validation Layer (Rule 1 Enforcement)
-    const validationErrors: string[] = []
-    const confidenceThreshold = 0.6
-    const isLowConfidence = (unifiedResult.confidence ?? 0) < confidenceThreshold
-
-    if (isLowConfidence) {
-      validationErrors.push(`Low AI confidence: ${unifiedResult.confidence}`)
-    }
-
-    if (unifiedResult.document_type === 'LOAN' && unifiedResult.loan_data) {
-        const loan = unifiedResult.loan_data
-        
-        // Financial Sanity Checks
-        if (loan.principal <= 0) validationErrors.push('Principal must be greater than 0')
-        if (loan.interest_rate < 0 || loan.interest_rate > 100) validationErrors.push('Interest rate must be between 0 and 100')
-        if (loan.duration_months <= 0) validationErrors.push('Duration must be greater than 0 months')
-        if (!loan.name) validationErrors.push('Loan name/lender is missing')
-
-        if (validationErrors.length > 0 && !isLowConfidence) {
-            log('sanity-checks-failed', validationErrors)
-        }
-
-        const formattedData: MultiLoanExtractedData = {
-          loans: [
-            {
-              name: loan.name,
-              principal: loan.principal,
-              currency: loan.currency || 'USD',
-              interest_rate: loan.interest_rate,
-              duration_months: loan.duration_months,
-              installment_amount: loan.installment_amount,
-              lender: loan.lender,
-              start_date: loan.start_date || null,
-              interest_type: loan.interest_type || 'Standard Amortized',
-              interest_basis: null,
-              inferred_type: loan.interest_type || 'Loan',
-            }
-          ]
-        }
-        
-        // Add validation metadata
-        const finalData = {
-            ...formattedData,
-            validation: {
-                confidence: unifiedResult.confidence,
-                errors: validationErrors,
-                requires_verification: isLowConfidence || validationErrors.length > 0,
-                processed_at: new Date().toISOString()
-            }
-        }
-        
-        await storeSuccess(supabase, documentId, finalData, 'Loan', unifiedResult.ocr_telemetry)
-
-    } else if (unifiedResult.document_type === 'BANK_STATEMENT' && unifiedResult.statement_data) {
-        const statement = unifiedResult.statement_data
-        
-        if (!statement.transactions || statement.transactions.length === 0) {
-            validationErrors.push('No transactions found in statement')
-        }
-
-        const finalData = {
-            ...statement,
-            validation: {
-                confidence: unifiedResult.confidence,
-                errors: validationErrors,
-                requires_verification: isLowConfidence || validationErrors.length > 0,
-                processed_at: new Date().toISOString()
-            }
-        }
-
-        await storeSuccess(supabase, documentId, finalData, 'Bank Statement', unifiedResult.ocr_telemetry)
-    } else {
-        throw new Error(`Unsupported or unknown document type: ${unifiedResult.document_type}`)
-    }
-
-    log('done')
+    // We don't store success here anymore. 
+    // The worker will call document-processed-webhook when done.
+    log('done-enqueued')
 
   } catch (err) {
-    log('python-processing-failed', String(err))
+    log('python-enqueue-failed', String(err))
     await storeFailed(supabase, documentId, {
       stage: 'extract',
-      code: 'PYTHON_PROCESSING_FAILED',
-      message: `Intelligence service failed: ${String(err)}`,
+      code: 'PYTHON_ENQUEUE_FAILED',
+      message: `Intelligence service failed to enqueue: ${String(err)}`,
       retryable: true,
     })
   }

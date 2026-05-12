@@ -1,15 +1,38 @@
 'use client';
 
+/**
+ * @module AddLoanButton
+ * Provides a dropdown interface for users to initiate the loan creation process.
+ * Offers two pathways: automated document upload or manual data entry.
+ */
+
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+/**
+ * A dropdown button component that allows users to choose between uploading a loan document
+ * or manually entering loan details.
+ * 
+ * @returns {JSX.Element} A React component that renders a toggleable menu with navigation links.
+ */
 export function AddLoanButton() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  /*
+   * PSEUDOCODE:
+   * 1. Initialize 'open' state as false to keep menu hidden by default.
+   * 2. Use a ref to track the button and menu container for boundary detection.
+   * 3. Setup an effect to manage global click listeners.
+   * 4. In the listener, check if the click target is outside the 'ref' element.
+   * 5. If outside, set 'open' to false to dismiss the dropdown.
+   * 6. Return a cleanup function to remove the listener and prevent memory leaks.
+   */
   useEffect(() => {
     function handleClick(e: MouseEvent) {
+      // Close the dropdown if the user clicks anywhere outside the component
+      // to maintain standard UI menu behavior.
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
     document.addEventListener('mousedown', handleClick);

@@ -382,6 +382,8 @@ Authorization: Bearer <access_token>
 
 Unified entry point for AI-driven document processing. Triggered automatically on `INSERT` to the `documents` table via database webhook, or manually invoked for password-protected files.
 
+**Async Workflow:** This function validates basic file properties and enqueues a job in the Python worker layer (Redis) before returning immediately.
+
 **Manual Invocation (Auth required):**
 ```
 POST /functions/v1/parse-document
@@ -392,7 +394,15 @@ Content-Type: application/json
 Body: { "record": { "id": "<document_id>" } }
 ```
 
-Classifies PDF as LOAN or BANK_STATEMENT, extracts structured data via Python backend, and writes results to `documents.extracted_data`.
+### `document-processed-webhook` (Internal)
+
+Receives processing results from the Python background worker. Validates Rule 1 financial integrity and persists data.
+
+```
+POST /functions/v1/document-processed-webhook
+x-webhook-secret: <secret>
+Body: { "document_id": "...", "result": { ... }, "error": "..." }
+```
 
 ### `categorize-transaction` (New in v0.19.0)
 
@@ -466,9 +476,14 @@ Returns `{ status: 'valid' | 'invalid', invalidCount: number }`.
 These endpoints are internal to the StashFlow network and are called by Supabase Edge Functions. They are hosted by the `stashflow-backend-py` service.
 
 ### `POST /api/v1/documents/process`
-Unified classification and extraction.
+Unified classification and extraction (Synchronous).
 - **Input**: PDF file + optional password.
 - **Output**: `UnifiedDocumentResponse` (Loan or Statement data).
+
+### `POST /api/v1/documents/enqueue` (Async)
+Enqueues a document for background processing.
+- **Input**: `document_id`, `storage_path`, `password`.
+- **Output**: `job_id`.
 
 ### `POST /api/v1/transactions/categorize`
 High-precision transaction classification.

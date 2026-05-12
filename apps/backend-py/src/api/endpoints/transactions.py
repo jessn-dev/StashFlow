@@ -1,25 +1,29 @@
+"""
+Transaction Endpoints for StashFlow.
+
+This module provides API endpoints for managing and processing financial 
+transactions, including AI-powered categorization of bank statement descriptions.
+"""
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-import instructor
-from litellm import completion
 from src.schemas.financial import TransactionCategorizationSchema
 from src.core.config import settings
 from src.core.logger import get_logger
+from src.core.ai import client
 
 router = APIRouter()
 logger = get_logger(__name__)
-
-# Patch litellm with instructor to support structured output via Pydantic models
-client = instructor.from_litellm(completion)
 
 class CategorizationRequest(BaseModel):
     """
     Schema for a transaction categorization request.
     
     Attributes:
-        description: The raw transaction text from a bank statement (e.g., "Starbucks Manila").
-        amount: Optional transaction amount to provide additional context to the AI.
+        description (str): The raw transaction text from a bank statement 
+            (e.g., "Starbucks Manila").
+        amount (Optional[float]): Optional transaction amount to provide 
+            additional context to the AI.
     """
     description: str
     amount: Optional[float] = None
@@ -40,7 +44,8 @@ async def categorize_transaction(request: CategorizationRequest) -> TransactionC
         TransactionCategorizationSchema: The AI-determined category and confidence metadata.
 
     Raises:
-        HTTPException: 400 if description is empty, 500 if AI service fails.
+        HTTPException: 400 if the description is empty, or 500 if the AI 
+            service fails or returns invalid data.
     """
     if not request.description.strip():
         raise HTTPException(status_code=400, detail="Description cannot be empty.")
@@ -89,4 +94,3 @@ async def categorize_transaction(request: CategorizationRequest) -> TransactionC
     except Exception as e:
         logger.error("categorize_transaction_failed", error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to categorize transaction: {str(e)}")
-

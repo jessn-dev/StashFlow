@@ -4,18 +4,39 @@ import { useState, useMemo } from 'react';
 import { simulateDTI, formatCurrency, type Region } from '@stashflow/core';
 import { Info, Calculator, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 
+/**
+ * Properties for the DtiSimulator component.
+ */
 interface DtiSimulatorProps {
+  /** The user's current total monthly income. */
   currentMonthlyIncome: number;
+  /** The user's current total monthly debt obligations. */
   currentMonthlyDebt: number;
+  /** The geographical region for threshold calculations (e.g., 'PH', 'US'). */
   region: Region;
+  /** The currency code for display. */
   currency: string;
 }
 
+/**
+ * An interactive simulator that allows users to project their Debt-to-Income (DTI) 
+ * ratio based on hypothetical changes to income and debt.
+ * 
+ * @param props - Component properties.
+ * @returns A JSX element representing the DTI simulator interface.
+ */
 export function DtiSimulator({ currentMonthlyIncome, currentMonthlyDebt, region, currency }: DtiSimulatorProps) {
   const [addLoanMonthly, setAddLoanMonthly] = useState(0);
   const [addIncomeMonthly, setAddIncomeMonthly] = useState(0);
   const [payOffLoanMonthly, setPayOffLoanMonthly] = useState(0);
 
+  /*
+   * PSEUDOCODE:
+   * 1. Collate current financial state and simulation inputs.
+   * 2. Invoke the core simulateDTI engine to calculate current vs. projected ratios.
+   * 3. Return a structured simulation result containing labels, ratios, and health status.
+   * 4. Memoize the result to avoid re-calculating on unrelated UI re-renders.
+   */
   const simulation = useMemo(() => {
     return simulateDTI({
       monthlyIncome: currentMonthlyIncome,
@@ -29,6 +50,14 @@ export function DtiSimulator({ currentMonthlyIncome, currentMonthlyDebt, region,
 
   const { current, projected, diffPpt } = simulation;
 
+  /*
+   * PSEUDOCODE:
+   * 1. Render a two-column grid (inputs vs. results).
+   * 2. Render range sliders for each simulation input (New Loan, New Income, Debt Payoff).
+   * 3. Render a visual SVG gauge representing the projected DTI health.
+   * 4. Render a trend indicator comparing current vs. projected states.
+   * 5. Conditionally render a 'Health Alert' if the projected ratio exceeds regional limits.
+   */
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* Inputs - 5 cols */}
@@ -147,6 +176,7 @@ export function DtiSimulator({ currentMonthlyIncome, currentMonthlyDebt, region,
                    strokeDashoffset={2 * Math.PI * 110 * (1 - Math.min(projected.ratio, 1))}
                    strokeLinecap="round"
                    className={projected.isHealthy ? 'text-emerald-500' : 'text-red-500'}
+                   /* TRANSITION: Smoothly animate the gauge as the user moves sliders. */
                    style={{ transition: 'stroke-dashoffset 0.5s ease-in-out, color 0.5s ease' }}
                  />
               </svg>

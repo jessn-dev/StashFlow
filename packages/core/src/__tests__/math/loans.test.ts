@@ -60,6 +60,17 @@ describe('loan math', () => {
     expect(result.monthlyPayment).toBeCloseTo(933.33, 1);
   });
 
+  it('should calculate Fixed Principal loan with 0% interest correctly', () => {
+    const result = generateAmortizationSchedule({
+      ...baseParams,
+      annualInterestRate: 0,
+      interestType: 'Fixed Principal',
+    });
+
+    expect(result.monthlyPayment).toBe(10000 / 12);
+    expect(result.totalInterest).toBe(0);
+  });
+
   it('should handle 0% interest loan', () => {
     const result = generateAmortizationSchedule({
       ...baseParams,

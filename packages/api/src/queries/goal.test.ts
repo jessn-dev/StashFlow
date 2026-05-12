@@ -56,6 +56,13 @@ describe('GoalQuery', () => {
     expect(result.name).toBe('House');
   });
 
+  it('should throw error on create if db fails', async () => {
+    const { from } = makeMockSupabase();
+    from._error = { message: 'Create failed' };
+    const query = new GoalQuery({ from } as any);
+    await expect(query.create('user-1', {} as any)).rejects.toThrow('Create failed');
+  });
+
   it('should update a goal', async () => {
     const { from } = makeMockSupabase();
     from._data = { id: '1', current_amount: 1000 };
@@ -64,9 +71,23 @@ describe('GoalQuery', () => {
     expect(result.current_amount).toBe(1000);
   });
 
+  it('should throw error on update if db fails', async () => {
+    const { from } = makeMockSupabase();
+    from._error = { message: 'Update failed' };
+    const query = new GoalQuery({ from } as any);
+    await expect(query.update('1', {})).rejects.toThrow('Update failed');
+  });
+
   it('should delete a goal', async () => {
     const { from } = makeMockSupabase();
     const query = new GoalQuery({ from } as any);
     await expect(query.delete('1')).resolves.not.toThrow();
+  });
+
+  it('should throw error on delete if db fails', async () => {
+    const { from } = makeMockSupabase();
+    from._error = { message: 'Delete failed' };
+    const query = new GoalQuery({ from } as any);
+    await expect(query.delete('1')).rejects.toThrow('Delete failed');
   });
 });

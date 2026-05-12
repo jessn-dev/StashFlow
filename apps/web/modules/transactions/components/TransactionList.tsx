@@ -4,12 +4,27 @@ import { useState } from 'react';
 import { UnifiedTransaction, formatCurrency } from '@stashflow/core';
 import Link from 'next/link';
 
+/**
+ * Renders a list of transactions with filtering capabilities.
+ * 
+ * @param props - Component properties.
+ * @param props.transactions - Array of unified transaction objects to display.
+ * @returns A rendered list of transactions with type-based filters.
+ */
 export function TransactionList({ 
   transactions 
 }: { 
   transactions: UnifiedTransaction[];
 }) {
+  // Local filter state for immediate UI responsiveness without full page reload
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
+
+  // PSEUDOCODE:
+  // 1. Take the full transactions array from props.
+  // 2. Apply a filter based on the local 'filter' state:
+  //    - If 'all', include every transaction.
+  //    - If 'income' or 'expense', include only transactions matching that type.
+  // 3. Store results in 'filtered' variable for rendering.
 
   const filtered = transactions.filter(t => {
     if (filter === 'all') return true;
@@ -18,6 +33,7 @@ export function TransactionList({
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      {/* Header with Type Selector */}
       <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Transactions</h2>
         <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -39,6 +55,7 @@ export function TransactionList({
 
       <div className="divide-y divide-gray-50">
         {filtered.length === 0 ? (
+          /* Empty State Handling */
           <div className="p-16 text-center">
              <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
                <span className="text-2xl">💸</span>
@@ -59,9 +76,11 @@ export function TransactionList({
              )}
           </div>
         ) : (
+          /* Transaction Rows */
           filtered.map((t) => (
             <div key={t.id} className="px-6 py-5 flex justify-between items-center hover:bg-gray-50/50 transition-colors group">
               <div className="flex items-center gap-5">
+                {/* Visual indicator for transaction type */}
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-sm transition-transform group-hover:scale-105 ${
                   t.type === 'income' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
                 }`}>
@@ -81,6 +100,7 @@ export function TransactionList({
                 </div>
               </div>
               <div className="text-right">
+                {/* Amount display with semantic coloring */}
                 <p className={`text-lg font-black tracking-tight ${
                   t.type === 'income' ? 'text-green-600' : 'text-gray-900'
                 }`}>

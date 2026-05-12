@@ -1,5 +1,12 @@
 'use client';
 
+/**
+ * @module LoanForm
+ * Provides a comprehensive interface for reviewing, editing, and saving loan data.
+ * It includes real-time financial inference, amortization previews, and 
+ * data provenance tracking (highlighting where data was found in a source document).
+ */
+
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -7,6 +14,7 @@ import { createClient } from '~/lib/supabase/client';
 import { generateAmortizationSchedule, formatCurrency, inferLoanStructure, computeAddOnEIR } from '@stashflow/core';
 import type { LoanInterestType, LoanInterestBasis, LoanInferenceResult } from '@stashflow/core';
 
+/** Data structure for the loan form state. */
 export interface LoanFormValues {
   name: string;
   principal: string;
@@ -24,10 +32,19 @@ const INTEREST_TYPES = ['Standard Amortized', 'Interest-Only', 'Add-on Interest'
 const INTEREST_BASES = ['30/360', 'Actual/360', 'Actual/365'];
 const CURRENCIES = ['USD', 'PHP', 'SGD', 'EUR', 'GBP'];
 
+/** Fields required for the form to be considered "savable". */
 const REQUIRED_KEYS = new Set(['name', 'principal', 'interest_rate', 'duration_months', 'start_date']);
 
+/** Types of status tags displayed next to form fields. */
 type TagType = 'auto-filled' | 'missing' | 'needs-review';
 
+/**
+ * Visual badge indicating the status of a form field.
+ * 
+ * @param {Object} props - Component props.
+ * @param {TagType} props.type - The status type of the field.
+ * @returns {JSX.Element} A colored badge component.
+ */
 function FieldTag({ type }: { type: TagType }) {
   if (type === 'auto-filled') {
     return (
@@ -50,42 +67,87 @@ function FieldTag({ type }: { type: TagType }) {
   );
 }
 
+/**
+ * Logic to determine which tag should be shown for a given field.
+ * 
+ * @param {string} key - The form field key.
+ * @param {string[]} extractedFields - List of fields successfully extracted by AI.
+ * @returns {TagType | null} The calculated tag type.
+ */
 function getTag(key: string, extractedFields: string[]): TagType | null {
   if (extractedFields.includes(key)) return 'auto-filled';
   if (REQUIRED_KEYS.has(key)) return 'missing';
   return null;
 }
 
+/** Properties for the LoanForm component. */
 interface LoanFormProps {
+  /** Initial values for the form fields (e.g., from AI extraction). */
   initial?: Partial<LoanFormValues> | undefined;
+  /** ID of the source document, if this loan was extracted. */
   docId?: string | undefined;
+  /** Heading title for the form section. */
   title?: string | undefined;
+  /** List of field names that were auto-populated by AI. */
   extractedFields?: string[] | undefined;
+  /** Mapping of fields to their source locations (page/snippet) in the document. */
+  provenance?: Record<string, { page?: number; snippet?: string }> | undefined;
 }
 
+/**
+ * A layout component for a form row that includes label, input, and provenance tooltips.
+ */
 function FieldRow({
   fieldKey,
   label,
   extractedFields,
+  provenance,
   children,
 }: {
   fieldKey: string;
   label: string;
   extractedFields: string[];
+  provenance?: Record<string, { page?: number; snippet?: string }> | undefined;
   children: React.ReactNode;
 }) {
   const tag = getTag(fieldKey, extractedFields);
+  const prov = provenance?.[fieldKey];
+
   return (
-    <div>
+    <div className="relative group/field">
       <label className="block text-xs font-medium text-gray-500 mb-1.5">{label}</label>
       <div className="flex items-center gap-2">
         {children}
         {tag && <FieldTag type={tag} />}
       </div>
+      
+      {/* 
+          Provenance Snippets:
+          We display the original text snippet from the PDF to allow users to 
+          instantly verify AI-extracted numbers against the source of truth.
+      */}
+      {prov?.snippet && (
+        <div className="mt-1.5 opacity-0 group-hover/field:opacity-100 transition-opacity pointer-events-none absolute z-30 left-0 right-0 top-full">
+           <div className="bg-[#0A2540] text-white p-3 rounded-xl shadow-2xl border border-white/10 text-[10px] leading-relaxed">
+             <div className="flex items-center justify-between mb-1.5 border-b border-white/10 pb-1.5">
+               <span className="font-black uppercase tracking-widest text-[8px] text-blue-300">Source Evidence</span>
+               {prov.page && <span className="bg-blue-500/20 px-1.5 py-0.5 rounded text-blue-200 font-bold">Page {prov.page}</span>}
+             </div>
+             <p className="italic text-gray-300">“{prov.snippet}”</p>
+           </div>
+        </div>
+      )}
     </div>
   );
 }
 
+/**
+ * Helper to calculate the estimated loan completion date.
+ * 
+ * @param {string} startDate - The ISO start date.
+ * @param {number} months - Duration in months.
+ * @returns {string} Formatted month/year string.
+ */
 function formatPayoffDate(startDate: string, months: number): string {
   try {
     const d = new Date(startDate);
@@ -96,7 +158,13 @@ function formatPayoffDate(startDate: string, months: number): string {
   }
 }
 
-export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'Loan Details' }: LoanFormProps) {
+/**
+ * Comprehensive loan entry and review form.
+ * 
+ * @param {LoanFormProps} props - Component props.
+ * @returns {JSX.Element} The rendered form.
+ */
+export function LoanForm({ initial = {}, docId, extractedFields = [], provenance, title = 'Loan Details' }: LoanFormProps) {
   const router = useRouter();
   const [values, setValues] = useState<LoanFormValues>({
     name: initial.name ?? '',
@@ -128,6 +196,13 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
     },
   });
 
+  /*
+   * PSEUDOCODE: Financial Inference
+   * 1. Extract numerical values from the form state.
+   * 2. Determine country context from currency (used for regional lending norms).
+   * 3. Pass values to inferLoanStructure to guess the interest type (e.g., identifying Add-on interest).
+   * 4. Update the form's interest_type automatically if confidence is high and user hasn't manualy overridden it.
+   */
   const inference = useMemo((): LoanInferenceResult => {
     const p = parseFloat(values.principal);
     const m = parseFloat(values.installment_amount);
@@ -147,13 +222,19 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
   }, [values.principal, values.installment_amount, values.interest_rate, values.duration_months, values.currency]);
 
   useEffect(() => {
+    // If the user has manually changed the interest type, we stop auto-guessing.
     if (userOverrodeInterestType) return;
     if (inference.confidence >= 0.60) {
       setValues(v => ({ ...v, interest_type: inference.interest_type }));
     }
   }, [inference, userOverrodeInterestType]);
 
-  // Financial snapshot — updates reactively with form values
+  /*
+   * PSEUDOCODE: Amortization Snapshot
+   * 1. Validate that basic loan parameters (principal, rate, duration) are present and positive.
+   * 2. Use the core library to generate a theoretical amortization schedule.
+   * 3. This snapshot is used for UI previews (e.g., total interest) before the user saves.
+   */
   const snapshot = useMemo(() => {
     const principal = parseFloat(values.principal);
     const rate = parseFloat(values.interest_rate);
@@ -174,6 +255,14 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
     }
   }, [values.principal, values.interest_rate, values.duration_months, values.start_date, values.interest_type]);
 
+  /*
+   * PSEUDOCODE: Submission Logic
+   * 1. Prevent default form action and set loading state.
+   * 2. Authenticate the user session.
+   * 3. Insert the loan record into Supabase with parsed numerical values.
+   * 4. If successful and a docId exists, link the document to the new loan record.
+   * 5. Trigger a redirect or success state.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -246,8 +335,14 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
 
   const inputClass = 'flex-1 h-10 px-3 rounded-lg border border-gray-200 text-sm outline-none focus:border-gray-400 transition-colors bg-white';
 
-  // Prefer the stated installment_amount from the document over the formula-computed value.
-  // Lenders (e.g. EIR-based) often use rate conventions our formula doesn't replicate exactly.
+  /*
+   * PSEUDOCODE: Dynamic Calculations for UI
+   * 1. Prioritize the installment_amount extracted from the document over computed values
+   *    because lenders often use internal rounding or conventions (EIR) that standard
+   *    amortization formulas won't match exactly.
+   * 2. Calculate Effective Interest Rate (EIR) if the type is 'Add-on Interest'.
+   * 3. Construct the snapshot items for the UI summary cards.
+   */
   const statedMonthly = parseFloat(values.installment_amount) || 0;
   const durationMonths = parseInt(values.duration_months) || 0;
   const principalAmt = parseFloat(values.principal) || 0;
@@ -307,7 +402,7 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
       <p className="text-base font-semibold text-gray-900 mb-4">{title}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div className="sm:col-span-2">
-          <FieldRow fieldKey="name" label="Loan Name" extractedFields={extractedFields}>
+          <FieldRow fieldKey="name" label="Loan Name" extractedFields={extractedFields} provenance={provenance}>
             <input
               required
               className={inputClass}
@@ -317,7 +412,7 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
           </FieldRow>
         </div>
 
-        <FieldRow fieldKey="principal" label="Principal Amount" extractedFields={extractedFields}>
+        <FieldRow fieldKey="principal" label="Principal Amount" extractedFields={extractedFields} provenance={provenance}>
           <input
             required
             type="number"
@@ -329,13 +424,13 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
           />
         </FieldRow>
 
-        <FieldRow fieldKey="currency" label="Currency" extractedFields={extractedFields}>
+        <FieldRow fieldKey="currency" label="Currency" extractedFields={extractedFields} provenance={provenance}>
           <select className={inputClass} {...field('currency')}>
             {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </FieldRow>
 
-        <FieldRow fieldKey="interest_rate" label="Annual Interest Rate (%)" extractedFields={extractedFields}>
+        <FieldRow fieldKey="interest_rate" label="Annual Interest Rate (%)" extractedFields={extractedFields} provenance={provenance}>
           <input
             required
             type="number"
@@ -348,7 +443,7 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
           />
         </FieldRow>
 
-        <FieldRow fieldKey="duration_months" label="Duration" extractedFields={extractedFields}>
+        <FieldRow fieldKey="duration_months" label="Duration" extractedFields={extractedFields} provenance={provenance}>
           <input
             required
             type="number"
@@ -383,7 +478,7 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
           </select>
         </FieldRow>
 
-        <FieldRow fieldKey="start_date" label="Start Date" extractedFields={extractedFields}>
+        <FieldRow fieldKey="start_date" label="Start Date" extractedFields={extractedFields} provenance={provenance}>
           <input
             required
             type="date"
@@ -392,7 +487,7 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
           />
         </FieldRow>
 
-        <FieldRow fieldKey="installment_amount" label="Monthly Payment" extractedFields={extractedFields}>
+        <FieldRow fieldKey="installment_amount" label="Monthly Payment" extractedFields={extractedFields} provenance={provenance}>
           <input
             type="number"
             min="0"
@@ -407,7 +502,7 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
       {/* Section 2: Loan Context */}
       <div className="border-t border-gray-100 pt-5 mb-6">
         <p className="text-base font-semibold text-gray-900 mb-4">Loan Context</p>
-        <FieldRow fieldKey="lender" label="Lender (optional)" extractedFields={extractedFields}>
+        <FieldRow fieldKey="lender" label="Lender (optional)" extractedFields={extractedFields} provenance={provenance}>
           <input
             className={inputClass}
             placeholder="e.g. Chase, BDO, DBS"
@@ -481,7 +576,7 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
 
         {advancedOpen && (
           <div className="rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ background: '#F9FAFB' }}>
-            <FieldRow fieldKey="interest_type" label="Loan Type" extractedFields={extractedFields}>
+            <FieldRow fieldKey="interest_type" label="Loan Type" extractedFields={extractedFields} provenance={provenance}>
               <select
                 className={inputClass}
                 value={values.interest_type}
@@ -495,7 +590,7 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], title = 'L
               </select>
             </FieldRow>
 
-            <FieldRow fieldKey="interest_basis" label="Interest Basis" extractedFields={extractedFields}>
+            <FieldRow fieldKey="interest_basis" label="Interest Basis" extractedFields={extractedFields} provenance={provenance}>
               <select className={inputClass} {...field('interest_basis')}>
                 {INTEREST_BASES.map(b => <option key={b} value={b}>{b}</option>)}
               </select>

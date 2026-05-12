@@ -1,25 +1,29 @@
+"""
+Analysis Endpoints for StashFlow.
+
+This module provides API endpoints for performing complex financial analysis, 
+such as anomaly detection in transaction histories using statistical models 
+and AI interpretation.
+"""
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
 import pandas as pd
-import instructor
-from litellm import completion
 from src.schemas.financial import TransactionRecord, AnomalyReportSchema
 from src.core.config import settings
 from src.core.logger import get_logger
+from src.core.ai import client
 
 router = APIRouter()
 logger = get_logger(__name__)
-
-# Patch litellm with instructor to support structured output via Pydantic models
-client = instructor.from_litellm(completion)
 
 class AnomalyRequest(BaseModel):
     """
     Schema for the anomaly detection request.
     
     Attributes:
-        transactions: A list of transaction records to be analyzed.
+        transactions (List[TransactionRecord]): A list of transaction records 
+            to be analyzed for spending spikes.
     """
     transactions: List[TransactionRecord]
 
@@ -39,7 +43,8 @@ async def detect_anomalies(request: AnomalyRequest) -> AnomalyReportSchema:
         AnomalyReportSchema: A report containing detected anomalies and AI-generated insights.
 
     Raises:
-        HTTPException: If the analysis process fails due to data or model errors.
+        HTTPException: If the analysis process fails due to data processing errors 
+            or AI service unavailability.
     """
     if not request.transactions:
         return AnomalyReportSchema(anomalies=[])
@@ -129,8 +134,7 @@ async def detect_anomalies(request: AnomalyRequest) -> AnomalyReportSchema:
         return ai_analysis
 
     except Exception as e:
-        # We catch all exceptions here to ensure we log the failure in our structured logs
-        # before returning a generic 500 to the user.
+        # STRATEGIC LOGGING: We catch all exceptions here to ensure we log the failure 
+        # in our structured logs before returning a generic 500 to the user.
         logger.error("detect_anomalies_failed", error=str(e))
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
-

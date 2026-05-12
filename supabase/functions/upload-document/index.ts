@@ -1,3 +1,10 @@
+/**
+ * upload-document
+ * ---------------
+ * Edge function for securely uploading and validating user documents (PDFs, Images, Excel).
+ * Performs multi-layer validation including file size, MIME type, and magic bytes before storage.
+ */
+
 import { createClient } from "@supabase/supabase-js"
 import * as Sentry from "npm:@sentry/deno"
 
@@ -15,13 +22,13 @@ if (SENTRY_DSN) {
   })
 }
 
-const ALLOWED_MIME_TYPES = [
+const ALLOWED_MIME_TYPES = new Set([
   'application/pdf',
   'image/jpeg',
   'image/png',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'application/vnd.ms-excel',
-]
+])
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
 /**
@@ -65,6 +72,19 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // PSEUDOCODE: Secure Document Upload
+  // 1. Validate user session via Authorization header.
+  // 2. Parse multi-part form data to extract the uploaded file.
+  // 3. Multi-Layer Validation:
+  //    a. Size check (max 5MB).
+  //    b. MIME type check against ALLOWED_MIME_TYPES Set.
+  //    c. Magic Bytes signature validation to prevent file spoofing.
+  //    d. SHA-256 Content Hashing for idempotency.
+  // 4. Check for existing document with same hash to prevent duplicates.
+  // 5. Upload raw file to private Supabase Storage bucket.
+  // 6. Record document metadata in the 'documents' database table.
+  // 7. Rollback storage if database record creation fails.
+
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) throw new Error('Missing Authorization header')
@@ -89,7 +109,7 @@ Deno.serve(async (req) => {
     if (file.size > MAX_FILE_SIZE) throw new Error('File exceeds 5MB limit')
 
     // B. MIME type check (browser provided)
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) throw new Error(`Type ${file.type} not allowed`)
+    if (!ALLOWED_MIME_TYPES.has(file.type)) throw new Error(`Type ${file.type} not allowed`)
 
     // C. Content check (Magic Numbers)
     const arrayBuffer = await file.arrayBuffer()

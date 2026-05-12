@@ -13,7 +13,18 @@ interface Group {
   transactions: UnifiedTransaction[];
 }
 
+/**
+ * Groups a flat list of transactions into relative date buckets for timeline display.
+ * 
+ * @param transactions - List of transactions to group.
+ * @returns An array of Group objects containing a label and its transactions.
+ */
 function groupByDate(transactions: UnifiedTransaction[]): Group[] {
+  // PSEUDOCODE: Date Grouping Logic
+  // 1. Define anchor points: Today, Yesterday, Start of Week, Start of Month.
+  // 2. Iterate through transactions and assign each to the most specific matching bucket.
+  // 3. Return non-empty buckets as labeled Groups.
+
   const today = new Date().toISOString().split('T')[0]!;
   const yesterday = (() => {
     const d = new Date();
@@ -288,6 +299,9 @@ interface Props {
   };
 }
 
+/**
+ * Main component for rendering the transaction history timeline with infinite scroll.
+ */
 export function TransactionTimeline({
   initialTransactions,
   rates,
@@ -307,12 +321,21 @@ export function TransactionTimeline({
     setHasMore(initialTransactions.length >= 100);
   }, [initialTransactions]);
 
+  /**
+   * Fetches the next page of transactions based on the date and ID of the last item.
+   * 
+   * PSEUDOCODE: Infinite Scroll Pagination
+   * 1. Extract cursor from the last transaction (Date | ID).
+   * 2. Call TransactionQuery with current filters and cursor.
+   * 3. Append results to existing transactions list.
+   * 4. Disable further loading if fewer than 'limit' results are returned.
+   */
   async function handleLoadMore() {
     if (loading || !hasMore) return;
     setLoading(true);
 
     try {
-      const last = transactions[transactions.length - 1];
+      const last = transactions.at(-1);
       const cursor = last ? `${last.date}|${last.id}` : undefined;
 
       const supabase = createClient();

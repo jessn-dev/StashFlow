@@ -5,7 +5,19 @@ import Link from 'next/link';
 import { AddLoanButton } from '~/modules/loans/components/AddLoanButton';
 import { LoanUploadZone } from '~/modules/loans/components/LoanUploadZone';
 
+/**
+ * Generates an SVG polyline string representing the loan's declining balance over time.
+ * 
+ * @param loan - The loan object containing principal, rate, and schedule details.
+ * @returns A string of space-separated X,Y coordinates for an SVG <polyline>.
+ */
 function buildSparkline(loan: Loan): string {
+  // PSEUDOCODE: Sparkline Generation
+  // 1. Generate the full amortization schedule for the loan.
+  // 2. Downsample the schedule entries to ~60 points for a smooth but performant sparkline.
+  // 3. Map the remaining balance of each sampled entry to a 120x36 coordinate space.
+  // 4. Invert the Y-axis (since SVG Y increases downwards) to show declining balance correctly.
+
   try {
     const schedule = generateAmortizationSchedule({
       principal: loan.principal,
@@ -20,7 +32,7 @@ function buildSparkline(loan: Loan): string {
     const step = Math.max(1, Math.floor(entries.length / 60));
     const sampled = entries.filter((_, i) => i % step === 0);
     const max = sampled[0]?.remainingBalance ?? loan.principal;
-    const min = sampled[sampled.length - 1]?.remainingBalance ?? 0;
+    const min = sampled.at(-1)?.remainingBalance ?? 0;
     const range = max - min || 1;
 
     const W = 120, H = 36;
@@ -127,6 +139,10 @@ function LoanCard({ loan, metrics }: { loan: Loan; metrics: LoanMetrics }) {
   );
 }
 
+/**
+ * Main dashboard page for managing user loans.
+ * Displays aggregate debt metrics, DTI ratio, and a list of active loans with amortization sparklines.
+ */
 export default async function LoansPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

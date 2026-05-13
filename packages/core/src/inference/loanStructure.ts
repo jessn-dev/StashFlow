@@ -22,7 +22,7 @@ export interface LoanInferenceInput {
   /** The category of the entity providing the loan. */
   lender_type?: 'bank' | 'dealer' | 'informal' | 'unknown';
   /** ISO 3166-1 alpha-2 country code. */
-  country?: 'US' | 'PH' | 'SG' | string | null;
+  country?: 'US' | 'PH' | 'SG' | null;
 }
 
 /**
@@ -31,7 +31,7 @@ export interface LoanInferenceInput {
 export interface LoanInferenceAlternative {
   /** The alternative interest calculation type. */
   interest_type: LoanInterestType;
-  /** Probability score (0.0 to 1.0). */
+  /** Probability score (0 to 1). */
   confidence: number;
 }
 
@@ -41,7 +41,7 @@ export interface LoanInferenceAlternative {
 export interface LoanInferenceResult {
   /** The most likely interest calculation type. */
   interest_type: LoanInterestType;
-  /** Probability score for the primary match (0.0 to 1.0). */
+  /** Probability score for the primary match (0 to 1). */
   confidence: number;
   /** Human-readable justification for the inference. */
   reason: string;

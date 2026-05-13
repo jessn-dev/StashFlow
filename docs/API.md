@@ -322,7 +322,7 @@ Via `convertToBase(amount, rate)` from `@stashflow/core`. `rate` = units of base
 
 ### `sync-exchange-rates` (Edge Function)
 
-Syncs daily reference rates from the **Frankfurter API**. Computes bidirectional cross-rates via a USD bridge.
+Syncs daily reference rates from the **Frankfurter API** (ECB reference rates, free, once-daily refresh). Fetches **all ~30 ECB currencies** (`?from=USD` — no filter). Pre-computes bidirectional USD↔target pairs and all non-USD cross-rates quadratically (e.g. SGD→PHP = `rates[PHP] / rates[SGD]`). Upserts into `exchange_rates` on `UNIQUE(base, target)` conflict. Auth: `CRON_SECRET` header required.
 
 ---
 
@@ -347,42 +347,11 @@ Response 403: { "error": "Forbidden" }   // userId mismatch
 
 `userId` in body must match the JWT subject. Account deletion cascades to all user-owned rows via `ON DELETE CASCADE`.
 
-### `get-dashboard`
-
-Aggregates full dashboard payload for mobile app.
-
-```
-POST /functions/v1/get-dashboard
-Authorization: Bearer <access_token>
-```
-
-Returns net worth, DTI, cashflow, upcoming payments, recent transactions.
-
-### `calculate-dti`
-
-DTI ratio with regional thresholds (US 36%, PH 40%, SG 55%).
-
-```
-POST /functions/v1/calculate-dti
-Authorization: Bearer <access_token>
-```
-
-Returns `DTIRatioResult`: `ratio`, `isHealthy`, `regionalThreshold`, `breakdown`.
-
-### `macro-financial-advisor`
-
-AI-powered financial insights. Cached by `(region, currency, data_version_hash)` — 24h TTL. Rate-limited to 5 AI calls per user per day.
-
-```
-POST /functions/v1/macro-financial-advisor
-Authorization: Bearer <access_token>
-```
-
 ### `parse-document`
 
-Unified entry point for AI-driven document processing. Triggered automatically on `INSERT` to the `documents` table via database webhook, or manually invoked for password-protected files.
+Unified entry point for AI-driven document processing. Triggered automatically on `INSERT` to the `documents` table via `pg_net` database trigger, or manually invoked for password-protected files.
 
-**Async Workflow:** This function validates basic file properties and enqueues a job in the Python worker layer (Redis) before returning immediately.
+**Synchronous workflow:** validates file properties → downloads from Storage → calls Python backend (`/api/v1/documents/process`) → writes result to `documents.extracted_data` → updates `processing_status`.
 
 **Manual Invocation (Auth required):**
 ```
@@ -394,40 +363,104 @@ Content-Type: application/json
 Body: { "record": { "id": "<document_id>" } }
 ```
 
-### `document-processed-webhook` (Internal)
+**Webhook-triggered invocation (no user session):** uses `SUPABASE_SERVICE_ROLE_KEY`; validates `x-webhook-secret` header against `PARSE_LOAN_WEBHOOK_SECRET`.
 
-Receives processing results from the Python background worker. Validates Rule 1 financial integrity and persists data.
 
-```
-POST /functions/v1/document-processed-webhook
-x-webhook-secret: <secret>
-Body: { "document_id": "...", "result": { ... }, "error": "..." }
-```
+### `get-dashboard`
 
-### `categorize-transaction` (New in v0.19.0)
-
-AI-driven classification of bank transaction descriptions.
+Server-aggregated dashboard payload. Designed for the mobile app to reduce 7 direct Supabase queries to a single edge call. The web app fetches tables directly; mobile will migrate to this endpoint post-MVP.
 
 ```
-POST /functions/v1/categorize-transaction
+POST /functions/v1/get-dashboard
 Authorization: Bearer <access_token>
-Content-Type: application/json
-
-Body: { "description": "Starbucks Manila", "amount": 250.00 }
-
-Response 200: { "category": "food", "confidence": 0.98, "reasoning": "..." }
 ```
 
-### `detect-anomalies` (New in v0.19.0)
+Returns the full `DashboardPayload` from `aggregateDashboardData` in `@stashflow/core`.
 
-Statistical and AI-driven analysis of spending spikes.
+### `calculate-dti`
+
+DTI ratio with regional thresholds (US 36%, PH 40%, SG 55%). Scaffolded for mobile API access.
+
+```
+POST /functions/v1/calculate-dti
+Authorization: Bearer <access_token>
+```
+
+Returns `DTIRatioResult`: `ratio`, `isHealthy`, `regionalThreshold`, `breakdown`.
+
+### `get-cash-flow`
+
+Cash flow aggregation for a given period. Scaffolded for mobile API access.
+
+```
+POST /functions/v1/get-cash-flow
+Authorization: Bearer <access_token>
+```
+
+### `detect-anomalies`
+
+Statistical spending anomaly detection. Routes to the Python backend (`/api/v1/analysis/anomalies`). **Wired to the web dashboard** via `AnomalyInsightCards` client component (invoked on mount; renders nothing when spending is clean).
 
 ```
 POST /functions/v1/detect-anomalies
 Authorization: Bearer <access_token>
 ```
 
-Fetches last 6 months of expenses and returns an `AnomalyReport` containing detected spikes and actionable insights.
+Fetches last 6 months of expenses and returns detected spikes with AI insights. Each anomaly includes `category`, `severity` (`low`/`medium`/`high`), `description`, and `recommended_action`.
+
+### `macro-financial-advisor`
+
+AI macroeconomic insights for the intelligence feed. Gemini 2.0 Flash → Gemini 1.5 Flash → Groq/Llama 3 fallback chain. Static regional fallbacks if all AI providers are unavailable. **Wired to the web dashboard** via `MacroInsightCard` client component.
+
+**24h shared cache:** reads `ai_insights_cache` before generating. Cache key: `(region, currency)` — shared across all users in the same region. `data_version_hash` set to `{region}:{currency}:{YYYY-MM}`. Returns `_meta.modelUsed: 'cache'` on hit.
+
+```
+POST /functions/v1/macro-financial-advisor
+Authorization: Bearer <access_token>
+Body: { "currency": "PHP", "region": "Philippines" }
+```
+
+### `upload-document`
+
+Secure document upload with SHA-256 content hashing (deduplication) and MIME/magic-bytes validation. Web and mobile currently upload directly to Storage — routing through this endpoint adds the idempotent ingestion layer.
+
+```
+POST /functions/v1/upload-document
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+```
+
+### `monitor-financial-integrity`
+
+Account-level financial scan. Detects anomalous balance shifts (5+ std dev) and unsupported currency usage. Logs findings to `system_audit_logs`. Intended to be called by a scheduled job or admin trigger.
+
+Auth: `x-webhook-secret` header validated against `MONITOR_WEBHOOK_SECRET` env var (added v0.23.0 — was previously unauthenticated).
+
+```
+POST /functions/v1/monitor-financial-integrity
+x-webhook-secret: <MONITOR_WEBHOOK_SECRET>
+Body: { "userId": "<user_id>" }
+```
+
+### `get-platform-stats` (Cron / Admin)
+
+Returns aggregate platform metrics (user count, document counts, processing stats). Admin/internal use only.
+
+Auth: `CRON_SECRET` header required (added v0.23.0 — previously unauthenticated, exposing user counts). Uses `SUPABASE_SERVICE_ROLE_KEY` internally.
+
+```
+POST /functions/v1/get-platform-stats
+Authorization: Bearer <CRON_SECRET>
+```
+
+### `sync-market-data` (Cron)
+
+Fetches macroeconomic data from the FRED® API across USD/EUR/GBP/JPY/SGD/PHP. Writes to `market_trends` table consumed by `macro-financial-advisor`. No pg_cron schedule configured yet.
+
+```
+POST /functions/v1/sync-market-data
+Authorization: Bearer <cron_secret>
+```
 
 ### `get-user-sessions` (New in v0.18.0)
 
@@ -480,20 +513,10 @@ Unified classification and extraction (Synchronous).
 - **Input**: PDF file + optional password.
 - **Output**: `UnifiedDocumentResponse` (Loan or Statement data).
 
-### `POST /api/v1/documents/enqueue` (Async)
-Enqueues a document for background processing.
-- **Input**: `document_id`, `storage_path`, `password`.
-- **Output**: `job_id`.
-
 ### `POST /api/v1/transactions/categorize`
 High-precision transaction classification.
 - **Input**: Description + optional amount.
 - **Output**: Category, confidence, and reasoning.
-
-### `POST /api/v1/analysis/anomalies`
-Spend analysis engine.
-- **Input**: Transaction history list.
-- **Output**: List of statistical anomalies with AI insights.
 
 ---
 
@@ -539,7 +562,7 @@ interface ProcessingError {
 
 | Resource | Limit |
 |----------|-------|
-| AI advisor (`macro-financial-advisor`) | 5 per user per day |
+| `macro-financial-advisor` | 5 per user per day (enforced via `ai_insights_cache` table) |
 | Edge function invocations | Supabase plan limits |
 | Storage uploads | Supabase plan limits |
 | Exchange rate sync | 1× per hour (cron) |

@@ -54,12 +54,6 @@ export type Confidence = number;
  */
 export type Reasoning = string;
 /**
- * Map of field names to their source provenance
- */
-export type Provenance = {
-  [k: string]: Provenance1;
-} | null;
-/**
  * The 1-indexed page number where the information was found
  */
 export type Page = number | null;
@@ -144,13 +138,16 @@ export interface LoanExtractionSchema {
   lender?: Lender;
   confidence?: Confidence;
   reasoning?: Reasoning;
-  provenance?: Provenance;
+  /**
+   * Source location for the primary extracted data (page + snippet)
+   */
+  provenance?: Provenance | null;
   [k: string]: unknown;
 }
 /**
  * Metadata linking extracted data back to its source in the document.
  */
-export interface Provenance1 {
+export interface Provenance {
   page?: Page;
   snippet?: Snippet;
   [k: string]: unknown;
@@ -176,6 +173,6 @@ export interface TransactionExtractionItem {
   /**
    * Source provenance for this transaction
    */
-  provenance?: Provenance1 | null;
+  provenance?: Provenance | null;
   [k: string]: unknown;
 }

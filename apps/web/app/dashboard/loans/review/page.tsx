@@ -4,9 +4,9 @@ import { createClient } from '~/lib/supabase/server';
 import { DocumentStatusWatcher } from '~/modules/loans/components/DocumentStatusWatcher';
 import type { DocumentRecord } from '~/modules/loans/components/DocumentStatusWatcher';
 
-interface ReviewPageProps {
+type ReviewPageProps = Readonly<{
   searchParams: Promise<{ doc?: string }>;
-}
+}>;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

@@ -12,7 +12,7 @@
 #   db:start                  Start local Supabase (Docker)
 #   db:stop                   Stop local Supabase
 #   db:reset                  Reset DB — reapply all migrations + seed data
-#   db:clean                  Stop and prune all local Supabase containers and volumes
+#   db:clean                  Stop and remove ALL Docker containers, images, volumes, and networks
 #   db:functions              Serve Edge Functions locally with .env loading
 #   db:status                 Show running Supabase service URLs & ports
 #   db:port <port>            Change the local Supabase API port
@@ -45,6 +45,20 @@ warn()    { echo -e "${YELLOW}⚠  $*${RESET}"; return 0; }
 error()   { echo -e "${RED}✖  $*${RESET}" >&2; return 0; }
 die()     { error "$*"; exit 1; }
 divider() { echo -e "${BOLD}────────────────────────────────────────────────────────${RESET}"; return 0; }
+
+wait_for_port() {
+  local port=$1
+  local timeout=${2:-30}
+  local count=0
+  while ! nc -z localhost "$port" >/dev/null 2>&1; do
+    if [ "$count" -ge "$timeout" ]; then
+      return 1
+    fi
+    sleep 1
+    ((count++))
+  done
+  return 0
+}
 
 # ── Resolve project root ──────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -136,6 +150,7 @@ cmd_help() {
   echo -e "    add <pkg> [-w <workspace>] Add a package to root or a specific workspace"
   echo ""
   echo -e "  ${CYAN}Development${RESET}"
+  echo -e "    start:all                  Full stack: logging + db + env + py:worker + dev"
   echo -e "    dev                        Start all dev servers via Turbo"
   echo -e "    dev web                    Start web app only"
   echo -e "    dev mobile                 Start mobile app only (Expo)"
@@ -144,7 +159,7 @@ cmd_help() {
   echo -e "    db:start                   Start local Supabase instance (Docker)"
   echo -e "    db:stop                    Stop local Supabase instance"
   echo -e "    db:reset                   Drop + reapply migrations + seed data"
-  echo -e "    db:clean                   Stop and prune all local Supabase containers and volumes"
+  echo -e "    db:clean                   Stop and remove ALL Docker containers, images, volumes, and networks"
   echo -e "    db:functions               Serve Edge Functions locally with .env loading"
   echo -e "    db:status                  Show service URLs and running status"
   echo -e "    db:port <port>             Change the Supabase API port (config.toml)"
@@ -165,21 +180,21 @@ cmd_help() {
   echo ""
 
   echo -e "  ${CYAN}Python Backend${RESET}"
-
+  echo -e "    py:api                     Start the Python FastAPI server locally (port 8008)"
   echo -e "    py:docker                  Build the Python backend Docker container for local testing"
   echo -e "    py:worker                  Start the Python background worker (RQ)"
 
   echo ""
   echo -e "  ${CYAN}Testing & Quality${RESET}"
-    echo -e "    check:all                  Run ALL quality gates (typecheck, lint, tests + coverage)"
-    echo -e "    lint                       Run ESLint across all packages"
-    echo -e "    typecheck                  Run TypeScript typecheck across all packages"
-    echo -e "    test                       Run all package unit tests"
-    echo -e "    test <pkg>                 Run unit tests for one package (e.g. @stashflow/core)"
-    echo -e "    test coverage              Run all unit tests with coverage (enforces thresholds)"
-    echo -e "    test <pkg> coverage        Run coverage for one package"
-    echo -e "    test:e2e                   Run Playwright E2E tests against local web server"
-    echo -e "    py:check                   Run Python quality gates (ruff, mypy, pytest + coverage)"
+  echo -e "    check:all                  Run ALL quality gates (typecheck, lint, tests + coverage)"
+  echo -e "    lint                       Run ESLint across all packages"
+  echo -e "    typecheck                  Run TypeScript typecheck across all packages"
+  echo -e "    test                       Run all package unit tests"
+  echo -e "    test <pkg>                 Run unit tests for one package (e.g. @stashflow/core)"
+  echo -e "    test coverage              Run all unit tests with coverage (enforces thresholds)"
+  echo -e "    test <pkg> coverage        Run coverage for one package"
+  echo -e "    test:e2e                   Run Playwright E2E tests against local web server"
+  echo -e "    py:check                   Run Python quality gates (ruff, mypy, pytest + coverage)"
   echo ""
 
   echo -e "  ${CYAN}Maintenance${RESET}"
@@ -219,6 +234,14 @@ cmd_py_docker() {
   success "Docker image built: stashflow-backend-py"
 }
 
+cmd_py_api() {
+  require_uv
+  info "Starting Python API server (FastAPI) on port 8008..."
+  cd apps/backend-py
+  # We run on 0.0.0.0 so host.docker.internal can reach it from Edge Functions
+  uv run uvicorn src.main:app --host 0.0.0.0 --port 8008 --reload
+}
+
 cmd_py_worker() {
   require_uv
   info "Starting Python background worker (RQ)..."
@@ -231,14 +254,11 @@ cmd_logging_start() {
     die "Docker is required for logging."
   fi
   info "Checking local logging stack (GlitchTip)..."
-  if ! docker ps --filter "name=glitchtip" | grep -q "glitchtip"; then
-    info "Starting GlitchTip..."
-    docker-compose -f docker-compose.logging.yml up -d
-    success "GlitchTip is running at http://localhost:8000"
-    info "Default SENTRY_DSN for local dev: http://local-public-key@localhost:8000/1"
-  else
-    info "GlitchTip is already running."
-  fi
+  # Use 'up -d' directly to ensure correct configuration (port mappings, etc.) is applied
+  docker-compose -f docker-compose.logging.yml up -d
+  success "Logging stack is running."
+  info "GlitchTip: http://localhost:8000"
+  info "Default SENTRY_DSN for local dev: http://local-public-key@localhost:8000/1"
 }
 
 cmd_logging_stop() {
@@ -319,6 +339,49 @@ cmd_dev() {
     info "Starting all development servers via Turbo..."
     pnpm dev
   fi
+}
+
+cmd_start_all() {
+  info "Launching full StashFlow development stack..."
+  
+  # 1. Start persistent services
+  cmd_logging_start
+  
+  if ! supabase status &>/dev/null; then
+    cmd_db_start
+  fi
+  
+  cmd_db_env
+  
+  # 2. Ensure Redis is ready
+  info "Waiting for Redis (6379) to be ready..."
+  if ! wait_for_port 6379 15; then
+    die "Redis failed to start on port 6379."
+  fi
+  
+  # 3. Start Python API (Background)
+  info "Starting Python API server (8008)..."
+  (require_uv && cd apps/backend-py && uv run uvicorn src.main:app --host 0.0.0.0 --port 8008) &
+  API_PID=$!
+  
+  # 4. Start Python Worker (Background)
+  info "Starting Python background worker (RQ)..."
+  (require_uv && cd apps/backend-py && uv run python worker.py) &
+  WORKER_PID=$!
+  
+  # 5. Wait for Python API to be healthy
+  info "Waiting for Python API to be healthy..."
+  if ! wait_for_port 8008 20; then
+    kill $API_PID $WORKER_PID 2>/dev/null || true
+    die "Python API failed to start on port 8008."
+  fi
+  success "Python services are up."
+
+  # Setup cleanup on exit
+  trap "info 'Shutting down services...'; kill $API_PID $WORKER_PID 2>/dev/null || true; exit" EXIT INT TERM
+
+  # 6. Hand over to the dev server (This is blocking)
+  cmd_dev "$@"
 }
 
 cmd_install() {
@@ -456,7 +519,7 @@ cmd_db_jwt() {
     BEGIN
       PERFORM
         net.http_post(
-          url := 'http://supabase_edge_runtime_StashFlow:8081/parse-loan-document',
+          url := 'http://supabase_edge_runtime_StashFlow:8081/parse-document',
           headers := jsonb_build_object(
             'Content-Type', 'application/json',
             'x-webhook-secret', 'dev-secret-123',
@@ -629,25 +692,47 @@ cmd_docker_clean() {
 }
 
 cmd_db_clean() {
-  cmd_docker_clean
+  warn "This will stop and remove ALL Docker containers, images, volumes, and networks on this machine."
+  read -p "   Continue? [y/N] " confirm
+  [[ $confirm == [yY] ]] || { info "Cancelled."; return 0; }
 
-  if command -v docker &>/dev/null; then
-    info "Pruning local Supabase and Logging volumes..."
-    local volumes
-    volumes=$(docker volume ls --filter "name=supabase" --filter "name=glitchtip" --format "{{.Name}}")
-    if [ -n "$volumes" ]; then
-      echo "$volumes" | xargs docker volume rm 2>/dev/null || true
-    fi
-
-    local networks
-    networks=$(docker network ls --filter "name=supabase" --filter "name=stashflow-logging" --format "{{.ID}}")
-    if [ -n "$networks" ]; then
-      echo "$networks" | xargs docker network rm 2>/dev/null || true
-    fi
-    success "Docker resources pruned."
-  else
-    warn "Docker not found — skipping container cleanup."
+  if ! command -v docker &>/dev/null; then
+    warn "Docker not found — nothing to clean."
+    return 0
   fi
+
+  # 1. Graceful Supabase stop first (avoids data corruption in pg volumes)
+  if command -v supabase &>/dev/null; then
+    info "Stopping Supabase..."
+    supabase stop --no-backup 2>/dev/null || true
+  fi
+
+  # 2. Stop logging stack
+  docker-compose -f docker-compose.logging.yml down 2>/dev/null || true
+
+  # 3. Stop and remove ALL containers
+  info "Stopping all containers..."
+  local containers
+  containers=$(docker ps -aq)
+  if [ -n "$containers" ]; then
+    echo "$containers" | xargs docker stop 2>/dev/null || true
+    echo "$containers" | xargs docker rm -f 2>/dev/null || true
+  fi
+
+  # 4. Remove ALL images
+  info "Removing all images..."
+  local images
+  images=$(docker images -q)
+  if [ -n "$images" ]; then
+    echo "$images" | xargs docker rmi -f 2>/dev/null || true
+  fi
+
+  # 5. Prune volumes and networks
+  info "Pruning volumes and networks..."
+  docker volume prune -f 2>/dev/null || true
+  docker network prune -f 2>/dev/null || true
+
+  success "All Docker containers, images, volumes, and networks removed."
 }
 
 cmd_clean() {
@@ -766,6 +851,7 @@ cmd_env_init() {
 
 case "$1" in
   init)         cmd_init ;;
+  start:all)    shift; cmd_start_all "$@" ;;
   dev)          cmd_dev "$2" ;;
   install)      cmd_install ;;
   add)          shift; cmd_add "$@" ;;
@@ -785,6 +871,7 @@ case "$1" in
   db:shared)    cmd_db_shared ;;
   schema:sync)  cmd_schema_sync ;;
   py:docker)    cmd_py_docker ;;
+  py:api)       cmd_py_api ;;
   py:worker)    cmd_py_worker ;;
   py:check)     cmd_py_check ;;
   logging:start) cmd_logging_start ;;

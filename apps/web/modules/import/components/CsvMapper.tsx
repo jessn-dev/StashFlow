@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ArrowRight, Table, AlertTriangle, CheckCircle2, ChevronRight, X } from 'lucide-react';
+import { Table, AlertTriangle, CheckCircle2, ChevronRight, X } from 'lucide-react';
 
-interface CsvMapperProps {
+type CsvMapperProps = Readonly<{
   data: any[];
   headers: string[];
   onConfirm: (mappedData: any[]) => void;
   onCancel: () => void;
-}
+}>;
 
 const REQUIRED_FIELDS = [
   { key: 'date', label: 'Date', description: 'Transaction date (e.g. 2024-05-01)' },
@@ -17,18 +17,16 @@ const REQUIRED_FIELDS = [
 ];
 
 export function CsvMapper({ data, headers, onConfirm, onCancel }: CsvMapperProps) {
-  const [mappings, setMappings] = useState<Record<string, string>>({});
-  
-  // Auto-detect mappings based on common header names
-  useState(() => {
+  const [mappings, setMappings] = useState<Record<string, string>>(() => {
+    // Auto-detect column mappings from common bank export header names.
     const autoMappings: Record<string, string> = {};
     headers.forEach(h => {
       const normalized = h.toLowerCase().trim();
-      if (normalized.includes('date')) autoMappings.date = h;
-      if (normalized.includes('desc') || normalized.includes('memo') || normalized.includes('merchant')) autoMappings.description = h;
-      if (normalized.includes('amount') || normalized.includes('sum') || normalized.includes('value')) autoMappings.amount = h;
+      if (normalized.includes('date')) autoMappings['date'] = h;
+      if (normalized.includes('desc') || normalized.includes('memo') || normalized.includes('merchant')) autoMappings['description'] = h;
+      if (normalized.includes('amount') || normalized.includes('sum') || normalized.includes('value')) autoMappings['amount'] = h;
     });
-    setMappings(autoMappings);
+    return autoMappings;
   });
 
   const isComplete = REQUIRED_FIELDS.every(f => !!mappings[f.key]);
@@ -46,8 +44,8 @@ export function CsvMapper({ data, headers, onConfirm, onCancel }: CsvMapperProps
     const mapped = data.map(row => ({
       date: row[mappings.date!],
       description: row[mappings.description!],
-      amount: parseFloat(String(row[mappings.amount!] || '0').replace(/[^0-9.-]+/g, '')),
-      type: parseFloat(String(row[mappings.amount!] || '0').replace(/[^0-9.-]+/g, '')) >= 0 ? 'income' : 'expense'
+      amount: Number.parseFloat(String(row[mappings.amount!] || '0').replace(/[^0-9.-]+/g, '')),
+      type: Number.parseFloat(String(row[mappings.amount!] || '0').replace(/[^0-9.-]+/g, '')) >= 0 ? 'income' : 'expense'
     }));
     onConfirm(mapped);
   };

@@ -7,7 +7,7 @@ import { TransactionSummary, formatCurrency } from '@stashflow/core';
  * @param props.summary - The financial summary data to display.
  * @returns A grid layout containing three SummaryCard components.
  */
-export function TransactionSummaryCards({ summary }: { summary: TransactionSummary }) {
+export function TransactionSummaryCards({ summary }: Readonly<{ summary: TransactionSummary }>) {
   // PSEUDOCODE:
   // 1. Receive transaction summary object from props.
   // 2. Map high-level metrics (total income, total expenses, net flow) to individual SummaryCard components.
@@ -46,7 +46,7 @@ function SummaryCard({
   color, 
   isNet, 
   isPositive 
-}: { 
+}: Readonly<{ 
   /** High-level label for the metric (e.g., "Total Income"). */
   label: string; 
   /** Formatted currency string. */
@@ -57,7 +57,7 @@ function SummaryCard({
   isNet?: boolean;
   /** Whether the net value is positive (affects prefixing). */
   isPositive?: boolean;
-}) {
+}>) {
   return (
     <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden group hover:border-gray-300 transition-colors">
       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
+import { convertToBase, calculateDTIRatio, getRegionByCurrency, type MathExchangeRate } from "@stashflow/core"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,14 +41,13 @@ Deno.serve(async (req) => {
     ])
 
     const baseCurrency = profile?.preferred_currency || 'USD'
+    const region = getRegionByCurrency(baseCurrency)
+    const ratesList = (rates || []) as unknown as MathExchangeRate[]
 
-    // 3. Use Canonical Financial Engine from @stashflow/core
-    const { convertToBase, calculateDTIRatio } = await import("../_shared/core/src/mod.ts")
-
-    // 4. Calculate Gross Monthly Income (with Haircuts)
+    // 3. Calculate Gross Monthly Income (with Haircuts)
     let monthlyIncome = 0
     incomes?.forEach((inc: any) => {
-      let amount = convertToBase(inc.amount, inc.currency, baseCurrency, rates || [])
+      let amount = convertToBase(inc.amount, inc.currency, baseCurrency, ratesList)
       
       // SGD Haircut: Variable income by 30%
       if (baseCurrency === 'SGD' && (inc.source.toLowerCase().includes('commission') || inc.source.toLowerCase().includes('bonus'))) {
@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
     let housingOnlyDebt = 0
     
     loans?.forEach((loan: any) => {
-      const amt = convertToBase(loan.installment_amount, loan.currency, baseCurrency, rates || [])
+      const amt = convertToBase(loan.installment_amount, loan.currency, baseCurrency, ratesList)
       monthlyDebt += amt
       if (loan.name.toLowerCase().includes('mortgage') || loan.name.toLowerCase().includes('home')) {
         housingOnlyDebt += amt
@@ -74,13 +74,12 @@ Deno.serve(async (req) => {
     })
 
     expenses?.filter((e: any) => e.is_recurring && e.category === 'housing').forEach((exp: any) => {
-      const amt = convertToBase(exp.amount, exp.currency, baseCurrency, rates || [])
+      const amt = convertToBase(exp.amount, exp.currency, baseCurrency, ratesList)
       monthlyDebt += amt
       housingOnlyDebt += amt
     })
 
-    // 6. Use Canonical DTI Calculation
-    const region = (baseCurrency === 'PHP' ? 'PH' : baseCurrency === 'SGD' ? 'SG' : baseCurrency === 'JPY' ? 'JPY' : 'US')
+    // 4. Use Canonical DTI Calculation
     const dtiResult = calculateDTIRatio(monthlyDebt, monthlyIncome, region)
     
     // Status and Recommendation overrides for complex cases

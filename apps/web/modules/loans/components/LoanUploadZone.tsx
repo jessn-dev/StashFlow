@@ -29,61 +29,38 @@ export function LoanUploadZone() {
   const handleUpload = async (file: File, password?: string) => {
     /*
      * PSEUDOCODE:
-     * 1. Authenticate the user to ensure data privacy.
-     * 2. Construct a unique storage path in the user's private bucket.
-     * 3. Upload the binary file to Supabase Storage.
-     * 4. Insert a tracking record into the 'documents' table.
-     * 5. If the document is password-protected, call the parsing function immediately with the key.
-     * 6. Redirect the user to the review page to await extraction results.
+     * 1. Route file through the upload-document edge function for server-side validation:
+     *    - MIME type + magic bytes check (prevents disguised executables)
+     *    - 5 MB size cap
+     *    - SHA-256 content hashing for deduplication
+     *    - Storage upload + documents row creation with rollback on DB failure
+     * 2. If the file is a duplicate, redirect to the existing document's review page.
+     * 3. For password-protected files, manually invoke parse-document with the key.
+     *    (The DB trigger fires on INSERT but has no access to the user-supplied password.)
+     * 4. Redirect to the review page — DocumentStatusWatcher polls for extraction results.
      */
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated.');
 
-    // We use a timestamp-based unique path to prevent collisions within the user's folder.
-    const ext = file.name.split('.').pop() ?? 'pdf';
-    const storagePath = `${user.id}/${Date.now()}.${ext}`;
+    const formData = new FormData();
+    formData.append('file', file);
 
-    // 1. Upload to storage
-    const { error: uploadError } = await supabase.storage
-      .from('user_documents')
-      .upload(storagePath, file, { contentType: file.type });
+    const { data: result, error: uploadErr } = await supabase.functions.invoke('upload-document', {
+      body: formData,
+    });
 
-    if (uploadError) {
-      throw new Error("Couldn't upload your document. Try again.");
-    }
+    if (uploadErr || !result?.document) throw new Error("Couldn't upload your document. Try again.");
 
-    // 2. Register in documents table
-    const { data: doc, error: insertError } = await supabase
-      .from('documents')
-      .insert({
-        user_id: user.id,
-        file_name: file.name,
-        file_size: file.size,
-        content_type: file.type,
-        storage_path: storagePath,
-        source: 'web',
-      } as any)
-      .select()
-      .single();
+    const doc = result.document;
 
-    if (insertError || !doc) {
-      // Cleanup: Remove the orphan file if database registration fails to save storage costs.
-      await supabase.storage.from('user_documents').remove([storagePath]);
-      throw new Error("Couldn't register your document.");
-    }
-
-    // 3. Trigger edge function
+    // Manual invocation required for password-protected files — the DB trigger that fires
+    // on INSERT has no access to the user-supplied password string.
     if (password) {
-      // Manual invocation is required for password-protected files because the 
-      // database trigger doesn't have access to the user-provided password string.
       await supabase.functions.invoke('parse-document', {
         body: { record: { id: doc.id } },
         headers: { 'x-document-password': password }
       });
     }
-    
-    // We navigate immediately so the user can see the progress bar/skeleton in DocumentStatusWatcher.
+
     router.push(`/dashboard/loans/review?doc=${doc.id}`);
   };
 

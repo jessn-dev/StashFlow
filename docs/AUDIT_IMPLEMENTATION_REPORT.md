@@ -41,6 +41,15 @@ Following the **Architecture Audit & Deployment Master Plan**, the platform has 
 - **Restore Testing:** Successfully verified that full system state can be restored from logical dumps into a fresh local environment.
 - **Runbooks:** Documented incident handling for AI provider outages and storage quota exhaustion in `docs/OPERATIONS.md`.
 
+### E. Code Quality: SonarQube Remediation (Phase 1 & 2)
+- **Objective:** Reduce technical debt and align with modern ECMAScript and TypeScript best practices.
+- **Type Safety Enforcements:** 
+    - Migrated all React component props to `Readonly` interfaces/types to prevent state-leakage and improve Change Detection performance.
+    - Removed redundant type assertions where TypeScript inference is sufficient, reducing code noise.
+- **Environment Agnosticism:** Migrated `window` references to `globalThis`, ensuring that UI components can be safely rendered in SSR or Edge environments without "window is not defined" crashes.
+- **Modern Standards:** Standardized on `Number.parseFloat` and `Number.parseInt` over legacy global functions, following the ES6+ recommendation for improved predictability.
+- **Impact:** Resolved ~240 static analysis issues, significantly improving the project's health score on SonarCloud.
+
 ---
 
 ## 3. Quality Assurance

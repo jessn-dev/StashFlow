@@ -45,7 +45,7 @@ type TagType = 'auto-filled' | 'missing' | 'needs-review';
  * @param {TagType} props.type - The status type of the field.
  * @returns {JSX.Element} A colored badge component.
  */
-function FieldTag({ type }: { type: TagType }) {
+function FieldTag({ type }: Readonly<{ type: TagType }>) {
   if (type === 'auto-filled') {
     return (
       <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 whitespace-nowrap flex-shrink-0">
@@ -81,7 +81,7 @@ function getTag(key: string, extractedFields: string[]): TagType | null {
 }
 
 /** Properties for the LoanForm component. */
-interface LoanFormProps {
+type LoanFormProps = Readonly<{
   /** Initial values for the form fields (e.g., from AI extraction). */
   initial?: Partial<LoanFormValues> | undefined;
   /** ID of the source document, if this loan was extracted. */
@@ -92,7 +92,7 @@ interface LoanFormProps {
   extractedFields?: string[] | undefined;
   /** Mapping of fields to their source locations (page/snippet) in the document. */
   provenance?: Record<string, { page?: number; snippet?: string }> | undefined;
-}
+}>;
 
 /**
  * A layout component for a form row that includes label, input, and provenance tooltips.
@@ -103,13 +103,13 @@ function FieldRow({
   extractedFields,
   provenance,
   children,
-}: {
+}: Readonly<{
   fieldKey: string;
   label: string;
   extractedFields: string[];
   provenance?: Record<string, { page?: number; snippet?: string }> | undefined;
   children: React.ReactNode;
-}) {
+}>) {
   const tag = getTag(fieldKey, extractedFields);
   const prov = provenance?.[fieldKey];
 
@@ -204,19 +204,19 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], provenance
    * 4. Update the form's interest_type automatically if confidence is high and user hasn't manualy overridden it.
    */
   const inference = useMemo((): LoanInferenceResult => {
-    const p = parseFloat(values.principal);
-    const m = parseFloat(values.installment_amount);
-    const r = parseFloat(values.interest_rate);
-    const n = parseInt(values.duration_months);
+    const p = Number.parseFloat(values.principal);
+    const m = Number.parseFloat(values.installment_amount);
+    const r = Number.parseFloat(values.interest_rate);
+    const n = Number.parseInt(values.duration_months);
     const country =
       values.currency === 'PHP' ? 'PH' :
       values.currency === 'USD' ? 'US' :
       values.currency === 'SGD' ? 'SG' : null;
     return inferLoanStructure({
-      principal: isNaN(p) || p <= 0 ? null : p,
-      monthly_payment: isNaN(m) || m <= 0 ? null : m,
-      interest_rate_annual: isNaN(r) || r <= 0 ? null : r,
-      term_months: isNaN(n) || n <= 0 ? null : n,
+      principal: Number.isNaN(p) || p <= 0 ? null : p,
+      monthly_payment: Number.isNaN(m) || m <= 0 ? null : m,
+      interest_rate_annual: Number.isNaN(r) || r <= 0 ? null : r,
+      term_months: Number.isNaN(n) || n <= 0 ? null : n,
       country,
     });
   }, [values.principal, values.installment_amount, values.interest_rate, values.duration_months, values.currency]);
@@ -236,9 +236,9 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], provenance
    * 3. This snapshot is used for UI previews (e.g., total interest) before the user saves.
    */
   const snapshot = useMemo(() => {
-    const principal = parseFloat(values.principal);
-    const rate = parseFloat(values.interest_rate);
-    const months = parseInt(values.duration_months);
+    const principal = Number.parseFloat(values.principal);
+    const rate = Number.parseFloat(values.interest_rate);
+    const months = Number.parseInt(values.duration_months);
     if (!principal || !rate || !months || principal <= 0 || rate <= 0 || months <= 0) {
       return null;
     }
@@ -275,20 +275,20 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], provenance
     const { data: loan, error: insertError } = await supabase.from('loans').insert({
       user_id: user.id,
       name: values.name,
-      principal: parseFloat(values.principal),
+      principal: Number.parseFloat(values.principal),
       currency: values.currency,
-      interest_rate: parseFloat(values.interest_rate),
-      duration_months: parseInt(values.duration_months),
+      interest_rate: Number.parseFloat(values.interest_rate),
+      duration_months: Number.parseInt(values.duration_months),
       interest_type: values.interest_type as LoanInterestType,
       interest_basis: values.interest_basis as LoanInterestBasis,
       start_date: values.start_date,
       end_date: (() => {
         const d = new Date(values.start_date);
-        d.setMonth(d.getMonth() + (parseInt(values.duration_months) || 0));
+        d.setMonth(d.getMonth() + (Number.parseInt(values.duration_months) || 0));
         return d.toISOString().slice(0, 10);
       })(),
       lender: values.lender || null,
-      installment_amount: parseFloat(values.installment_amount) || 0,
+      installment_amount: Number.parseFloat(values.installment_amount) || 0,
       status: 'active' as const,
       source_document_id: docId || null,
     }).select('id').single();
@@ -343,9 +343,9 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], provenance
    * 2. Calculate Effective Interest Rate (EIR) if the type is 'Add-on Interest'.
    * 3. Construct the snapshot items for the UI summary cards.
    */
-  const statedMonthly = parseFloat(values.installment_amount) || 0;
-  const durationMonths = parseInt(values.duration_months) || 0;
-  const principalAmt = parseFloat(values.principal) || 0;
+  const statedMonthly = Number.parseFloat(values.installment_amount) || 0;
+  const durationMonths = Number.parseInt(values.duration_months) || 0;
+  const principalAmt = Number.parseFloat(values.principal) || 0;
   const effectiveMonthly = statedMonthly > 0 ? statedMonthly : (snapshot?.monthlyPayment ?? null);
   const effectiveTotalCost = effectiveMonthly != null && durationMonths > 0
     ? effectiveMonthly * durationMonths
@@ -359,9 +359,9 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], provenance
     : '—';
 
   const eirPct = (() => {
-    const r = parseFloat(values.interest_rate);
-    const n = parseInt(values.duration_months);
-    if (values.interest_type !== 'Add-on Interest' || isNaN(r) || r <= 0 || isNaN(n) || n <= 0) return null;
+    const r = Number.parseFloat(values.interest_rate);
+    const n = Number.parseInt(values.duration_months);
+    if (values.interest_type !== 'Add-on Interest' || Number.isNaN(r) || r <= 0 || Number.isNaN(n) || n <= 0) return null;
     return computeAddOnEIR(r, n).toFixed(2) + '% p.a.';
   })();
 
@@ -453,14 +453,14 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], provenance
             placeholder={durationUnit === 'years' ? 'e.g. 30' : 'e.g. 360'}
             value={
               durationUnit === 'years' && values.duration_months !== ''
-                ? String(Math.round(parseInt(values.duration_months) / 12) || '')
+                ? String(Math.round(Number.parseInt(values.duration_months) / 12) || '')
                 : values.duration_months
             }
             onChange={e => {
               setHasEdited(true);
               const raw = e.target.value;
               const months = durationUnit === 'years'
-                ? String(parseInt(raw) * 12 || '')
+                ? String(Number.parseInt(raw) * 12 || '')
                 : raw;
               setValues(v => ({ ...v, duration_months: months }));
             }}

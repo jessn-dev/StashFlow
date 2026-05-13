@@ -13,9 +13,9 @@ import Link from 'next/link';
  */
 export function TransactionList({ 
   transactions 
-}: { 
+}: Readonly<{ 
   transactions: UnifiedTransaction[];
-}) {
+}>) {
   // Local filter state for immediate UI responsiveness without full page reload
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
 

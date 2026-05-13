@@ -387,8 +387,13 @@ export class TransactionQuery extends BaseQuery implements ITransactionQuery {
       const prev = previousMap[cat] || 0;
       // If previous spending was zero, we treat it as a 100% increase to avoid division by zero.
       const change = prev === 0 ? 100 : ((current - prev) / prev) * 100;
-      return { category: cat as ExpenseCategory, changePercent: Math.round(change), currentAmount: current };
-    }).filter(t => Math.abs(t.changePercent) >= 10); // Noise reduction: ignore small fluctuations.
+      return { category: cat as ExpenseCategory, changePercent: Math.round(change), currentAmount: current, previousAmount: prev };
+    }).filter(t =>
+      Math.abs(t.changePercent) >= 10 &&
+      // Suppress micro-spending spikes: require at least $20 USD-equivalent in the current period.
+      // Without this, a $0.50→$5.50 change becomes "1000% increase" — technically true but meaningless.
+      t.currentAmount >= 20
+    );
   }
 }
 

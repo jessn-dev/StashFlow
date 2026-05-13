@@ -1,5 +1,5 @@
 import { createClient } from '~/lib/supabase/server';
-import { LoansServiceFactory } from '@stashflow/api';
+import { ApiServiceFactory } from '@stashflow/api';
 import {
   generateAmortizationSchedule,
   formatCurrency,
@@ -9,9 +9,9 @@ import {
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-interface DetailPageProps {
+type DetailPageProps = Readonly<{
   params: Promise<{ id: string }>;
-}
+}>;
 
 function getPaymentStatus(dueDate: string, payments: LoanPayment[]): 'paid' | 'overdue' | 'pending' {
   const match = payments.find(p => p.due_date === dueDate);
@@ -19,7 +19,7 @@ function getPaymentStatus(dueDate: string, payments: LoanPayment[]): 'paid' | 'o
   return (match.status as 'paid' | 'overdue' | 'pending') ?? 'pending';
 }
 
-function StatusPill({ status }: { status: 'paid' | 'overdue' | 'pending' }) {
+function StatusPill({ status }: Readonly<{ status: 'paid' | 'overdue' | 'pending' }>) {
   if (status === 'paid') return <span className="text-green-600 font-medium">✓</span>;
   if (status === 'overdue') return <span className="text-red-500 font-medium">!</span>;
   return <span className="text-gray-300">–</span>;
@@ -32,7 +32,7 @@ export default async function LoanDetailPage({ params }: DetailPageProps) {
 
   if (!user) return null;
 
-  const loansService = LoansServiceFactory.create(supabase);
+  const loansService = new ApiServiceFactory(supabase).loansService;
   const detail = await loansService.getLoanDetail(id, user.id);
 
   if (!detail) notFound();

@@ -27,7 +27,7 @@ export interface LoansPageData {
   avgInterestRate: number;
   /** Count of loans currently marked as active. */
   activeLoanCount: number;
-  /** Calculated Debt-to-Income ratio (0.0 to 1.0+). */
+  /** Calculated Debt-to-Income ratio (0 to 1+). */
   dtiRatio: number;
   /** Whether the DTI ratio is within healthy regional limits. */
   dtiHealthy: boolean;
@@ -49,10 +49,10 @@ export class LoansService {
    * @param transactionQuery - Handler for income data used in DTI calculations.
    */
   constructor(
-    private loanQuery: ILoanQuery,
-    private exchangeRateQuery: IExchangeRateQuery,
-    private profileQuery: IProfileQuery,
-    private transactionQuery: ITransactionQuery,
+    private readonly loanQuery: ILoanQuery,
+    private readonly exchangeRateQuery: IExchangeRateQuery,
+    private readonly profileQuery: IProfileQuery,
+    private readonly transactionQuery: ITransactionQuery,
   ) {}
 
   /**

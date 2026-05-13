@@ -33,10 +33,10 @@ const TYPE_BADGE: Record<string, string> = {
   debt: 'bg-blue-50 text-blue-700',
 };
 
-interface Props {
+type Props = Readonly<{
   goal: Goal;
   userId: string;
-}
+}>;
 
 export function GoalCard({ goal, userId }: Props) {
   const router = useRouter();

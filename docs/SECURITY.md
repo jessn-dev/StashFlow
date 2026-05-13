@@ -153,7 +153,7 @@ Managed by `@supabase/ssr`. Cookies are set with:
 
 **Never exposed to the browser.** Used only in:
 1. `delete-account` edge function (for `admin.deleteUser()`)
-2. Webhook-triggered edge functions (`parse-loan-document`, cron jobs)
+2. Webhook-triggered edge functions (`parse-document`, cron jobs)
 
 ---
 
@@ -173,7 +173,7 @@ if (error || !user) return new Response('Unauthorized', { status: 401 })
 
 Service role key never used in user-facing functions.
 
-### Webhook-Triggered Functions (`parse-loan-document`)
+### Webhook-Triggered Functions (`parse-document`)
 
 No user session — triggered by `pg_net` database trigger. Uses service role for Supabase operations. Validates `x-webhook-secret` header against `PARSE_LOAN_WEBHOOK_SECRET` env var before processing:
 

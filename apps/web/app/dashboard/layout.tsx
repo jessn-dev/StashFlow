@@ -4,7 +4,7 @@ import { getUser } from '@stashflow/auth';
 import { SidebarNav } from '~/modules/dashboard/components/SidebarNav';
 import { MfaNudgeBanner } from '~/modules/settings/components/MfaNudgeBanner';
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const supabase = await createClient();
   const user = await getUser(supabase);
   if (!user) redirect('/login');

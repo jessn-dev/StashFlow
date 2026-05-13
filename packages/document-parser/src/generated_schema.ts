@@ -14,7 +14,7 @@ export type Name = string;
  */
 export type Principal = number;
 /**
- * The annual interest rate as a percentage (e.g., 12.0)
+ * The annual interest rate as a percentage (e.g., 12)
  */
 export type InterestRate = number;
 /**

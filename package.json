@@ -4,6 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
+    "start:all": "./setup.sh start:all",
     "dev": "NODE_OPTIONS='--max-old-space-size=8192' turbo run dev",
     "build": "NODE_OPTIONS='--max-old-space-size=8192' turbo run build",
     "test": "NODE_OPTIONS='--max-old-space-size=8192' turbo run test",

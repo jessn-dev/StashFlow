@@ -1,13 +1,13 @@
 import React from 'react';
 
-type PricingCardProps = {
+type PricingCardProps = Readonly<{
   tier: string;
   price: string;
   description: string;
-  features: string[];
+  features: readonly string[];
   buttonText: string;
   highlighted?: boolean;
-};
+}>;
 
 export function PricingCard({
   tier,

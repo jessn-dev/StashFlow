@@ -247,7 +247,7 @@ export interface DebtPayoffPoint {
  */
 export function projectDebtPayoff(loans: any[], rates: Record<string, number>): DebtPayoffPoint[] {
   const active = loans.filter((l) => l.status === 'active');
-  if (!active.length) return [];
+  if (active.length === 0) return [];
 
   const now = new Date();
 

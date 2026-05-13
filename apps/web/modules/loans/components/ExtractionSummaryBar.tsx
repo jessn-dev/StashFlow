@@ -5,8 +5,8 @@
  */
 
 /** Metadata regarding the validation status of the extracted document data. */
-interface ValidationMetadata {
-  /** Numerical score from 0.0 to 1.0 representing AI certainty. */
+type ValidationMetadata = Readonly<{
+  /** Numerical score from 0 to 1 representing AI certainty. */
   confidence: number;
   /** List of specific error messages identified during automated validation. */
   errors: string[];
@@ -14,10 +14,10 @@ interface ValidationMetadata {
   requires_verification: boolean;
   /** ISO timestamp of when the extraction was performed. */
   processed_at: string;
-}
+}>;
 
 /** Properties for the ExtractionSummaryBar component. */
-interface ExtractionSummaryBarProps {
+type ExtractionSummaryBarProps = Readonly<{
   /** The raw extracted data object. */
   data: any;
   /** Optional validation metadata from the backend. */
@@ -26,7 +26,7 @@ interface ExtractionSummaryBarProps {
   type: 'LOAN' | 'STATEMENT';
   /** If true, forces the UI to show a low-confidence state (used during edits). */
   forceLow?: boolean;
-}
+}>;
 
 /** 
  * Weights assigned to loan fields to estimate confidence when backend score is missing.

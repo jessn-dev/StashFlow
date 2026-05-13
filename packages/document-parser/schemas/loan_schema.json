@@ -126,18 +126,14 @@
     "provenance": {
       "anyOf": [
         {
-          "additionalProperties": {
-            "$ref": "#/$defs/Provenance"
-          },
-          "type": "object"
+          "$ref": "#/$defs/Provenance"
         },
         {
           "type": "null"
         }
       ],
       "default": null,
-      "description": "Map of field names to their source provenance",
-      "title": "Provenance"
+      "description": "Source location for the primary extracted data (page + snippet)"
     }
   },
   "required": [

@@ -16,7 +16,7 @@ export interface SessionMetadata {
  * Result of the anomaly detection heuristic.
  */
 export interface AnomalyScore {
-  /** Aggregated risk score from 0.0 (safe) to 1.0 (malicious). */
+  /** Aggregated risk score from 0 (safe) to 1 (malicious). */
   score: number;
   /** List of detected anomaly codes (e.g., 'geographic_shift'). */
   reasons: string[];
@@ -40,7 +40,7 @@ export interface AnomalyScore {
  * 5. Check for New Device:
  *    - Collect all unique User Agents from history.
  *    - If current User Agent is not in the known set, increase score by 0.1 and add reason.
- * 6. Cap final score at 1.0.
+ * 6. Cap final score at 1.
  * 7. Return score, reasons, and highRisk flag (true if score >= 0.7).
  * 
  * @param newEvent - The session event currently being evaluated.

@@ -90,14 +90,16 @@ export class DashboardService {
     spendingTrends.forEach((trend, i) => {
       // We only flag increases of 20% or more to avoid over-notifying users about minor fluctuations.
       if (trend.changePercent >= 20) {
-         intelligence.push({
-           id: `trend-${trend.category}-${i}`,
-           type: 'trend',
-           priority: trend.changePercent >= 50 ? 'medium' : 'low',
-           summary: `${trend.category.charAt(0).toUpperCase() + trend.category.slice(1)} spending increased ${trend.changePercent}% this month.`,
-           context: `Based on a comparison of the last 30 days vs the previous period. Total: ${formatCurrency(trend.currentAmount, currency)}`,
-           actions: [{ label: 'Analyze', href: '/dashboard/transactions' }]
-         });
+        // Cap display at 999% — anything higher is technically correct but looks like a bug.
+        const displayPct = trend.changePercent > 999 ? '999+' : String(trend.changePercent);
+        intelligence.push({
+          id: `trend-${trend.category}-${i}`,
+          type: 'trend',
+          priority: trend.changePercent >= 50 ? 'medium' : 'low',
+          summary: `${trend.category.charAt(0).toUpperCase() + trend.category.slice(1)} spending increased ${displayPct}% this month.`,
+          context: `Based on a comparison of the last 30 days vs the previous period. Total: ${formatCurrency(trend.currentAmount, currency)}`,
+          actions: [{ label: 'Analyze', href: '/dashboard/transactions' }]
+        });
       }
     });
 

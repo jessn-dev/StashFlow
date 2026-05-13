@@ -58,7 +58,7 @@ class LoanExtractionSchema(BaseModel):
     lender: str | None = Field(default=None, description="The name of the lending institution")
     confidence: float = Field(default=0.0, ge=0, le=1, description="Confidence score from 0.0 to 1.0")
     reasoning: str = Field(default="", description="Brief explanation of the extraction results")
-    provenance: Optional[dict[str, Provenance]] = Field(None, description="Map of field names to their source provenance")
+    provenance: Optional[Provenance] = Field(None, description="Source location for the primary extracted data (page + snippet)")
 
 class TransactionExtractionItem(BaseModel):
     """

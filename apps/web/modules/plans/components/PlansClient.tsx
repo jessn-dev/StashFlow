@@ -7,14 +7,14 @@ import { BudgetCategoryRow } from './BudgetCategoryRow';
 import { BudgetEditor } from './BudgetEditor';
 import type { Goal, Budget, BudgetPeriod } from '@stashflow/core';
 
-interface Props {
+type Props = Readonly<{
   userId: string;
   goals: Goal[];
   budgets: Budget[];
   budgetPeriods: BudgetPeriod[];
   currentPeriod: string;
   defaultCurrency?: string;
-}
+}>;
 
 export function PlansClient({ userId, goals, budgets, budgetPeriods, currentPeriod, defaultCurrency }: Props) {
   const periodMap = new Map<string, BudgetPeriod>(budgetPeriods.map((p) => [p.category, p]));

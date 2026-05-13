@@ -7,10 +7,10 @@ import { ProfileQuery } from '@stashflow/api';
 import { CURRENCIES } from '@stashflow/core';
 import type { Profile } from '@stashflow/core';
 
-interface Props {
+type Props = Readonly<{
   profile: Profile | null;
   userId: string;
-}
+}>;
 
 export function ProfileEditForm({ profile, userId }: Props) {
   const router = useRouter();

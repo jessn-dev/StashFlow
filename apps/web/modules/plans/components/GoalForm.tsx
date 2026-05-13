@@ -8,11 +8,11 @@ import { CURRENCIES } from '@stashflow/core';
 import type { Goal } from '@stashflow/core';
 import type { GoalInput } from '@stashflow/api';
 
-interface Props {
+type Props = Readonly<{
   userId: string;
   initialData?: Goal;
   onSuccess?: () => void;
-}
+}>;
 
 export function GoalForm({ userId, initialData, onSuccess }: Props) {
   const router = useRouter();
@@ -37,12 +37,12 @@ export function GoalForm({ userId, initialData, onSuccess }: Props) {
     e.preventDefault();
     setError(null);
 
-    const target = parseFloat(targetAmount);
-    const current = parseFloat(currentAmount);
+    const target = Number.parseFloat(targetAmount);
+    const current = Number.parseFloat(currentAmount);
 
     if (!name.trim()) { setError('Name is required'); return; }
-    if (isNaN(target) || target <= 0) { setError('Target amount must be a positive number'); return; }
-    if (isNaN(current) || current < 0) { setError('Current amount cannot be negative'); return; }
+    if (Number.isNaN(target) || target <= 0) { setError('Target amount must be a positive number'); return; }
+    if (Number.isNaN(current) || current < 0) { setError('Current amount cannot be negative'); return; }
 
     setLoading(true);
     try {

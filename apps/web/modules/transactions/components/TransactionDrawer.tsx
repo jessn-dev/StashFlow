@@ -13,14 +13,14 @@ import { TransactionForm } from './TransactionForm';
 import type { UnifiedTransaction } from '@stashflow/core';
 
 /** Properties for the TransactionDrawer component. */
-interface Props {
+type Props = Readonly<{
   /** Controls the visibility of the drawer. */
   open: boolean;
   /** Callback function to close the drawer. */
   onClose: () => void;
   /** Optional transaction data for edit mode. If omitted, the drawer defaults to creation mode. */
   initialData?: UnifiedTransaction;
-}
+}>;
 
 /**
  * Side-sliding drawer for transaction entry and editing.
@@ -41,8 +41,8 @@ export function TransactionDrawer({ open, onClose, initialData }: Props) {
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    globalThis.window?.addEventListener('keydown', handler);
+    return () => globalThis.window?.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
   /**

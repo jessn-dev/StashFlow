@@ -74,7 +74,7 @@ export function MfaManager() {
   };
 
   const unenroll = async () => {
-    if (!window.confirm('Are you sure you want to disable Multi-Factor Authentication?')) return;
+    if (!globalThis.window?.confirm('Are you sure you want to disable Multi-Factor Authentication?')) return;
     
     setLoading(true);
     const { data: factors, error: fetchError } = await supabase.auth.mfa.listFactors();

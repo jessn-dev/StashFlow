@@ -136,7 +136,7 @@ describe('loan math', () => {
     it('should handle extremely high interest rates', () => {
       const result = generateAmortizationSchedule({
         principal: 1000,
-        annualInterestRate: 1.0, // 100% interest
+        annualInterestRate: 1, // 100% interest
         durationMonths: 6,
         startDate: '2026-01-01',
         interestType: 'Standard Amortized',

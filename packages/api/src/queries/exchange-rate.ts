@@ -1,5 +1,4 @@
 import { BaseQuery } from './base';
-import { ExchangeRate } from '@stashflow/core';
 import { IExchangeRateQuery } from './interfaces';
 
 /**

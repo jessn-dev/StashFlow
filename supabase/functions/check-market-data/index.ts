@@ -1,10 +1,15 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "@supabase/supabase-js"
 
-serve(async (req) => {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+Deno.serve(async (req) => {
+  const cronSecret = Deno.env.get('CRON_SECRET')
+  if (!cronSecret || req.headers.get('Authorization') !== `Bearer ${cronSecret}`) {
+    return new Response('Forbidden', { status: 403 })
+  }
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  )
 
   const { data, count } = await supabase
     .from('market_trends')

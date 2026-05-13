@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { LoansService } from '../services/loans';
 import type { ILoanQuery, IExchangeRateQuery, IProfileQuery, ITransactionQuery, PaymentSummary } from '../queries/interfaces';
 import type { Loan, LoanPayment, Profile, Income, ExchangeRate } from '@stashflow/core';

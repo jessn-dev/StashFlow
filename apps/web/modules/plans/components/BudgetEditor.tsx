@@ -7,13 +7,13 @@ import { BudgetQuery } from '@stashflow/api';
 import { CURRENCIES, EXPENSE_CATEGORIES, formatCurrency } from '@stashflow/core';
 import type { Budget, BudgetPeriod, ExpenseCategory } from '@stashflow/core';
 
-interface Props {
+type Props = Readonly<{
   userId: string;
   budgets: Budget[];
   periodMap: Map<string, BudgetPeriod>;
   defaultCurrency?: string;
   onClose?: () => void;
-}
+}>;
 
 const CATEGORY_LABELS: Partial<Record<ExpenseCategory, string>> = {
   housing: 'Housing',
@@ -58,10 +58,10 @@ export function BudgetEditor({ userId, budgets, periodMap, defaultCurrency = 'US
       const upserts = EXPENSE_CATEGORIES
         .filter((cat) => {
           const val = amounts[cat];
-          return val !== undefined && val.trim() !== '' && parseFloat(val) > 0;
+          return val !== undefined && val.trim() !== '' && Number.parseFloat(val) > 0;
         })
         .map((cat) =>
-          query.upsert(userId, cat, parseFloat(amounts[cat]!), currency),
+          query.upsert(userId, cat, Number.parseFloat(amounts[cat]!), currency),
         );
 
       await Promise.all(upserts);
@@ -97,7 +97,7 @@ export function BudgetEditor({ userId, budgets, periodMap, defaultCurrency = 'US
         {EXPENSE_CATEGORIES.map((cat) => {
           const period = periodMap.get(cat);
           const spent = period ? Number(period.spent) : 0;
-          const budgetAmt = parseFloat(amounts[cat] ?? '') || 0;
+          const budgetAmt = Number.parseFloat(amounts[cat] ?? '') || 0;
           const pct = budgetAmt > 0 ? Math.min(100, Math.round((spent / budgetAmt) * 100)) : 0;
           const isOver = budgetAmt > 0 && spent > budgetAmt;
 

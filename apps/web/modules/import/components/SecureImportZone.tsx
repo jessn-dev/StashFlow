@@ -6,14 +6,14 @@ import { isPdfEncrypted, validatePdfPassword } from '~/lib/utils/pdf';
 
 export type ImportType = 'loan' | 'transaction';
 
-interface SecureImportZoneProps {
+type SecureImportZoneProps = Readonly<{
   type: ImportType;
   accept?: string[];
   title?: string;
   subtitle?: string;
   onUpload: (file: File, password?: string) => Promise<void>;
   onCancel?: () => void;
-}
+}>;
 
 type ImportStatus = 'idle' | 'uploading' | 'encrypted' | 'verifying' | 'processing' | 'error';
 

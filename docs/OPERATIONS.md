@@ -100,7 +100,8 @@ The root `setup.sh` script is the primary entry point for managing the developme
 | `./setup.sh init` | One-time setup of dependencies and git |
 | `./setup.sh dev` | Start the entire integrated stack |
 | `./setup.sh dev --clean` | Fresh start (kills containers first) |
-| `./setup.sh docker:clean` | Deep cleanup of project containers |
+| `./setup.sh db:clean` | **Full machine Docker wipe** — stops all containers, removes all containers + images, prunes all volumes + networks. Requires `y` confirmation. |
+| `./setup.sh docker:clean` | Project-scoped cleanup — stops Supabase, Python backend, and logging stack containers only |
 | `./setup.sh schema:sync` | **Governance**: Sync Python AI models to TypeScript |
 | `./setup.sh db:shared` | Sync monorepo packages to Supabase environment |
 | `./setup.sh db:reset` | Reset local DB and re-seed |
@@ -157,7 +158,7 @@ Because production URLs and service role keys are environment-specific, the migr
 ### Phase 5 — Edge Function Deployment
 ```bash
 # Deploy all functions to production
-supabase functions deploy log-session-event verify-ledger-integrity get-user-sessions revoke-session sync-exchange-rates parse-loan-document
+supabase functions deploy log-session-event verify-ledger-integrity get-user-sessions revoke-session sync-exchange-rates parse-document delete-account
 ```
 
 ### Phase 6 — Vercel Configuration
@@ -220,20 +221,18 @@ If a migration fails or introduces a regression:
 2.  Revert the local schema to the previous state.
 3.  For production, the primary recovery path is **Restoration from PITR** followed by a corrected deployment.
 
-### Queue Replay Tooling (Async Ingestion)
+### Document Replay (Processing Failures)
 
-If document processing fails at scale (e.g., AI provider outage):
+If document processing fails (e.g., AI provider outage):
 1.  Identify failed documents in the `documents` table:
     ```sql
-    SELECT id, storage_path FROM public.documents WHERE processing_status = 'error_generic';
+    SELECT id, storage_path FROM public.documents WHERE processing_status LIKE 'error%';
     ```
-2.  Manually re-enqueue via the Python backend API (or local worker):
+2.  Re-trigger via `supabase.functions.invoke('parse-document', { body: { record: { id: '<document_id>' } } })` from the app, or manually call the Python backend:
     ```bash
-    curl -X POST http://<python-api>/api/v1/documents/enqueue \
-      -H "Content-Type: application/json" \
-      -d '{"document_id": "UUID", "storage_path": "PATH"}'
+    curl -X POST http://<python-api>/api/v1/documents/process \
+      -F "file=@/tmp/document.pdf"
     ```
-3.  **Dead Letter Queue (DLQ)**: Failed jobs in the `stashflow-ingestion` queue are automatically moved to the failed registry by RQ. Use the RQ CLI or Dashboard to inspect and retry them.
 
 ### Incident Runbooks
 

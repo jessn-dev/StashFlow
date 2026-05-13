@@ -13,9 +13,9 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // 2. Fetch latest rates from Frankfurter (USD base)
-    // Supports PHP, SGD, EUR, GBP, JPY as targets
-    const response = await fetch('https://api.frankfurter.app/latest?from=USD&to=PHP,SGD,EUR,GBP,JPY')
+    // 2. Fetch all rates Frankfurter supports (ECB reference rates, ~30 currencies)
+    // No ?to= filter — we want every currency pair the ECB publishes.
+    const response = await fetch('https://api.frankfurter.app/latest?from=USD')
     if (!response.ok) {
       throw new Error(`Frankfurter API error: ${response.statusText}`)
     }

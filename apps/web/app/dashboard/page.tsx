@@ -10,6 +10,8 @@ import {
 } from '@stashflow/core';
 import { FinancialSnapshotStrip } from '~/modules/dashboard/components/FinancialSnapshotStrip';
 import { IntelligenceFeed } from '~/modules/dashboard/components/IntelligenceFeed';
+import { MacroInsightCard } from '~/modules/dashboard/components/MacroInsightCard';
+import { AnomalyInsightCards } from '~/modules/dashboard/components/AnomalyInsightCards';
 import { RightUtilityRail } from '~/modules/dashboard/components/RightUtilityRail';
 import { AnalyticsSection } from '~/modules/dashboard/components/AnalyticsSection';
 
@@ -89,14 +91,22 @@ export default async function OverviewPage() {
   // Use centralized debt payoff projection
   const payoffData = projectDebtPayoff(loans, rates);
 
+  // getTrendAnalysis normalizes amounts to USD via 2-param convertToBase. Convert to the
+  // user's preferred currency so DashboardService can format and threshold correctly.
+  const currencyRate = rates[currency] ?? 1;
+  const spendingTrendsConverted = spendingTrends.map((t) => ({
+    ...t,
+    currentAmount: t.currentAmount * currencyRate,
+  }));
+
   // 1. Build Intelligence Feed via DashboardService
   const intelligence = api.dashboardService.generateIntelligence({
     pendingDocs: pendingDocs.data?.filter(d => d.processing_status === 'processing' || d.processing_status === 'pending') || [],
-    needsReviewDocs: pendingDocs.data?.filter(d => 
-      d.processing_status === 'success' && 
+    needsReviewDocs: pendingDocs.data?.filter(d =>
+      d.processing_status === 'success' &&
       (d.extracted_data as any)?.validation?.requires_verification === true
     ) || [],
-    spendingTrends,
+    spendingTrends: spendingTrendsConverted,
     upcomingPayments: paymentSummaries.filter((p) => {
       if (!p.nextDueDate) return false;
       const days = Math.ceil((new Date(p.nextDueDate).getTime() - Date.now()) / 86400000);
@@ -181,6 +191,10 @@ export default async function OverviewPage() {
           <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
             Intelligence Feed
           </p>
+          {/* Anomaly cards load client-side; render nothing when spending looks clean */}
+          <AnomalyInsightCards />
+          {/* Macro card loads from shared 24h cache — fast after first user of the day */}
+          <MacroInsightCard currency={currency} region={region} />
           <IntelligenceFeed items={intelligence} />
         </div>
 

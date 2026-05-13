@@ -21,7 +21,7 @@ import type { LucideIcon } from 'lucide-react';
 /**
  * Represents a single navigation link in the sidebar.
  */
-interface NavItem {
+type NavItem = Readonly<{
   /** The destination URL. */
   href: string;
   /** The display text for the link. */
@@ -30,7 +30,7 @@ interface NavItem {
   icon: LucideIcon;
   /** Whether the link is currently disabled. */
   disabled?: boolean;
-}
+}>;
 
 const PRIMARY: NavItem[] = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },

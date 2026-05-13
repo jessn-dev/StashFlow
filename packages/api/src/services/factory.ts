@@ -80,19 +80,4 @@ export class ApiServiceFactory {
   }
 }
 
-/**
- * Factory for creating LoansService instances.
- * @deprecated Use ApiServiceFactory instead for a unified access pattern.
- */
-export class LoansServiceFactory {
-  /**
-   * Static helper to create a LoansService.
-   * 
-   * @param client - The Supabase client instance.
-   * @returns A fully initialized LoansService.
-   */
-  static create(client: SupabaseClient<Database>): LoansService {
-    return new ApiServiceFactory(client).loansService;
-  }
-}
 

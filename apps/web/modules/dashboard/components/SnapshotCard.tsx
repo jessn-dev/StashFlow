@@ -1,7 +1,7 @@
 /**
  * Props for the SnapshotCard component.
  */
-interface SnapshotCardProps {
+type SnapshotCardProps = Readonly<{
   /** The descriptive label for the metric (e.g., "Net Worth"). */
   label: string;
   /** The primary value to display, typically formatted currency. */
@@ -14,7 +14,7 @@ interface SnapshotCardProps {
   valueColor?: string | undefined;
   /** Optional status indicator showing 'healthy' (green) or 'warning' (amber). */
   indicator?: 'healthy' | 'warning' | undefined;
-}
+}>;
 
 /**
  * A consistent, high-fidelity metric card used across the StashFlow dashboard

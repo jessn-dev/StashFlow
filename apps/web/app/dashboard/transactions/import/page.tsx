@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Papa from 'papaparse';
 import { SecureImportZone } from '~/modules/import/components/SecureImportZone';
 import { CsvMapper } from '~/modules/import/components/CsvMapper';
+import { normalizeToISODate } from '~/modules/import';
 import { createClient } from '~/lib/supabase/client';
 import { ArrowLeft, CheckCircle2, LayoutDashboard, History, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -22,6 +23,7 @@ export default function TransactionImportPage() {
   const [importResult, setImportResult] = useState<{ count: number } | null>(null);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [processingError, setProcessingError] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
   
   const router = useRouter();
   const supabase = createClient();
@@ -68,50 +70,58 @@ export default function TransactionImportPage() {
     if (ext === 'pdf') {
       setIsAiProcessing(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Not authenticated');
+        /*
+         * PSEUDOCODE: PDF Bank Statement Upload
+         * 1. Route through upload-document for server-side validation:
+         *    - MIME type + magic bytes check, 5 MB cap, SHA-256 dedup.
+         *    - Storage upload + documents row created; DB trigger fires parse-document.
+         * 2. If duplicate and already processed, reuse existing extracted_data.
+         * 3. For password-protected files, manually re-invoke parse-document with the key.
+         *    (The DB trigger on INSERT has no access to the user-supplied password.)
+         * 4. Poll until processing_status is 'success' or an error variant.
+         * 5. Map extracted transactions to internal preview format.
+         */
+        const formData = new FormData();
+        formData.append('file', file);
 
-        // 1. Upload to storage
-        const storagePath = `${user.id}/${Date.now()}.pdf`;
-        const { error: uploadError } = await supabase.storage
-          .from('user_documents')
-          .upload(storagePath, file);
-
-        if (uploadError) throw uploadError;
-
-        // 2. Insert document record
-        const { data: doc, error: docError } = await supabase
-          .from('documents')
-          .insert({
-            user_id: user.id,
-            file_name: file.name,
-            file_size: file.size,
-            content_type: 'application/pdf',
-            storage_path: storagePath,
-            inferred_type: 'Bank Statement',
-            source: 'web',
-            processing_status: 'pending'
-          })
-          .select('id')
-          .single();
-
-        if (docError) throw docError;
-
-        // 3. Trigger edge function
-        const { error: funcError } = await supabase.functions.invoke('parse-document', {
-          body: { record: { id: doc.id } },
-          headers: password ? { 'x-document-password': password } : {}
+        const { data: uploadResult, error: uploadErr } = await supabase.functions.invoke('upload-document', {
+          body: formData,
         });
 
-        if (funcError) throw funcError;
+        if (uploadErr || !uploadResult?.document) throw new Error('Upload failed. Try again.');
 
-        // 4. Poll for success
+        const doc = uploadResult.document;
+
+        // Reuse extracted_data if exact same file was already successfully processed.
+        if (uploadResult.duplicated && doc.processing_status === 'success' && doc.extracted_data?.transactions) {
+          const aiMapped = doc.extracted_data.transactions.map((t: any) => ({
+            date: t.date,
+            description: t.description,
+            amount: t.amount,
+            type: t.amount >= 0 ? 'income' : 'expense'
+          }));
+          setMappedData(aiMapped);
+          setStage('preview');
+          return;
+        }
+
+        // For password-protected files the DB trigger fires without the key and will fail.
+        // Manual invocation here overrides it with the correct password.
+        if (password) {
+          const { error: funcError } = await supabase.functions.invoke('parse-document', {
+            body: { record: { id: doc.id } },
+            headers: { 'x-document-password': password }
+          });
+          if (funcError) throw funcError;
+        }
+
+        // Poll — the DB trigger already started parse-document on insert.
         let attempts = 0;
-        const maxAttempts = 60; // 2 minutes with 2s interval
-        
+        const maxAttempts = 60; // 2 minutes at 2s interval
+
         const poll = async (): Promise<any> => {
           if (attempts >= maxAttempts) throw new Error('Processing timed out. The statement might be very large.');
-          
+
           const { data, error } = await supabase
             .from('documents')
             .select('processing_status, extracted_data, processing_error')
@@ -135,8 +145,7 @@ export default function TransactionImportPage() {
         };
 
         const extractedData = await poll();
-        
-        // 5. Map AI data to internal format
+
         if (extractedData?.transactions) {
           const aiMapped = extractedData.transactions.map((t: any) => ({
             date: t.date,
@@ -169,54 +178,72 @@ export default function TransactionImportPage() {
 
   /**
    * Finalizes the import by bulk inserting incomes and expenses into the database.
-   * 
+   *
+   * @throws Never — errors are caught and stored in `importError` state.
+   *
    * PSEUDOCODE: Execute Import
-   * 1. Resolve user profile and preferred currency.
-   * 2. Separate mapped data into 'incomes' and 'expenses' arrays.
-   * 3. Normalize amounts and add metadata (user_id, source/description, currency).
-   * 4. Perform bulk inserts using Supabase.
-   * 5. Redirect to success stage.
+   * 1. Authenticate; bail early if no session.
+   * 2. Fetch user profile for preferred currency.
+   * 3. Normalize each row's date to ISO 8601; abort with user-facing error on bad dates.
+   * 4. Partition rows into incomes vs expenses.
+   * 5. Parallel bulk insert into Supabase; surface any DB error with detail.
+   * 6. Advance to success stage.
    */
   const executeImport = async () => {
+    setImportError(null);
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Fetch user's preferred currency
     const { data: profile } = await supabase
       .from('profiles')
       .select('preferred_currency')
       .eq('id', user.id)
       .single();
 
-    const userCurrency = profile?.preferred_currency || 'USD';
+    const userCurrency = profile?.preferred_currency ?? 'USD';
 
-    // Filter into incomes and expenses
-    const incomes = mappedData.filter(d => d.type === 'income').map(d => ({
-      user_id: user.id,
-      amount: Math.abs(d.amount),
-      source: d.description,
-      date: d.date,
-      currency: userCurrency,
-      frequency: 'one-time' as const
-    }));
+    // Normalize dates before touching the DB — raw CSV dates are rarely ISO format.
+    const badDates = mappedData.filter(d => !normalizeToISODate(String(d.date)));
+    if (badDates.length > 0) {
+      const sample = String(badDates[0]?.date ?? '');
+      setImportError(
+        `Unrecognized date format: "${sample}". Expected YYYY-MM-DD, MM/DD/YYYY, or DD-Mon-YYYY.`
+      );
+      return;
+    }
 
-    const expenses = mappedData.filter(d => d.type === 'expense').map(d => ({
-      user_id: user.id,
-      amount: Math.abs(d.amount),
-      description: d.description,
-      date: d.date,
-      currency: userCurrency,
-      category: 'other' as const
-    }));
+    const incomes = mappedData
+      .filter(d => d.type === 'income')
+      .map(d => ({
+        user_id: user.id,
+        amount: Math.abs(d.amount),
+        source: d.description,
+        date: normalizeToISODate(String(d.date))!,
+        currency: userCurrency,
+        frequency: 'one-time' as const,
+      }));
 
-    // Bulk insert
-    const results = await Promise.all([
+    const expenses = mappedData
+      .filter(d => d.type === 'expense')
+      .map(d => ({
+        user_id: user.id,
+        amount: Math.abs(d.amount),
+        description: d.description,
+        date: normalizeToISODate(String(d.date))!,
+        currency: userCurrency,
+        category: 'other' as const,
+      }));
+
+    const [incomeResult, expenseResult] = await Promise.all([
       incomes.length > 0 ? supabase.from('incomes').insert(incomes) : Promise.resolve({ error: null }),
       expenses.length > 0 ? supabase.from('expenses').insert(expenses) : Promise.resolve({ error: null }),
     ]);
 
-    if (results.some(r => r.error)) {
-      alert('Failed to import some transactions. Please check your data.');
+    const firstError = incomeResult.error ?? expenseResult.error;
+    if (firstError) {
+      console.error('[TransactionImport] Insert failed:', firstError);
+      setImportError(`Import failed: ${firstError.message}`);
       return;
     }
 
@@ -288,13 +315,18 @@ export default function TransactionImportPage() {
                >
                  Back
                </button>
-               <button 
+               <button
                  onClick={executeImport}
                  className="px-8 h-12 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-all flex items-center gap-2 shadow-lg shadow-gray-900/10"
                >
                  Confirm and Import <CheckCircle2 size={16} />
                </button>
              </div>
+             {importError && (
+               <p className="mt-3 text-sm font-medium text-red-600 bg-red-50 rounded-xl px-4 py-3">
+                 {importError}
+               </p>
+             )}
           </div>
           <div className="max-h-[500px] overflow-y-auto">
             <table className="w-full text-left border-collapse">

@@ -23,7 +23,7 @@ async function verifyEntry(
   );
 
   const sigBytes = new Uint8Array(
-    signature.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || []
+    signature.match(/.{1,2}/g)?.map((byte) => Number.parseInt(byte, 16)) || []
   );
 
   return await crypto.subtle.verify('HMAC', cryptoKey, sigBytes, data);

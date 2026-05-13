@@ -203,23 +203,24 @@ User uploads PDF → Supabase Storage (user_documents bucket)
     ├─ Postgres trigger (tr_on_document_inserted) fires on INSERT to documents
     │
     ├─ pg_net HTTP call → parse-document edge function
-    │       (webhook-triggered, validates x-webhook-secret)
+    │       (webhook-triggered, validates x-webhook-secret + Authorization header)
     │
-    ├─ Security Gate (Deno Edge Function):
-    │       1. inspect MIME type
-    │       2. validate Magic Bytes (file signature)
-    │       3. enqueue job to Redis (local/Upstash)
+    ├─ parse-document edge function (Deno):
+    │       1. inspect MIME type + validate Magic Bytes
+    │       2. download file from Supabase Storage
+    │       3. POST file to Python backend (/api/v1/documents/process) — synchronous
     │
-    ├─ Intelligence Worker Layer (Python RQ/Celery):
-    │       1. download file from Supabase Storage
+    ├─ Python backend (FastAPI):
+    │       1. classify document type (LOAN vs BANK_STATEMENT)
     │       2. extract text (PyMuPDF) with local OCR fallback (Tesseract)
-    │       3. Parallel AI Classification & Structured Extraction
-    │       4. callback to Supabase via document-processed-webhook
+    │       3. AI structured extraction (Groq / Gemini)
+    │       4. return UnifiedDocumentResult JSON
     │
-    └─ persistence path (Deno Edge Function - Webhook):
-            1. enforce "Rule 1" financial validation
-            2. write extracted data + provenance to documents.extracted_data (JSONB)
-            3. update processing_status to 'success'
+    └─ parse-document edge function (Deno) — persist result:
+            1. validate extracted fields (principal > 0, rate in range, etc.)
+            2. write to documents.extracted_data (JSONB)
+            3. update processing_status → 'success' or 'error_generic'
+            4. client polls via Supabase Realtime (DocumentStatusWatcher.tsx)
 ```
 
 ---

@@ -4,19 +4,19 @@ import { useEffect } from 'react';
 import { GoalForm } from './GoalForm';
 import type { Goal } from '@stashflow/core';
 
-interface Props {
+type Props = Readonly<{
   open: boolean;
   onClose: () => void;
   userId: string;
   initialData?: Goal;
-}
+}>;
 
 export function GoalDrawer({ open, onClose, userId, initialData }: Props) {
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    globalThis.window?.addEventListener('keydown', handler);
+    return () => globalThis.window?.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
   return (

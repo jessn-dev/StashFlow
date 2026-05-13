@@ -9,12 +9,12 @@ import type { UnifiedTransaction, ExpenseCategory, IncomeFrequency } from '@stas
 /**
  * Properties for the TransactionForm component.
  */
-interface TransactionFormProps {
+type TransactionFormProps = Readonly<{
   /** Optional callback triggered after a successful transaction creation or update. */
   onSuccess?: () => void;
   /** Existing transaction data to prepopulate the form for editing. */
   initialData?: UnifiedTransaction;
-}
+}>;
 
 /**
  * A unified form for creating and editing both income and expense transactions.
@@ -71,7 +71,7 @@ export function TransactionForm({ onSuccess, initialData }: TransactionFormProps
         const { data, error: aiError } = await supabase.functions.invoke('categorize-transaction', {
           body: { 
             description: values.description,
-            amount: parseFloat(values.amount) || null
+            amount: Number.parseFloat(values.amount) || null
           }
         });
 
@@ -129,8 +129,8 @@ export function TransactionForm({ onSuccess, initialData }: TransactionFormProps
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError('Not authenticated'); setLoading(false); return; }
 
-    const amount = parseFloat(values.amount);
-    if (isNaN(amount)) { setError('Invalid amount'); setLoading(false); return; }
+    const amount = Number.parseFloat(values.amount);
+    if (Number.isNaN(amount)) { setError('Invalid amount'); setLoading(false); return; }
 
     let dbError;
     if (isEditing && initialData) {

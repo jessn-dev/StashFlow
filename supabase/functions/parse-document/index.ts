@@ -15,7 +15,7 @@ const PYTHON_BACKEND_URL  = Deno.env.get('PYTHON_BACKEND_URL') || 'http://host.d
 if (SENTRY_DSN) {
   Sentry.init({
     dsn: SENTRY_DSN,
-    tracesSampleRate: 1.0,
+    tracesSampleRate: 1,
   })
 }
 

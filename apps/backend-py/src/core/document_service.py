@@ -115,9 +115,10 @@ async def _extract_with_llm(text: str, method: str, temperature: float = 0.0) ->
                 4. Provide a classification confidence score and reasoning.
                 
                 PROVENANCE RULES:
-                For every extracted loan field or transaction row, you MUST provide 'provenance' information.
-                - 'page': The 1-indexed page number where the data was found.
-                - 'snippet': The exact sentence or line from the document that justifies the extraction.
+                - For loans: set 'provenance' to the page and snippet of the primary source section (e.g., the account summary or loan schedule table).
+                - For each transaction: set its 'provenance' to the page and line where that transaction appears.
+                - 'page': 1-indexed page number.
+                - 'snippet': the exact text line used as evidence.
                 
                 Be extremely precise with amounts and dates. Use negative numbers for expenses in statements."""
             },

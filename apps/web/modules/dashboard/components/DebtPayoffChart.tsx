@@ -17,10 +17,10 @@ export interface DebtPayoffPoint {
   total: number;
 }
 
-interface Props {
+type Props = Readonly<{
   data: DebtPayoffPoint[];
   currency: string;
-}
+}>;
 
 export function DebtPayoffChart({ data, currency }: Props) {
   const debtFreeIndex = data.findIndex((p) => p.total === 0);

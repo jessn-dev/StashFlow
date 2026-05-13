@@ -18,7 +18,7 @@ const SENTRY_DSN = Deno.env.get('SENTRY_DSN')
 if (SENTRY_DSN) {
   Sentry.init({
     dsn: SENTRY_DSN,
-    tracesSampleRate: 1.0,
+    tracesSampleRate: 1,
   })
 }
 

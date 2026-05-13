@@ -60,8 +60,14 @@ docs/specs/
 docs/testdocs/
 docs/reference/
 
+# AI Context & Agent Files
+.claude/
 CLAUDE.md
+GEMINI.md
+.gemini/
+.geminiignore
+.aicontext
+.cursor/
+.cursorrules
 
 .idea/
-.claude
-GEMINI.md

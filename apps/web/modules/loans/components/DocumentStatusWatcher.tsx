@@ -37,10 +37,10 @@ export interface DocumentRecord {
 }
 
 /** Properties for the DocumentStatusWatcher component. */
-interface DocumentStatusWatcherProps {
+type DocumentStatusWatcherProps = Readonly<{
   /** The initial document state fetched from the server. */
   initial: DocumentRecord;
-}
+}>;
 
 const TIMEOUT_MS = 120_000;
 

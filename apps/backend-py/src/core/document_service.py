@@ -129,7 +129,7 @@ async def _extract_with_llm(text: str, method: str, temperature: float = 0.0, mo
             classification and extracted financial data.
     """
     target_model = model or settings.DEFAULT_AI_MODEL
-    return client.chat.completions.create(
+    return await client.chat.completions.create(
         model=target_model,
         response_model=UnifiedDocumentResponse,
         temperature=temperature,

@@ -100,35 +100,31 @@ async function storeFailed(
   )
 }
 
-async function processUnified(
-  supabase: SupabaseClient, 
+// ── Pre-condition helpers ────────────────────────────────────────────────────
+
+type DocLog = (step: string, detail?: unknown) => void
+
+/**
+ * Checks whether the user has exceeded the per-hour document processing rate limit (G17).
+ * Calls storeFailed and returns true when the limit is hit — caller should return early.
+ *
+ * @param supabase - Supabase client.
+ * @param userId - The user whose quota is being checked.
+ * @param documentId - For storeFailed if the limit is hit.
+ * @param log - Logger bound to the current document.
+ * @returns true if rate-limited.
+ */
+async function checkRateLimit(
+  supabase: SupabaseClient,
+  userId: string,
   documentId: string,
-  password?: string | null
-): Promise<void> {
-  const log = (step: string, detail?: unknown) =>
-    console.log(`[parse-document] [${documentId}] ${step}`, detail ?? '')
-  const fail = (step: string, err: unknown) => {
-    console.error(`[parse-document] [${documentId}] FAILED at: ${step}`, err)
-    throw err
-  }
-
-  log('start', { documentId })
-
-  // Fetch record
-  const { data: docRecord, error: fetchError } = await supabase
-    .from('documents')
-    .select('user_id, storage_path, content_type, file_size, processing_status, processing_attempts, last_processed_at')
-    .eq('id', documentId)
-    .single()
-
-  if (fetchError || !docRecord) fail('fetch-record', fetchError ?? new Error('Document not found'))
-
-  // G17 — Per-user rate limit (10 docs/hour)
+  log: DocLog,
+): Promise<boolean> {
   const ONE_HOUR_AGO = new Date(Date.now() - 60 * 60 * 1000).toISOString()
   const { count: recentDocs, error: countError } = await supabase
     .from('documents')
     .select('*', { count: 'exact', head: true })
-    .eq('user_id', docRecord.user_id)
+    .eq('user_id', userId)
     .gte('last_processed_at', ONE_HOUR_AGO)
     .eq('processing_status', 'success')
 
@@ -140,29 +136,58 @@ async function processUnified(
       message: 'You have reached the hourly limit for document processing (10 documents). Please try again later.',
       retryable: true,
     })
-    return
+    return true
   }
+  return false
+}
 
+/**
+ * Determines whether processing should proceed or be skipped based on current status (G13).
+ * Returns 'skip' when the document is already done or is actively processing and not stale.
+ * Stale documents (processing > 10 min) are rescued — they return 'proceed'.
+ *
+ * @param docRecord - The current document DB record.
+ * @param log - Logger bound to the current document.
+ * @returns 'skip' or 'proceed'.
+ */
+function resolveProcessingGuard(
+  docRecord: { processing_status: string; last_processed_at?: string | null },
+  log: DocLog,
+): 'skip' | 'proceed' {
   if (docRecord.processing_status === 'success') {
     log('already-completed — skip')
-    return
+    return 'skip'
   }
 
-  // G13 — Stale processing recovery
-  // If document has been in 'processing' for > 10 minutes, it's a zombie — rescue it
   const STALE_PROCESSING_MS = 10 * 60 * 1000
   if (docRecord.processing_status === 'processing' && docRecord.last_processed_at) {
-    const lastActive = new Date(docRecord.last_processed_at).getTime()
-    const elapsed = Date.now() - lastActive
-    if (elapsed > STALE_PROCESSING_MS) {
-      log('stale-processing-rescue', { elapsed })
-    } else {
+    const elapsed = Date.now() - new Date(docRecord.last_processed_at).getTime()
+    if (elapsed <= STALE_PROCESSING_MS) {
       log('already-processing — skip (not stale)')
-      return
+      return 'skip'
     }
+    log('stale-processing-rescue', { elapsed })
   }
 
-  // G10 — Attempt cap
+  return 'proceed'
+}
+
+/**
+ * Checks whether the document has exhausted its retry budget (G10).
+ * Calls storeFailed and returns true when the cap is reached — caller should return early.
+ *
+ * @param supabase - Supabase client.
+ * @param docRecord - The current document DB record.
+ * @param documentId - For storeFailed if the cap is hit.
+ * @param log - Logger bound to the current document.
+ * @returns true if the attempt cap is reached.
+ */
+async function checkAttemptCap(
+  supabase: SupabaseClient,
+  docRecord: { processing_attempts?: number | null },
+  documentId: string,
+  log: DocLog,
+): Promise<boolean> {
   const MAX_ATTEMPTS = 3
   if ((docRecord.processing_attempts ?? 0) >= MAX_ATTEMPTS) {
     log('max-attempts-exceeded', { attempts: docRecord.processing_attempts })
@@ -172,19 +197,162 @@ async function processUnified(
       message: `Document failed ${MAX_ATTEMPTS} times and will not be retried. Please re-upload.`,
       retryable: false,
     })
+    return true
+  }
+  return false
+}
+
+/**
+ * Downloads the file from storage and validates its magic bytes.
+ * Returns null (after calling storeFailed) when magic-byte validation fails.
+ * Throws directly for infrastructure download failures — those are not user errors.
+ *
+ * @param supabase - Supabase client.
+ * @param docRecord - The current document DB record.
+ * @param documentId - For storeFailed if validation fails.
+ * @param log - Logger bound to the current document.
+ * @returns The file ArrayBuffer, or null if validation failed.
+ */
+async function downloadAndValidate(
+  supabase: SupabaseClient,
+  docRecord: { storage_path: string; content_type: string | null },
+  documentId: string,
+  log: DocLog,
+): Promise<ArrayBuffer | null> {
+  log('storage-download', { path: docRecord.storage_path })
+  const { data: fileData, error: downloadError } = await supabase.storage
+    .from('user_documents')
+    .download(docRecord.storage_path)
+
+  if (downloadError || !fileData) {
+    throw new Error(`Storage download failed: ${downloadError?.message ?? 'no data'}`)
+  }
+
+  const buffer = await fileData.arrayBuffer()
+  const contentType = (docRecord.content_type as string | null) ?? 'application/pdf'
+  if (!validateMagicBytes(buffer, contentType)) {
+    log('magic-bytes-failed', { contentType })
+    await storeFailed(supabase, documentId, {
+      stage: 'inspect',
+      code: 'INVALID_MAGIC_BYTES',
+      message: 'The file content does not match its type. Please upload a valid PDF.',
+      retryable: false,
+    })
+    return null
+  }
+  return buffer
+}
+
+/**
+ * Routes the AI extraction result to the correct domain handler.
+ * Throws for unsupported types so the caller's catch block handles them uniformly.
+ *
+ * @param supabase - Supabase client.
+ * @param documentId - UUID of the document being processed.
+ * @param unifiedResult - The AI extraction result.
+ * @param rawTextCache - Raw extracted text, used for secondary inference on loans.
+ */
+async function dispatchExtraction(
+  supabase: SupabaseClient,
+  documentId: string,
+  unifiedResult: UnifiedDocumentResult,
+  rawTextCache: string,
+): Promise<void> {
+  if (unifiedResult.document_type === 'LOAN' && (unifiedResult.loan_data || unifiedResult.multi_loan_data)) {
+    await handleLoanExtraction(supabase, documentId, unifiedResult, rawTextCache)
+  } else if (unifiedResult.document_type === 'BANK_STATEMENT' && unifiedResult.statement_data) {
+    await handleBankStatementExtraction(supabase, documentId, unifiedResult)
+  } else {
+    throw new Error(`Unsupported or unknown document type: ${unifiedResult.document_type}`)
+  }
+}
+
+/**
+ * Handles errors from the main processing try block.
+ * Password errors are stored as 'error_password' so the UI can prompt for the key.
+ * All other failures go through storeFailed as 'error_generic'.
+ *
+ * @param supabase - Supabase client.
+ * @param documentId - UUID of the document being processed.
+ * @param err - The caught error.
+ * @param log - Logger bound to the current document.
+ */
+async function handleProcessingError(
+  supabase: SupabaseClient,
+  documentId: string,
+  err: unknown,
+  log: DocLog,
+): Promise<void> {
+  const errMsg = String(err)
+  if (
+    errMsg.includes('PDF is encrypted') ||
+    errMsg.includes('Invalid password') ||
+    errMsg.includes('requires a password')
+  ) {
+    log('password-required', errMsg)
+    await supabase.from('documents').update({
+      processing_status: 'error_password' satisfies ProcessingStatus,
+      processing_error: {
+        stage: 'extract',
+        code: 'PASSWORD_REQUIRED',
+        message: 'This PDF is password protected. Please provide the password to import.',
+        retryable: true,
+      },
+    }).eq('id', documentId)
     return
   }
+  log('processing-failed', errMsg)
+  await storeFailed(supabase, documentId, {
+    stage: 'extract',
+    code: 'PYTHON_ENQUEUE_FAILED',
+    message: `Intelligence service failed: ${errMsg}`,
+    retryable: true,
+  })
+}
+
+// ── Orchestrator ─────────────────────────────────────────────────────────────
+
+async function processUnified(
+  supabase: SupabaseClient,
+  documentId: string,
+  password?: string | null
+): Promise<void> {
+  // PSEUDOCODE: Unified Document Processing Pipeline
+  // 1. Fetch document record; bail on missing/error.
+  // 2. Run pre-condition guards: rate limit → status guard → attempt cap.
+  // 3. Mark as 'processing', validate MIME type, download, validate magic bytes.
+  // 4. Call Python backend, dispatch to domain handler (loan or bank statement).
+  // 5. On error, route to password or generic failure handler.
+
+  const log: DocLog = (step, detail?) =>
+    console.log(`[parse-document] [${documentId}] ${step}`, detail ?? '')
+  const fail = (step: string, err: unknown): never => {
+    console.error(`[parse-document] [${documentId}] FAILED at: ${step}`, err)
+    throw err
+  }
+
+  log('start', { documentId })
+
+  const { data: docRecord, error: fetchError } = await supabase
+    .from('documents')
+    .select('user_id, storage_path, content_type, file_size, processing_status, processing_attempts, last_processed_at')
+    .eq('id', documentId)
+    .single()
+
+  if (fetchError || !docRecord) fail('fetch-record', fetchError ?? new Error('Document not found'))
+
+  if (await checkRateLimit(supabase, docRecord.user_id, documentId, log)) return
+  if (resolveProcessingGuard(docRecord, log) === 'skip') return
+  if (await checkAttemptCap(supabase, docRecord, documentId, log)) return
 
   await auditLog(supabase, docRecord.user_id, 'document.parse', 'started', { document_id: documentId })
 
-  // Track attempt
   await supabase.from('documents').update({
     processing_status: 'processing' satisfies ProcessingStatus,
     processing_attempts: (docRecord.processing_attempts ?? 0) + 1,
     last_processed_at: new Date().toISOString(),
   }).eq('id', documentId)
 
-  // Validation
   const contentType = (docRecord.content_type as string | null) ?? 'application/pdf'
   const inspectResult = inspectFile(contentType)
   if (!inspectResult.ok) {
@@ -193,75 +361,18 @@ async function processUnified(
     return
   }
 
-  log('storage-download', { path: docRecord.storage_path })
-  const { data: fileData, error: downloadError } = await supabase.storage
-    .from('user_documents')
-    .download(docRecord.storage_path)
+  const buffer = await downloadAndValidate(supabase, docRecord, documentId, log)
+  if (!buffer) return
 
-  if (downloadError || !fileData) {
-    fail('storage-download', new Error(`Storage download failed: ${downloadError?.message ?? 'no data'}`))
-  }
-
-  // [0] Magic Bytes Validation
-  const buffer = await fileData.arrayBuffer()
-  const isMagicValid = validateMagicBytes(buffer, contentType)
-  if (!isMagicValid) {
-    log('magic-bytes-failed', { contentType })
-    await storeFailed(supabase, documentId, {
-      stage: 'inspect',
-      code: 'INVALID_MAGIC_BYTES',
-      message: 'The file content does not match its type. Please upload a valid PDF.',
-      retryable: false,
-    })
-    return
-  }
-
-  // [1] Call Python Backend
   try {
-    // Extract text for duration cascade and other soft-validation rules
     const textResult = await extractPdfText(buffer)
     const rawTextCache = textResult.ok ? textResult.value : ''
-
     const unifiedResult = await callPythonBackend(buffer, contentType, password)
     log('python-processing-success', { type: unifiedResult.document_type, confidence: unifiedResult.confidence })
-
-    if (unifiedResult.document_type === 'LOAN' && (unifiedResult.loan_data || unifiedResult.multi_loan_data)) {
-        await handleLoanExtraction(supabase, documentId, unifiedResult, rawTextCache)
-    } else if (unifiedResult.document_type === 'BANK_STATEMENT' && unifiedResult.statement_data) {
-        await handleBankStatementExtraction(supabase, documentId, unifiedResult)
-    } else {
-        throw new Error(`Unsupported or unknown document type: ${unifiedResult.document_type}`)
-    }
+    await dispatchExtraction(supabase, documentId, unifiedResult, rawTextCache)
     log('done')
   } catch (err) {
-    const errMsg = String(err)
-    
-    // Distinguish password errors from other failures
-    if (
-      errMsg.includes('PDF is encrypted') ||
-      errMsg.includes('Invalid password') ||
-      errMsg.includes('requires a password')
-    ) {
-      log('password-required', errMsg)
-      await supabase.from('documents').update({
-        processing_status: 'error_password' satisfies ProcessingStatus,
-        processing_error: {
-          stage: 'extract',
-          code: 'PASSWORD_REQUIRED',
-          message: 'This PDF is password protected. Please provide the password to import.',
-          retryable: true,
-        },
-      }).eq('id', documentId)
-      return   // do NOT call storeFailed — that would overwrite with error_password
-    }
-
-    log('processing-failed', errMsg)
-    await storeFailed(supabase, documentId, {
-      stage: 'extract',
-      code: 'PYTHON_ENQUEUE_FAILED',
-      message: `Intelligence service failed: ${errMsg}`,
-      retryable: true,
-    })
+    await handleProcessingError(supabase, documentId, err, log)
   }
 }
 
@@ -603,7 +714,7 @@ async function handleLoanExtraction(
 // --- Guardrail Helper Functions ---
 
 function validateTransactionAmount(amount: number, idx: number): string | null {
-  if (!isFinite(amount)) return `Transaction ${idx}: amount is not a finite number (${amount})`
+  if (!Number.isFinite(amount)) return `Transaction ${idx}: amount is not a finite number (${amount})`
   if (amount === 0) return `Transaction ${idx}: zero-amount transaction — likely a parsing error`
   if (Math.abs(amount) > 1_000_000) return `Transaction ${idx}: amount $${amount} exceeds $1M — verify`
   return null
@@ -611,7 +722,7 @@ function validateTransactionAmount(amount: number, idx: number): string | null {
 
 function validateTransactionDate(dateStr: string, idx: number): string | null {
   const d = new Date(dateStr)
-  if (isNaN(d.getTime())) return `Transaction ${idx}: invalid date "${dateStr}"`
+  if (Number.isNaN(d.getTime())) return `Transaction ${idx}: invalid date "${dateStr}"`
   
   const now = new Date()
   if (d > now) return `Transaction ${idx}: future date "${dateStr}" — likely a parsing error`

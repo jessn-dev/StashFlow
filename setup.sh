@@ -721,6 +721,11 @@ cmd_check_all() {
   cmd_test coverage
   cmd_py_check
   
+  if command -v supabase &>/dev/null; then
+    info "Running database RLS tests..."
+    supabase test db
+  fi
+  
   divider
   success "FULL QUALITY GATE PASSED"
   divider

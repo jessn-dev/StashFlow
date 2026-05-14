@@ -315,7 +315,7 @@ export default function TransactionImportPage({ searchParams }: { searchParams: 
             <div className="mx-8 mt-4 mb-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
               <p className="text-xs font-black text-amber-700 uppercase tracking-widest mb-1">Review Carefully</p>
               <ul className="text-xs text-amber-600 space-y-0.5">
-                {validationWarnings.map((w, i) => <li key={i}>• {w}</li>)}
+                {validationWarnings.map((w, i) => <li key={`${i}-${w.slice(0, 10)}`}>• {w}</li>)}
               </ul>
             </div>
           )}

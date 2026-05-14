@@ -25,14 +25,14 @@ RUN chown -R appuser:appgroup /app
 USER appuser
 
 # Copy project files
-COPY --chown=appuser:appgroup pyproject.toml uv.lock ./
+COPY --chown=appuser:appgroup --chmod=550 pyproject.toml uv.lock ./
 
 # Install dependencies
 # We use --frozen to ensure we use the lockfile exactly
 RUN uv sync --frozen --no-dev
 
 # Copy source code
-COPY --chown=appuser:appgroup src/ ./src/
+COPY --chown=appuser:appgroup --chmod=550 src/ ./src/
 
 # Run the application
 CMD ["uv", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

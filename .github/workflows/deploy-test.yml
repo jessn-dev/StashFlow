@@ -95,8 +95,8 @@ jobs:
       #       PARSE_LOAN_WEBHOOK_SECRET="$PARSE_LOAN_WEBHOOK_SECRET" \
       #       --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }}
 
-      # - name: Deploy Edge Functions (Test)
-      #   run: supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }}
+      - name: Deploy Edge Functions (Test)
+        run: supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_REF_TEST }}
 
   # 2. Vercel Deployment (Frontend Second)
   deploy-test:

@@ -9,6 +9,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClient } from '~/lib/supabase/client';
 import { LoanForm } from './LoanForm';
 import { StatementReviewForm } from '../../transactions/components/StatementReviewForm';
@@ -40,6 +41,7 @@ export interface DocumentRecord {
 type DocumentStatusWatcherProps = Readonly<{
   /** The initial document state fetched from the server. */
   initial: DocumentRecord;
+  preferredCurrency?: string;
 }>;
 
 const TIMEOUT_MS = 120_000;
@@ -50,9 +52,41 @@ const TIMEOUT_MS = 120_000;
  * @param {DocumentStatusWatcherProps} props - Component props.
  * @returns {JSX.Element} The rendered component state based on processing status.
  */
-export function DocumentStatusWatcher({ initial }: DocumentStatusWatcherProps) {
+export function DocumentStatusWatcher({ initial, preferredCurrency }: DocumentStatusWatcherProps) {
   const [doc, setDoc] = useState<DocumentRecord>(initial);
   const [timedOut, setTimedOut] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
+  const [savedTabs, setSavedTabs] = useState<Set<number>>(new Set());
+  const savedCount = savedTabs.size;
+  const router = useRouter();
+
+  // Derive extractedFields from the loan object (fields with non-null, non-empty values
+  // that are not form defaults — indicates AI populated them)
+  function getExtractedFields(loan: any): string[] {
+    const fields: string[] = [];
+    if (loan.principal)          fields.push('principal');
+    if (loan.interest_rate)      fields.push('interest_rate');
+    if (loan.duration_months)    fields.push('duration_months');
+    if (loan.installment_amount) fields.push('installment_amount');
+    if (loan.start_date)         fields.push('start_date');
+    if (loan.lender)             fields.push('lender');
+    if (loan.name)               fields.push('name');
+    if (loan.currency && loan.currency !== 'USD') fields.push('currency'); // only flag non-default
+    return fields;
+  }
+
+  // Redirect when all multi-loan forms saved
+  useEffect(() => {
+    const data = doc.extracted_data;
+    if (doc.processing_status !== 'success' || !data || !data.loans) return;
+    
+    const loans = data.loans;
+    const isMulti = data.loan_structure === 'multi' || loans.length > 1;
+    
+    if (isMulti && savedTabs.size > 0 && savedTabs.size === loans.length) {
+      router.push('/dashboard/loans');
+    }
+  }, [savedTabs, doc.extracted_data, doc.processing_status, router]);
 
   /*
    * PSEUDOCODE: Real-time Status Syncing
@@ -143,14 +177,68 @@ export function DocumentStatusWatcher({ initial }: DocumentStatusWatcherProps) {
      
      // Sub-flow: Loan Extraction
      if (data.loans) {
+        const loans = data.loans;
+        const isMulti = data.loan_structure === 'multi' || loans.length > 1;
+
         return (
-          <div className="space-y-12">
-            {data.loans.map((loan: any, i: number) => (
-              <div key={i} className="bg-white rounded-[32px] border border-gray-100 shadow-xl overflow-hidden p-8">
-                 <ExtractionSummaryBar type="LOAN" data={loan} validation={data.validation} />
-                 <LoanForm docId={doc.id} initial={loan} provenance={loan.provenance} />
-              </div>
-            ))}
+          <div className="space-y-4">
+            {/* Document-level summary — once, above tabs */}
+            <ExtractionSummaryBar type="LOAN" data={loans[0]} validation={data.validation} />
+
+            {isMulti && (
+              <>
+                {/* Counter */}
+                <div className="flex items-center justify-between px-1">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{loans.length} loans found in this document</p>
+                    <p className="text-xs text-gray-400">Review and confirm each loan separately.</p>
+                  </div>
+                  <span className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-semibold">
+                    {savedTabs.size} of {loans.length} saved
+                  </span>
+                </div>
+
+                {/* Tab bar */}
+                <div className="flex gap-2">
+                  {loans.map((_: any, i: number) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveTab(i)}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${
+                        activeTab === i
+                          ? 'bg-gray-900 text-white border-gray-900'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                      }`}
+                    >
+                      Loan {i + 1}
+                      {savedTabs.has(i) && <span className="ml-2 text-emerald-500">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Active form — single card, keyed to tab so form resets on switch */}
+            <div className="bg-white rounded-[32px] border border-gray-100 shadow-xl overflow-hidden p-8">
+              <LoanForm
+                key={activeTab}
+                docId={doc.id}
+                initial={isMulti ? loans[activeTab] : loans[0]}
+                provenance={(isMulti ? loans[activeTab] : loans[0]).provenance}
+                title={isMulti ? `Loan ${activeTab + 1} of ${loans.length}` : undefined}
+                extractedFields={getExtractedFields(isMulti ? loans[activeTab] : loans[0])}
+                currencyFallback={preferredCurrency}
+                verificationSkipped={data.verification_status === 'skipped'}
+                userFriendlyMessage={data.user_friendly_message}
+                onSaved={isMulti ? () => {
+                  const next = new Set(savedTabs).add(activeTab);
+                  setSavedTabs(next);
+                  // Auto-advance to next unsaved tab
+                  const nextUnsaved = loans.findIndex((_: any, i: number) => !next.has(i));
+                  if (nextUnsaved !== -1) setActiveTab(nextUnsaved);
+                } : undefined}
+              />
+            </div>
           </div>
         );
      }

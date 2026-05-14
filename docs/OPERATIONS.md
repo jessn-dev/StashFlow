@@ -234,6 +234,29 @@ If document processing fails (e.g., AI provider outage):
       -F "file=@/tmp/document.pdf"
     ```
 
+### Diagnosing Extraction Quality Issues
+
+If a loan extracted from a document has wrong field values (wrong interest rate, type, or lender), check these in order:
+
+**1. Parser disagreement flag**
+```sql
+SELECT id, extracted_data->'validation'->'confidence' AS confidence,
+       extracted_data->'validation'->'errors' AS errors,
+       extracted_data->'validation'->'requires_verification' AS needs_review
+FROM public.documents
+WHERE id = '<document_id>';
+```
+`requires_verification = true` + `confidence < 0.4` → the two parallel AI extractors disagreed. Check `errors` array for which field triggered disagreement.
+
+**2. Interest rate — monthly vs annual**
+If `interest_rate` looks suspiciously low (e.g. 1.3 instead of 15.6), the `resolveAnnualRate()` resolver did not detect Add-on signals. Check:
+- Does the document contain `Monthly EIR`, `Annual EIR`, or `EFFECTIVE INTEREST` text?
+- Is `installment_amount` stored? Without it, payment math cross-check is skipped.
+- Check edge function logs for `interest_rate converted:` log line.
+
+**3. Balance drift warning**
+The amortization engine emits `console.warn` if the final schedule balance drifts > 0.1% of principal. Check edge function logs for `[loans] Add-on schedule balance drift:`. This indicates `solveMonthlyEir()` fell back to `computeAddOnEIR()` (convergence failure) or `installment_amount` is inconsistent with `principal`/`duration_months`.
+
 ### Incident Runbooks
 
 | Incident | Immediate Action |
@@ -242,6 +265,7 @@ If document processing fails (e.g., AI provider outage):
 | **Edge Function Timeout** | Ensure heavy processing is correctly handed off to the Python Worker Layer. |
 | **Auth System Down** | Check Supabase Status. Pause automated workflows that require user-context. |
 | **Storage Quota Reached** | Increase Supabase Storage limits or archive documents older than 90 days. |
+| **Wrong loan fields after extraction** | See "Diagnosing Extraction Quality Issues" above. Check `requires_verification` flag and edge function logs. |
 
 ...
 tterns |

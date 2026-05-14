@@ -208,19 +208,61 @@ User uploads PDF → Supabase Storage (user_documents bucket)
     ├─ parse-document edge function (Deno):
     │       1. inspect MIME type + validate Magic Bytes
     │       2. download file from Supabase Storage
-    │       3. POST file to Python backend (/api/v1/documents/process) — synchronous
+    │       3. extractPdfText() — raw text cache for secondary inference
+    │       4. POST file to Python backend (/api/v1/documents/process) — synchronous
     │
     ├─ Python backend (FastAPI):
     │       1. classify document type (LOAN vs BANK_STATEMENT)
     │       2. extract text (PyMuPDF) with local OCR fallback (Tesseract)
-    │       3. AI structured extraction (Groq / Gemini)
-    │       4. return UnifiedDocumentResult JSON
+    │       3. RESILIENT SEQUENTIAL EXTRACTION:
+    │          - Two sequential AI passes (deterministic 0.0 + creative 0.2)
+    │          - Avoids TPM (Tokens Per Minute) bursts common in Groq free tier
+    │          - Provider Failover: Groq (70B) -> Gemini (2.0 Flash) on rate limits/errors
+    │          - Graceful Degradation: If verification call fails, return primary result
+    │            with `verification_status: 'skipped'` to trigger UI warnings.
+    │       4. Disagreement Detection: Compare Call 1 and Call 2 if both succeeded.
+    │          Disagreement on: document type, principal, loan structure, currency,
+    │          interest rate (>20% relative), interest type, loan count → confidence < 0.4
+    │       5. return UnifiedDocumentResult JSON with reliability metadata
     │
-    └─ parse-document edge function (Deno) — persist result:
-            1. validate extracted fields (principal > 0, rate in range, etc.)
-            2. write to documents.extracted_data (JSONB)
-            3. update processing_status → 'success' or 'error_generic'
-            4. client polls via Supabase Realtime (DocumentStatusWatcher.tsx)
+    └─ parse-document edge function (Deno) — resolution + persist:
+...
+---
+
+## Future Reliability Roadmap (Post-MVP)
+
+Strategic improvements planned to enhance the AI intelligence layer as scale increases.
+
+### 1. Cross-Provider Verification (Groq vs. Gemini)
+- **Current (MVP):** Resilient Self-Verification. We use the same provider (Groq or Gemini) for both extraction passes to manage strict free-tier RPM (Requests Per Minute) limits.
+- **Post-MVP:** Dual-Model Cross-Check. Once on paid tiers with higher limits, the system will use Groq (Llama 3) for the primary pass and Gemini (Flash or Pro) for the verification pass.
+ Comparing two entirely different model architectures is the "Gold Standard" for eliminating hallucinated numbers.
+
+### 2. Multi-Modal Vision Processing
+- **Current:** Text-only extraction (PDF → Markdown/Text → LLM).
+- **Post-MVP:** Vision + Text hybrid. Passing raw document screenshots alongside text helps preserve spatial context (letterheads, table cell relationships) which is occasionally lost in linear text extraction.
+
+### 3. Asynchronous Verification Loop
+- **Current:** Synchronous processing (User waits for both passes).
+- **Post-MVP:** "Instant Result + Background Verify." Return the primary extraction immediately for UX snappiness, then run the second verification pass as a background job that updates the document status asynchronously.
+
+### 4. User Usage & Cost Guardrails (Daily Upload Limits)
+- **Current:** No user-level caps. Users can upload unlimited documents, potentially exhausting AI API quotas.
+- **Post-MVP:** Tier-based Usage Caps.
+  - **Free Tier:** 3 uploads per day.
+  - **Pro Tier:** Unlimited (or higher) uploads.
+- **Mechanism:** The `parse-document` edge function will query the `documents` table to count recent uploads (`created_at >= NOW() - INTERVAL '24 hours'`). If the limit is reached, it will abort processing with a `error_rate_limit` status and return a user-friendly "Upgrade to Pro" message.
+            1. resolveAnnualRate()  — detects monthly rate stored as annual; converts via
+               payment math cross-check (Add-on text signals + installment amount ± 2%)
+            2. inferInterestTypeFromText() — 6-pattern regex; ≥2 matches → Add-on Interest
+            3. extractAnnualEIR()   — regex extracts Annual EIR if explicitly in document
+            4. inferCurrency()      — symbol/code pattern scan with ALLOWED_CURRENCIES gate
+            5. inferDurationMonths() — repayment plan name → standard term fallback
+            6. per-loan validation: principal, rate range, duration, lender, currency
+            7. cross-loan currency consistency check (multi-loan docs)
+            8. write to documents.extracted_data (JSONB)
+            9. update processing_status → 'success' or 'error_generic'
+           10. client polls via Supabase Realtime (DocumentStatusWatcher.tsx)
 ```
 
 ---
@@ -254,7 +296,60 @@ StashFlow monitors session health to detect potential account takeovers.
 
 ---
 
-## CI/CD Pipeline
+## User Tiers & Feature Matrix
+
+StashFlow implements a tiered access model to manage AI costs and provide premium value to subscribers.
+
+### Differentiation Table
+
+| Feature | **Free Tier** (Default) | **Pro Tier** (Subscription) |
+| :--- | :--- | :--- |
+| **AI Document Parsing** | 3 uploads per day | Unlimited |
+| **Multi-Currency Support**| Base currency only | Full multi-currency accounting |
+| **Intelligence Advisor** | Basic cash flow insights | Macro-financial advisor + Market trends |
+| **Ledger Integrity** | Signature verification | Full immutable audit trail access |
+| **Document Storage** | 100MB | 5GB + Versioning |
+| **Session Intelligence** | Current session only | 30-day session history + IP/Geo alerts |
+
+### Implementation Path (Post-MVP)
+1.  **Database:** Add `plan_tier` (ENUM: 'free', 'pro') to the `profiles` table.
+2.  **Edge Functions:** All AI-driven or storage-heavy functions will check the user's `plan_tier` via the `Authorization` header JWT (Supabase includes profile data in the JWT if configured via `auth.users` triggers).
+3.  **Frontend:** UI components (like `LoanUploadZone` or `MacroAdvisor`) will conditionally render "Upgrade" prompts based on the user's tier.
+
+### Subscription Lifecycle (Upgrade Workflow)
+
+To enable self-service upgrades, StashFlow supports multiple payment providers to ensure global coverage, following the industry-standard **Webhook Pattern**:
+
+#### Provider Options:
+- **Stripe (Global/US-Centric):** Best for US, Singapore, or EU-based legal entities. Provides a seamless "unbranded" card experience. Requires Stripe Atlas for PH-based businesses.
+- **PayPal (Asia/PH Native):** Best for Philippines-based legal entities. Supports native PH business registration and local bank linking (BDO/BPI) without requiring a US company.
+
+#### Workflow:
+1.  **Selection:** User selects the Pro plan in the app settings.
+2.  **Redirect:** App creates a checkout session (Stripe) or subscription plan (PayPal) and redirects the user to the provider's secure payment page.
+3.  **Payment:** User completes the payment securely.
+4.  **Webhook:** Provider sends a success event (e.g., `checkout.session.completed` for Stripe or `BILLING.SUBSCRIPTION.CREATED` for PayPal) to the StashFlow Edge Function (`supabase/functions/handle-payments`).
+5.  **Provisioning:** The Edge Function validates the provider's cryptographic signature, identifies the user, and updates `profiles.plan_tier = 'pro'` in the database.
+6.  **Activation:** The app detects the update (via Realtime or Session Refresh) and immediately unlocks Pro features.
+
+### Pro Trial Lifecycle (On-Demand Activation)
+
+To lower the barrier to entry, StashFlow provides a one-time **14-day Pro Trial** that users can activate at any time.
+
+- **On-Demand:** The trial does not start automatically upon signup. Users can click "Start 14-Day Free Trial" from their dashboard whenever they are ready to explore premium features.
+- **State Management:** The `profiles` table will track `trial_activated_at` and `trial_expires_at`.
+- **Logic:** Once activated, the expiration date is set to `NOW() + INTERVAL '14 days'`. The `Authorization` logic treats an active trial identically to a paid 'pro' tier.
+
+### Data Retention & "The Soft Lock" Strategy
+
+If a Pro Trial or Subscription expires, StashFlow prioritizes **Data Integrity** over aggressive locking:
+
+1.  **Retention:** No data is ever deleted. The user's financial history remains 100% intact.
+2.  **The Soft Lock:** Users are moved to a "Read-Only / Legacy" state for Pro features:
+    - **Multi-Currency:** Can view existing multi-currency assets/loans but cannot add new ones or change the currency of existing ones.
+    - **AI Parsing:** Reverts to the 3-per-day limit. Existing "Pro-verified" document results remain accessible.
+    - **Macro Advisor:** Real-time access is disabled, but previous insights remain in the history.
+3.  **Upgrade Incentive:** To resume adding data or using advanced intelligence, the user is prompted to upgrade. This ensures they never feel "locked out" of their own financial history, maintaining trust.
 
 StashFlow uses a gated, backend-first deployment strategy to ensure system stability.
 

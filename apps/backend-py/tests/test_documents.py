@@ -97,15 +97,16 @@ async def test_extract_document_ocr_failure(mock_ocr, mock_fitz_open, client):
 @patch("src.core.document_service.get_text_from_pdf")
 @patch("src.core.document_service._extract_with_llm")
 async def test_process_document_disagreement(mock_llm, mock_get_text, client):
-    from src.schemas.financial import UnifiedDocumentResponse, LoanExtractionSchema
+    from src.schemas.financial import UnifiedDocumentResponse, SingleLoanExtractionSchema
     mock_get_text.return_value = ("Sample text", 1, "standard", {})
     
     # Use real models for validation
     res1 = UnifiedDocumentResponse(
         document_type="LOAN",
+        loan_structure="single",
         confidence=0.9,
         reasoning="Matched well",
-        loan_data=LoanExtractionSchema(
+        loan_data=SingleLoanExtractionSchema(
             name="Loan A",
             principal=1000,
             interest_rate=5.0,
@@ -116,9 +117,10 @@ async def test_process_document_disagreement(mock_llm, mock_get_text, client):
     
     res2 = UnifiedDocumentResponse(
         document_type="LOAN",
+        loan_structure="single",
         confidence=0.9,
         reasoning="Matched well",
-        loan_data=LoanExtractionSchema(
+        loan_data=SingleLoanExtractionSchema(
             name="Loan A",
             principal=2000, # Different principal
             interest_rate=5.0,
@@ -136,3 +138,97 @@ async def test_process_document_disagreement(mock_llm, mock_get_text, client):
     data = response.json()
     assert data["ocr_telemetry"]["parser_disagreement_detected"] is True
     assert data["confidence"] <= 0.4
+
+@pytest.mark.asyncio
+@patch("src.core.document_service.get_text_from_pdf")
+@patch("src.core.document_service._extract_with_llm")
+async def test_multi_loan_extraction(mock_llm, mock_get_text, client):
+    from src.schemas.financial import UnifiedDocumentResponse, SingleLoanExtractionSchema, MultiLoanExtractionSchema
+    mock_get_text.return_value = ("Sample text", 1, "standard", {})
+    
+    loan1 = SingleLoanExtractionSchema(name="Loan 1", principal=1000, interest_rate=5.0, installment_amount=100, duration_months=12)
+    loan2 = SingleLoanExtractionSchema(name="Loan 2", principal=2000, interest_rate=6.0, installment_amount=200, duration_months=24)
+    
+    res = UnifiedDocumentResponse(
+        document_type="LOAN",
+        loan_structure="multi",
+        multi_loan_data=MultiLoanExtractionSchema(loans=[loan1, loan2]),
+        confidence=0.9,
+        reasoning="Multi loans"
+    )
+    
+    mock_llm.side_effect = [res, res]
+    
+    files = {'file': ('loan.pdf', b'%PDF-1.4', 'application/pdf')}
+    response = await client.post("/api/v1/documents/process", files=files)
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["loan_structure"] == "multi"
+    assert len(data["multi_loan_data"]["loans"]) == 2
+
+@pytest.mark.asyncio
+@patch("src.core.document_service.get_text_from_pdf")
+@patch("src.core.document_service._extract_with_llm")
+async def test_parser_disagreement_structure(mock_llm, mock_get_text, client):
+    from src.schemas.financial import UnifiedDocumentResponse, SingleLoanExtractionSchema, MultiLoanExtractionSchema
+    mock_get_text.return_value = ("Sample text", 1, "standard", {})
+    
+    loan1 = SingleLoanExtractionSchema(name="Loan 1", principal=1000, interest_rate=5.0, installment_amount=100, duration_months=12)
+    
+    res1 = UnifiedDocumentResponse(
+        document_type="LOAN",
+        loan_structure="single",
+        loan_data=loan1,
+        confidence=0.9
+    )
+    res2 = UnifiedDocumentResponse(
+        document_type="LOAN",
+        loan_structure="multi",
+        multi_loan_data=MultiLoanExtractionSchema(loans=[loan1]),
+        confidence=0.9
+    )
+    
+    mock_llm.side_effect = [res1, res2]
+    
+    files = {'file': ('loan.pdf', b'%PDF-1.4', 'application/pdf')}
+    response = await client.post("/api/v1/documents/process", files=files)
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ocr_telemetry"]["parser_disagreement_detected"] is True
+    assert data["confidence"] <= 0.4
+
+@pytest.mark.asyncio
+@patch("src.core.document_service.get_text_from_pdf")
+@patch("src.core.document_service._extract_with_llm")
+async def test_parser_disagreement_loan_count(mock_llm, mock_get_text, client):
+    from src.schemas.financial import UnifiedDocumentResponse, SingleLoanExtractionSchema, MultiLoanExtractionSchema
+    mock_get_text.return_value = ("Sample text", 1, "standard", {})
+    
+    loan1 = SingleLoanExtractionSchema(name="Loan 1", principal=1000, interest_rate=5.0, installment_amount=100, duration_months=12)
+    loan2 = SingleLoanExtractionSchema(name="Loan 2", principal=2000, interest_rate=6.0, installment_amount=200, duration_months=24)
+    
+    res1 = UnifiedDocumentResponse(
+        document_type="LOAN",
+        loan_structure="multi",
+        multi_loan_data=MultiLoanExtractionSchema(loans=[loan1]),
+        confidence=0.9
+    )
+    res2 = UnifiedDocumentResponse(
+        document_type="LOAN",
+        loan_structure="multi",
+        multi_loan_data=MultiLoanExtractionSchema(loans=[loan1, loan2]),
+        confidence=0.9
+    )
+    
+    mock_llm.side_effect = [res1, res2]
+    
+    files = {'file': ('loan.pdf', b'%PDF-1.4', 'application/pdf')}
+    response = await client.post("/api/v1/documents/process", files=files)
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ocr_telemetry"]["parser_disagreement_detected"] is True
+    assert data["confidence"] <= 0.4
+

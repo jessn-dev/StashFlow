@@ -60,6 +60,45 @@ wait_for_port() {
   return 0
 }
 
+check_docker_conflicts() {
+  if ! command -v docker &>/dev/null; then return 0; fi
+  
+  local conflicts=()
+  
+  # 1. Port-based check (Running containers)
+  local ports=(54321 54322 54323 8000 8008 6379)
+  for port in "${ports[@]}"; do
+    local cid
+    cid=$(docker ps -q --filter "publish=$port")
+    if [ -n "$cid" ]; then conflicts+=("$cid"); fi
+  done
+
+  # 2. Broad Name/Label Sweep (All containers, including stopped/orphaned)
+  # We search names and labels for 'StashFlow' to catch analytics, kong, and other sidecars
+  local sweep_cids
+  sweep_cids=$(docker ps -a --format '{{.ID}} {{.Names}} {{.Labels}}' | grep -i "StashFlow" | awk '{print $1}')
+  if [ -n "$sweep_cids" ]; then
+    for cid in $sweep_cids; do
+      conflicts+=("$cid")
+    done
+  fi
+
+  if [ ${#conflicts[@]} -gt 0 ]; then
+    info "Found conflicting container(s). Performing deep environment reset..."
+    # Deduplicate container IDs
+    local unique_conflicts
+    unique_conflicts=$(echo "${conflicts[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' ')
+    for cid in $unique_conflicts; do
+      local cname
+      cname=$(docker inspect --format='{{.Name}}' "$cid" 2>/dev/null | sed 's/^\///') || cname="unknown"
+      info "Force removing: $cname ($cid)..."
+      docker stop "$cid" >/dev/null 2>&1 || true
+      docker rm -f "$cid" >/dev/null 2>&1 || true
+    done
+    success "Environment cleared."
+  fi
+}
+
 # ── Resolve project root ──────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -169,6 +208,7 @@ cmd_help() {
   echo -e "    db:types                   Regenerate TypeScript types from local schema"
   echo -e "    db:backup                  Create a local logical backup of the development database"
   echo -e "    db:restore <file>          Restore a logical backup to the development database"
+  echo -e "    db:flush                   Clear document cache (DELETE FROM documents) to force re-processing"
 
   echo -e "    db:shared                  Sync monorepo packages to Supabase _shared directory"
   echo -e "    schema:sync                Sync AI schemas from Python to TypeScript"
@@ -271,6 +311,9 @@ cmd_dev() {
   local target=$1
   local clean=0
 
+  # ── Automatic Conflict Resolution ─────────────────────────────────────────
+  check_docker_conflicts
+
   # Support --clean flag or --clean as first arg
   if [[ "$target" == "--clean" ]]; then
     clean=1
@@ -293,11 +336,18 @@ cmd_dev() {
     cmd_db_start
   fi
 
+  # ── Preflight: Flush document cache to force fresh AI logic ───────────────
+  cmd_db_flush
+
   # ── Preflight: Logging must be running ─────────────────────────────────────
   cmd_logging_start
 
   # ── Preflight: Sync environment variables ──────────────────────────────────
   cmd_db_env
+
+  # ── Redeploy: Sync schemas and shared packages for Edge Functions ──────────
+  info "Redeploying local Edge Functions (Syncing shared logic)..."
+  cmd_schema_sync
 
   # ── Preflight: edge function env must exist ────────────────────────────────
   if [ ! -f "supabase/functions/.env" ]; then
@@ -568,6 +618,18 @@ cmd_db_restore() {
   supabase db reset
   psql "postgres://postgres:postgres@localhost:54322/postgres" -f "$file"
   success "Database restored from $file."
+}
+
+cmd_db_flush() {
+  require_supabase
+  info "Flushing local document cache to force re-processing on next upload..."
+  
+  # Connect to local Postgres and nuke the documents table
+  # We use the host-mapped port 54322
+  psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -q -c "DELETE FROM public.documents;" \
+    || die "Failed to connect to local database. Is Supabase running?"
+    
+  success "Document records cleared. Re-uploading files will now trigger fresh AI extraction."
 }
 
 cmd_db_shared() {
@@ -868,6 +930,7 @@ case "$1" in
   db:types)     cmd_db_types ;;
   db:backup)    cmd_db_backup ;;
   db:restore)   cmd_db_restore "$2" ;;
+  db:flush)     cmd_db_flush ;;
   db:shared)    cmd_db_shared ;;
   schema:sync)  cmd_schema_sync ;;
   py:docker)    cmd_py_docker ;;

@@ -10,7 +10,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   if (!user) redirect('/login');
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 text-gray-900">
+    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900">
       {/* Global Top Navigation — 72px */}
       <header className="h-[72px] bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-30 flex-shrink-0">
         <div className="flex items-center justify-between h-full px-6">

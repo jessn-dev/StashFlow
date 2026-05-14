@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from src.schemas.financial import (
-    LoanExtractionSchema, 
+    SingleLoanExtractionSchema, 
     TransactionCategorizationSchema, 
     AnomalyReportSchema,
     UnifiedDocumentResponse
@@ -22,7 +22,7 @@ def export_schemas():
     
     # Export individual schemas
     schemas = {
-        "loan_schema.json": LoanExtractionSchema.model_json_schema(),
+        "loan_schema.json": SingleLoanExtractionSchema.model_json_schema(),
         "transaction_schema.json": TransactionCategorizationSchema.model_json_schema(),
         "anomaly_schema.json": AnomalyReportSchema.model_json_schema(),
         "unified_document_schema.json": UnifiedDocumentResponse.model_json_schema(),

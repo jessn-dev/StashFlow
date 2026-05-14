@@ -218,11 +218,11 @@ function calculateAddOnInterest(params: any): AmortizationSchedule {
 
   const totalInterestFlat = principal * annualInterestRate * (durationMonths / 12);
   const computedPayment = (principal + totalInterestFlat) / durationMonths;
-  const monthlyPayment = installmentAmount && installmentAmount > 0 ? installmentAmount : computedPayment;
+  const monthlyPayment = (installmentAmount && installmentAmount > 0) ? installmentAmount : computedPayment;
 
   // Solve monthly EIR from the actual payment for exact interest/principal split.
   // Fall back to computeAddOnEIR if Newton-Raphson fails to converge or is implausible.
-  const solved = installmentAmount && installmentAmount > 0
+  const solved = installmentAmount
     ? solveMonthlyEir(principal, installmentAmount, durationMonths)
     : null;
   const monthlyEir = solved !== null

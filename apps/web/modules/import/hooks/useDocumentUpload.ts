@@ -108,11 +108,11 @@ type PollOutcome =
  * @returns Discriminated union describing what the loop should do next.
  */
 function interpretDocumentStatus(
-  data: { processing_status: string; inferred_type: string; processing_error: unknown },
+  data: { processing_status: string; inferred_type: string | null; processing_error: any },
   documentId: string,
 ): PollOutcome {
   if (data.processing_status === 'success') {
-    return { status: 'done', type: mapInferredType(data.inferred_type) };
+    return { status: 'done', type: mapInferredType(data.inferred_type ?? 'UNKNOWN') };
   }
   if (data.processing_status === 'error_password') {
     const err = Object.assign(new Error('PASSWORD_REQUIRED'), { code: 'PASSWORD_REQUIRED', documentId });

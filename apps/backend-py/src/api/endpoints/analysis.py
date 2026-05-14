@@ -115,7 +115,7 @@ async def detect_anomalies(request: AnomalyRequest) -> AnomalyReportSchema:
             formatted_context += f"- Category: {a['category']}, This Month: {a['latest_spend']}, Avg: {a['avg_spend']} (+{a['increase_pct']}%)\n"
             formatted_context += f"  Recent items: {', '.join(a['recent_items'])}\n"
 
-        ai_analysis = client.chat.completions.create(
+        ai_analysis = await client.chat.completions.create(
             model=settings.DEFAULT_AI_MODEL,
             response_model=AnomalyReportSchema,
             messages=[

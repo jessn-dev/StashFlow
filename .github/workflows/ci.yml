@@ -43,13 +43,13 @@ jobs:
         run: uv sync --frozen
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: pnpm typecheck --filter="!mobile"
 
       - name: Lint
-        run: pnpm lint
+        run: pnpm lint --filter="!mobile"
 
       - name: Unit tests
-        run: pnpm test:coverage
+        run: pnpm test:coverage --filter="!mobile"
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4

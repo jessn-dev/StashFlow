@@ -41,7 +41,7 @@ export interface DocumentRecord {
 type DocumentStatusWatcherProps = Readonly<{
   /** The initial document state fetched from the server. */
   initial: DocumentRecord;
-  preferredCurrency?: string;
+  preferredCurrency?: string | undefined;
 }>;
 
 const TIMEOUT_MS = 120_000;

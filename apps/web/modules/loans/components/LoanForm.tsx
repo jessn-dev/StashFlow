@@ -76,10 +76,10 @@ function FieldTag({ type }: Readonly<{ type: TagType }>) {
  * @returns {TagType | null} The calculated tag type.
  */
 function getTag(key: string, extractedFields: string[], options?: {
-  currencyFallback?: string;
-  currentCurrency?: string;
-  interestRateConflict?: boolean;
-  verificationSkipped?: boolean;
+  currencyFallback?: string | undefined;
+  currentCurrency?: string | undefined;
+  interestRateConflict?: boolean | undefined;
+  verificationSkipped?: boolean | undefined;
 }): TagType | null {
   if (key === 'interest_rate' && (options?.interestRateConflict || options?.verificationSkipped)) return 'needs-review';
   if (key === 'interest_type' && (options?.interestRateConflict || options?.verificationSkipped)) return 'needs-review';
@@ -132,8 +132,8 @@ function FieldRow({
   provenance?: Record<string, { page?: number; snippet?: string }> | undefined;
   currencyFallback?: string | undefined;
   currentCurrency?: string | undefined;
-  interestRateConflict?: boolean;
-  verificationSkipped?: boolean;
+  interestRateConflict?: boolean | undefined;
+  verificationSkipped?: boolean | undefined;
   children: React.ReactNode;
 }>) {
   const tag = getTag(fieldKey, extractedFields, {

@@ -62,7 +62,7 @@ export default async function LoanDetailPage({ params }: DetailPageProps) {
   // Calculate current progress
   const paidCount = payments.filter(p => p.status === 'paid').length;
   const currentEntry = schedule.entries[paidCount] || schedule.entries[schedule.entries.length - 1];
-  const remainingBalance = currentEntry.remainingBalance;
+  const remainingBalance = currentEntry?.remainingBalance ?? 0;
 
   return (
     <div className="max-w-5xl mx-auto py-10 px-6 animate-in fade-in slide-in-from-bottom-2 duration-500">

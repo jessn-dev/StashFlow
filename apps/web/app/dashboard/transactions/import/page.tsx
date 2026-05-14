@@ -48,8 +48,8 @@ export default function TransactionImportPage({ searchParams }: { searchParams: 
         return;
       }
 
-      if (data?.extracted_data?.transactions) {
-        const aiMapped = data.extracted_data.transactions.map((t: any) => ({
+      if ((data?.extracted_data as any)?.transactions) {
+        const aiMapped = (data.extracted_data as any).transactions.map((t: any) => ({
           date: t.date,
           description: t.description,
           amount: t.amount,
@@ -253,7 +253,7 @@ export default function TransactionImportPage({ searchParams }: { searchParams: 
              <div>
                <div className="flex items-center gap-2 mb-1">
                  <h3 className="text-xl font-black text-gray-900 tracking-tight">Review Import</h3>
-                 {uploadState.documentType === 'BANK_STATEMENT' && (
+                 {uploadState.status === 'ready' && uploadState.documentType === 'BANK_STATEMENT' && (
                     <span className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md text-[10px] font-black uppercase tracking-widest border border-blue-100">
                       <Sparkles size={10} /> AI Enhanced
                     </span>

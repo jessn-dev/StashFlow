@@ -139,8 +139,6 @@ async def process_document_content(content: bytes, filename: str, password: str 
     Raises:
         Exception: If no text can be extracted or if ALL extraction methods fail.
     """
-    from src.schemas.financial import UnifiedDocumentResponse, DocumentType
-
     # PSEUDOCODE: Resilient Unified Processing
     # 1. Extract raw text from the PDF.
     # 2. Sequential Extraction Pattern (TPM Management):
@@ -232,7 +230,7 @@ async def process_document_content(content: bytes, filename: str, password: str 
             def get_currencies(ext):
                 loans = ([ext.loan_data] if ext.loan_structure == 'single' and ext.loan_data
                          else (ext.multi_loan_data.loans if ext.multi_loan_data else []))
-                return {l.currency for l in loans if l}
+                return {loan.currency for loan in loans if loan}
             
             c1, c2 = get_currencies(extraction_1), get_currencies(extraction_2)
             if c1 != c2:
@@ -244,12 +242,12 @@ async def process_document_content(content: bytes, filename: str, password: str 
             def get_rates(ext):
                 loans = ([ext.loan_data] if ext.loan_structure == 'single' and ext.loan_data
                          else (ext.multi_loan_data.loans if ext.multi_loan_data else []))
-                return [l.interest_rate for l in loans]
+                return [loan.interest_rate for loan in loans]
 
             def get_types(ext):
                 loans = ([ext.loan_data] if ext.loan_structure == 'single' and ext.loan_data
                          else (ext.multi_loan_data.loans if ext.multi_loan_data else []))
-                return [l.interest_type for l in loans]
+                return [loan.interest_type for loan in loans]
 
             r1, r2 = get_rates(extraction_1), get_rates(extraction_2)
             for v1, v2 in zip(r1, r2):

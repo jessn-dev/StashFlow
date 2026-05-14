@@ -56,7 +56,7 @@ export default async function ReviewLoanPage({ searchParams }: ReviewPageProps) 
       {document ? (
         <DocumentStatusWatcher 
           initial={document as unknown as DocumentRecord} 
-          preferredCurrency={preferredCurrency}
+          preferredCurrency={preferredCurrency ?? undefined}
         />
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">

@@ -12,10 +12,10 @@ import type { PeriodSummary } from '@stashflow/api';
 export function TransactionSummaryStrip({
   summary,
   filteredCount,
-}: {
+}: Readonly<{
   summary: PeriodSummary;
   filteredCount: number;
-}) {
+}>) {
   // PSEUDOCODE:
   // 1. Determine if the net flow for the period is positive or negative.
   // 2. Format the net flow value with a leading '+' if positive.
@@ -51,7 +51,7 @@ function MetricTile({
   value,
   valueColor = 'text-gray-900',
   prominent = false,
-}: {
+}: Readonly<{
   /** The descriptive label for the metric. */
   label: string;
   /** The formatted value to display. */
@@ -60,7 +60,7 @@ function MetricTile({
   valueColor?: string;
   /** If true, the tile will have a slightly darker border to draw attention. */
   prominent?: boolean;
-}) {
+}>) {
   return (
     <div className={`bg-white rounded-2xl border px-5 py-4 shadow-sm ${prominent ? 'border-gray-300' : 'border-gray-200'}`}>
       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>

@@ -14,13 +14,13 @@ export type Name = string;
  */
 export type Principal = number;
 /**
- * The annual interest rate as a percentage (e.g., 12.0)
+ * The annual interest rate as a percentage (e.g., 12)
  */
 export type InterestRate = number;
 /**
  * The monthly or per-period installment amount
  */
-export type InstallmentAmount = number;
+export type InstallmentAmount = number | null;
 /**
  * The total duration of the loan in months
  */
@@ -49,7 +49,7 @@ export interface LoanExtractionSchema {
   name: Name;
   principal: Principal;
   interest_rate: InterestRate;
-  installment_amount: InstallmentAmount;
+  installment_amount?: InstallmentAmount;
   duration_months: DurationMonths;
   start_date?: StartDate;
   currency?: Currency;

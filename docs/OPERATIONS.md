@@ -100,7 +100,8 @@ The root `setup.sh` script is the primary entry point for managing the developme
 | `./setup.sh init` | One-time setup of dependencies and git |
 | `./setup.sh dev` | Start the entire integrated stack |
 | `./setup.sh dev --clean` | Fresh start (kills containers first) |
-| `./setup.sh docker:clean` | Deep cleanup of project containers |
+| `./setup.sh db:clean` | **Full machine Docker wipe** — stops all containers, removes all containers + images, prunes all volumes + networks. Requires `y` confirmation. |
+| `./setup.sh docker:clean` | Project-scoped cleanup — stops Supabase, Python backend, and logging stack containers only |
 | `./setup.sh schema:sync` | **Governance**: Sync Python AI models to TypeScript |
 | `./setup.sh db:shared` | Sync monorepo packages to Supabase environment |
 | `./setup.sh db:reset` | Reset local DB and re-seed |
@@ -157,7 +158,7 @@ Because production URLs and service role keys are environment-specific, the migr
 ### Phase 5 — Edge Function Deployment
 ```bash
 # Deploy all functions to production
-supabase functions deploy log-session-event verify-ledger-integrity get-user-sessions revoke-session sync-exchange-rates parse-loan-document
+supabase functions deploy log-session-event verify-ledger-integrity get-user-sessions revoke-session sync-exchange-rates parse-document delete-account
 ```
 
 ### Phase 6 — Vercel Configuration
@@ -220,20 +221,41 @@ If a migration fails or introduces a regression:
 2.  Revert the local schema to the previous state.
 3.  For production, the primary recovery path is **Restoration from PITR** followed by a corrected deployment.
 
-### Queue Replay Tooling (Async Ingestion)
+### Document Replay (Processing Failures)
 
-If document processing fails at scale (e.g., AI provider outage):
+If document processing fails (e.g., AI provider outage):
 1.  Identify failed documents in the `documents` table:
     ```sql
-    SELECT id, storage_path FROM public.documents WHERE processing_status = 'error_generic';
+    SELECT id, storage_path FROM public.documents WHERE processing_status LIKE 'error%';
     ```
-2.  Manually re-enqueue via the Python backend API (or local worker):
+2.  Re-trigger via `supabase.functions.invoke('parse-document', { body: { record: { id: '<document_id>' } } })` from the app, or manually call the Python backend:
     ```bash
-    curl -X POST http://<python-api>/api/v1/documents/enqueue \
-      -H "Content-Type: application/json" \
-      -d '{"document_id": "UUID", "storage_path": "PATH"}'
+    curl -X POST http://<python-api>/api/v1/documents/process \
+      -F "file=@/tmp/document.pdf"
     ```
-3.  **Dead Letter Queue (DLQ)**: Failed jobs in the `stashflow-ingestion` queue are automatically moved to the failed registry by RQ. Use the RQ CLI or Dashboard to inspect and retry them.
+
+### Diagnosing Extraction Quality Issues
+
+If a loan extracted from a document has wrong field values (wrong interest rate, type, or lender), check these in order:
+
+**1. Parser disagreement flag**
+```sql
+SELECT id, extracted_data->'validation'->'confidence' AS confidence,
+       extracted_data->'validation'->'errors' AS errors,
+       extracted_data->'validation'->'requires_verification' AS needs_review
+FROM public.documents
+WHERE id = '<document_id>';
+```
+`requires_verification = true` + `confidence < 0.4` → the two parallel AI extractors disagreed. Check `errors` array for which field triggered disagreement.
+
+**2. Interest rate — monthly vs annual**
+If `interest_rate` looks suspiciously low (e.g. 1.3 instead of 15.6), the `resolveAnnualRate()` resolver did not detect Add-on signals. Check:
+- Does the document contain `Monthly EIR`, `Annual EIR`, or `EFFECTIVE INTEREST` text?
+- Is `installment_amount` stored? Without it, payment math cross-check is skipped.
+- Check edge function logs for `interest_rate converted:` log line.
+
+**3. Balance drift warning**
+The amortization engine emits `console.warn` if the final schedule balance drifts > 0.1% of principal. Check edge function logs for `[loans] Add-on schedule balance drift:`. This indicates `solveMonthlyEir()` fell back to `computeAddOnEIR()` (convergence failure) or `installment_amount` is inconsistent with `principal`/`duration_months`.
 
 ### Incident Runbooks
 
@@ -243,6 +265,7 @@ If document processing fails at scale (e.g., AI provider outage):
 | **Edge Function Timeout** | Ensure heavy processing is correctly handed off to the Python Worker Layer. |
 | **Auth System Down** | Check Supabase Status. Pause automated workflows that require user-context. |
 | **Storage Quota Reached** | Increase Supabase Storage limits or archive documents older than 90 days. |
+| **Wrong loan fields after extraction** | See "Diagnosing Extraction Quality Issues" above. Check `requires_verification` flag and edge function logs. |
 
 ...
 tterns |

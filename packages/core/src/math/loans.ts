@@ -1,5 +1,6 @@
 import { LoanInterestType, LoanInterestBasis } from '../schema/mod.ts';
 import { convertToBase } from './currency.ts';
+import { computeAddOnEIR } from '../inference/loanStructure.ts';
 
 /**
  * Represents a single payment period in an amortization schedule.
@@ -55,8 +56,21 @@ export function generateAmortizationSchedule(params: {
   interestType: LoanInterestType;
   /** The day-count convention (reserved for future use) */
   interestBasis?: LoanInterestBasis;
+  /** Exact lender-stated monthly installment (overrides computed value for Add-on loans) */
+  installmentAmount?: number;
 }): AmortizationSchedule {
-  const { interestType } = params;
+  const { interestType, principal, annualInterestRate, durationMonths } = params;
+
+  // Guard: reject degenerate inputs — NaN/0/negative principal or term produce unusable output.
+  // annualInterestRate = 0 is valid (interest-free loan) so only reject < 0.
+  if (
+    principal <= 0 ||
+    annualInterestRate < 0 ||
+    durationMonths <= 0 ||
+    !Number.isFinite(principal) || !Number.isFinite(annualInterestRate) || !Number.isFinite(durationMonths)
+  ) {
+    return { monthlyPayment: 0, totalInterest: 0, totalPayment: 0, entries: [] };
+  }
 
   switch (interestType) {
     case 'Standard Amortized':
@@ -153,36 +167,93 @@ function calculateInterestOnly(params: any): AmortizationSchedule {
 }
 
 /**
+ * Solves the monthly IRR from an exact payment amount via Newton-Raphson
+ * on the standard annuity PV equation: PV = PMT × (1 - (1+r)^-n) / r.
+ * Used when the lender-stated installment differs from the formula-computed value.
+ * Returns null if convergence fails or result is implausible — caller must fall back.
+ */
+function solveMonthlyEir(principal: number, payment: number, term: number): number | null {
+  // Guard: payment must cover at least the first period's interest at any positive rate
+  if (payment <= 0 || principal <= 0 || term <= 0) return null;
+  // If payment can't even cover principal/term (loan never paid off), bail immediately
+  if (payment <= principal / term) return null;
+
+  let r = 0.02;
+  for (let i = 0; i < 100; i++) {
+    if (!Number.isFinite(r) || r <= 0 || r > 1) return null;
+    const pow = Math.pow(1 + r, term);
+    const pv = payment * (1 - 1 / pow) / r;
+    const f = pv - principal;
+    const fprime = payment * ((1 / pow - term * r / (pow * (1 + r))) / r - (1 - 1 / pow) / (r * r));
+    if (Math.abs(fprime) < 1e-14) return null;
+    const dr = f / fprime;
+    r -= dr;
+    if (Math.abs(dr) < 1e-12) break;
+  }
+  // Plausibility: monthly rate must be positive and below 100% (1.0)
+  if (!Number.isFinite(r) || r <= 0 || r >= 1) return null;
+  return r;
+}
+
+/**
  * Calculates an amortization schedule using the Add-on Interest method.
- * 
+ *
+ * The monthly payment is fixed via the flat-rate formula (or lender-stated amount).
+ * The interest/principal split per period uses the Effective Interest Rate (EIR)
+ * on the reducing balance — matching the "AMORTIZATION SCHEDULE (EFFECTIVE INTEREST)"
+ * format used by Philippine lenders (Asialink, BDO auto loans, etc.).
+ *
  * @param params - Calculation parameters including principal, rate, and duration.
  * @returns A complete AmortizationSchedule.
  */
 function calculateAddOnInterest(params: any): AmortizationSchedule {
-  const { principal, annualInterestRate, durationMonths, startDate } = params;
-  let entries: AmortizationEntry[] = [];
-  let totalInterest = 0;
+  const { principal, annualInterestRate, durationMonths, startDate, installmentAmount } = params;
 
-  // PSEUDOCODE: Add-on Interest
-  // 1. Calculate total interest upfront for the full term.
-  // 2. Repay principal and interest in equal installments over the duration.
+  // PSEUDOCODE: Add-on Interest (Effective Interest display)
+  // 1. Fix monthly payment: prefer lender-stated installment to avoid rounding divergence.
+  // 2. Derive monthly EIR: solve from actual payment via annuity IRR if available,
+  //    else fall back to computeAddOnEIR from flat rate.
+  // 3. Each period: interest = remaining_balance × monthly_EIR (reducing balance).
+  // 4. Each period: principal = payment - interest.
 
-  const totalInterestForPeriod = principal * annualInterestRate * (durationMonths / 12);
-  const monthlyPayment = (principal + totalInterestForPeriod) / durationMonths;
-  const monthlyPrincipal = principal / durationMonths;
-  const monthlyInterest = totalInterestForPeriod / durationMonths;
-  
+  const totalInterestFlat = principal * annualInterestRate * (durationMonths / 12);
+  const computedPayment = (principal + totalInterestFlat) / durationMonths;
+  const monthlyPayment = (installmentAmount && installmentAmount > 0) ? installmentAmount : computedPayment;
+
+  // Solve monthly EIR from the actual payment for exact interest/principal split.
+  // Fall back to computeAddOnEIR if Newton-Raphson fails to converge or is implausible.
+  const solved = installmentAmount
+    ? solveMonthlyEir(principal, installmentAmount, durationMonths)
+    : null;
+  const monthlyEir = solved !== null
+    ? solved
+    : computeAddOnEIR(annualInterestRate * 100, durationMonths) / 12 / 100;
+
   let balance = principal;
+  let totalInterest = 0;
+  const entries: AmortizationEntry[] = [];
+
   for (let i = 1; i <= durationMonths; i++) {
-    balance -= monthlyPrincipal;
-    totalInterest += monthlyInterest;
+    const interestPayment = balance * monthlyEir;
+    const principalPayment = monthlyPayment - interestPayment;
+    balance = Math.max(0, balance - principalPayment);
+    totalInterest += interestPayment;
     entries.push({
       period: i,
-      principalPayment: monthlyPrincipal,
-      interestPayment: monthlyInterest,
-      remainingBalance: Math.max(0, balance),
+      principalPayment,
+      interestPayment,
+      remainingBalance: balance,
       dueDate: addMonths(startDate, i),
     });
+  }
+
+  // G-C: Final balance should be ≈ 0. If it drifts > 0.1% of principal, the EIR
+  // computation diverged — log so it can be investigated without crashing the UI.
+  if (balance > principal * 0.001) {
+    console.warn(
+      `[loans] Add-on schedule balance drift: final=${balance.toFixed(2)} principal=${principal} ` +
+      `payment=${monthlyPayment} term=${durationMonths} monthlyEir=${(monthlyEir * 100).toFixed(4)}%`
+    );
   }
 
   return { monthlyPayment, totalInterest, totalPayment: principal + totalInterest, entries };
@@ -247,7 +318,7 @@ export interface DebtPayoffPoint {
  */
 export function projectDebtPayoff(loans: any[], rates: Record<string, number>): DebtPayoffPoint[] {
   const active = loans.filter((l) => l.status === 'active');
-  if (!active.length) return [];
+  if (active.length === 0) return [];
 
   const now = new Date();
 

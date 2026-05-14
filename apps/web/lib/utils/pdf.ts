@@ -5,12 +5,26 @@
  */
 
 /**
- * Checks if a PDF file is password protected (encrypted).
- * Returns true if encrypted, false otherwise.
+ * Checks if a PDF file is password protected.
+ * Scans the PDF trailer section for an /Encrypt dictionary entry.
+ * Does not require pdfjs-dist — pure byte scan, no external dependency.
+ *
+ * Fails open: returns false on any read error so the backend can determine encryption.
  */
-export async function isPdfEncrypted(_file: File): Promise<boolean> {
-  // Temporary stub to avoid heavy pdfjs-dist dependency on client
-  return false;
+export async function isPdfEncrypted(file: File): Promise<boolean> {
+  try {
+    // PDF trailer is in the last portion of the file.
+    // 4KB is enough to find /Encrypt for all standard bank-issued PDFs.
+    const tailSize = Math.min(file.size, 4096);
+    const tail = file.slice(file.size - tailSize);
+    const buffer = await tail.arrayBuffer();
+    // latin1 decoding preserves byte values without UTF-8 errors on binary PDFs
+    const text = new TextDecoder('latin1').decode(buffer);
+    return text.includes('/Encrypt');
+  } catch {
+    // Fail open — let backend determine encryption status
+    return false;
+  }
 }
 
 /**

@@ -70,9 +70,11 @@ describe('Middleware', () => {
   });
 
   it('should recover from middleware errors', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     (ssr.createServerClient as any).mockImplementation(() => { throw new Error('fail'); });
     const req = new NextRequest(new URL('http://localhost:3000/dashboard'));
     const res = await middleware(req);
     expect(res?.status).toBe(200);
+    expect(console.error).toHaveBeenCalled();
   });
 });

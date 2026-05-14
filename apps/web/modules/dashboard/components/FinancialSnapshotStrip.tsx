@@ -4,7 +4,7 @@ import { SnapshotCard } from './SnapshotCard';
 /**
  * Properties for the FinancialSnapshotStrip component.
  */
-interface Props {
+type Props = Readonly<{
   /** The current month's net cash flow. */
   netCashFlow: number;
   /** The user's total net worth. */
@@ -25,7 +25,7 @@ interface Props {
   baseCurrency?: string;
   /** Exchange rates for currency conversion (optional). */
   rates?: Record<string, number>;
-}
+}>;
 
 /**
  * A horizontal strip of SnapshotCards providing a high-level overview of 

@@ -61,15 +61,44 @@
       "title": "Interest Rate",
       "type": "number"
     },
+    "annual_eir": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The Effective Interest Rate (EIR) per year as a percentage, if explicitly stated in the document. Different from interest_rate for add-on loans.",
+      "title": "Annual Eir"
+    },
     "installment_amount": {
-      "description": "The monthly or per-period installment amount",
-      "title": "Installment Amount",
-      "type": "number"
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The monthly or per-period installment amount. Return null if not stated explicitly per individual loan.",
+      "title": "Installment Amount"
     },
     "duration_months": {
-      "description": "The total duration of the loan in months",
-      "title": "Duration Months",
-      "type": "integer"
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Explicit loan term in months. Return null if no numeric term is stated in the document. Do NOT infer from repayment plan names or dates.",
+      "title": "Duration Months"
     },
     "start_date": {
       "anyOf": [
@@ -86,8 +115,8 @@
       "title": "Start Date"
     },
     "currency": {
-      "default": "PHP",
-      "description": "The ISO 4217 currency code (e.g., PHP, USD, SGD)",
+      "default": "USD",
+      "description": "The ISO 4217 currency code (e.g., USD, PHP, SGD)",
       "title": "Currency",
       "type": "string"
     },
@@ -126,27 +155,21 @@
     "provenance": {
       "anyOf": [
         {
-          "additionalProperties": {
-            "$ref": "#/$defs/Provenance"
-          },
-          "type": "object"
+          "$ref": "#/$defs/Provenance"
         },
         {
           "type": "null"
         }
       ],
       "default": null,
-      "description": "Map of field names to their source provenance",
-      "title": "Provenance"
+      "description": "Source location for the primary extracted data (page + snippet)"
     }
   },
   "required": [
     "name",
     "principal",
-    "interest_rate",
-    "installment_amount",
-    "duration_months"
+    "interest_rate"
   ],
-  "title": "LoanExtractionSchema",
+  "title": "SingleLoanExtractionSchema",
   "type": "object"
 }

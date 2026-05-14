@@ -6,6 +6,268 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 
 ---
 
+## [0.25.0] - 2026-05-14
+
+### Added
+
+- **Bank Statement Parser Hardening (R1–R4, G1–G20)**
+
+  Significant upgrade to the Bank Statement ingestion pipeline to resolve "Financially Dangerous" data gaps and implement robust security guardrails.
+
+  | Enhancement | Components | Impact |
+  |-------------|------------|--------|
+  | **Internal Transfer Detection** | AI Prompt + Edge Fn Fallback | Eliminates double-counting of mirror transfers (e.g. Savings → Checking). Inflated income/expense figures are resolved. |
+  | **Multi-Account Support** | Python Schema + AI Rules | Captures masked account IDs (e.g. `···7391`) and preserves transaction provenance across complex statements. |
+  | **Password-Protected PDF Support** | Byte-scan + Error Logic | Users can now unlock encrypted statements. Added client-side detection and `error_password` recovery flow. |
+  | **Strict Guardrails** | Edge Fn Validation | Implemented 13+ safety checks: amount magnitude ($1M cap), date validity, duplicate detection, and transaction count limits. |
+  | **AI Safety (G9)** | Prompt Injection Sanitization | Proactively strips malicious instructions from raw PDF text before LLM extraction. |
+  | **Balance Reconciliation** | Schema + Post-Process | Automatically verifies `opening_balance + Σtx = closing_balance`. Drift flags mandatory review. |
+
+  **Backend Changes** (`apps/backend-py`):
+  - Updated `TransactionExtractionItem` schema with `transaction_type` and `account_id`.
+  - Added `sanitize_document_text` to strip prompt injection patterns.
+  - Implemented `MAX_INPUT_CHARS` (40,000) truncation to prevent LLM context overflow.
+  - Hardened system prompt with unambiguous bank statement extraction rules.
+
+  **Edge Function Changes** (`supabase/functions/parse-document`):
+  - Added `detectInternalTransfers` and `auditTransferPairs` deterministic logic.
+  - Implemented comprehensive guardrails (G1-G13): Amount/Date validation, sign consistency, deduplication, and balance reconciliation.
+  - Added per-user rate limiting (10 docs/hour) and attempt caps (max 3).
+  - Implemented stale document rescue (10-min threshold).
+  - Added `error_password` status handling and migration.
+
+  **Frontend Changes** (`apps/web`):
+  - **Import Page:** Added filtering for `internal_transfer` types, dynamic `Account` column, and amber `ValidationBanner` for reliability warnings.
+  - **PDF Utils:** Added lightweight byte-scan for `/Encrypt` flag detection.
+  - **Hooks:** Updated `useDocumentUpload` to handle the `needs_password` state and poll for specific password errors.
+
+### Fixed
+
+- **Inflated Income/Expense imports** caused by missing internal transfer filtering.
+- **Silent failure on encrypted PDFs** which previously resulted in generic "AI extraction failed" messages.
+- **Loss of account context** in multi-account bank statements.
+
+---
+
+## [0.24.1] - 2026-05-14
+
+### Fixed
+
+- **Loans Page Syntax & JSX Integrity** (`apps/web/app/dashboard/loans/page.tsx`)
+  - Resolved parsing error caused by misplaced code fragment and unclosed JSX conditional block.
+  - Added missing `insights` variable to data destructuring to prevent reference errors.
+  - Restored proper component structure for the upcoming payments section.
+
+### Changed
+
+- **Documentation Alignment**
+  - Updated `apps/web/app/dashboard/loans/page.tsx` to adhere to `GEMINI.md` standards:
+    - Added TSDoc high-level descriptions for all components.
+    - Included Algorithmic Pseudocode for main page logic.
+    - Added strategic inline comments explaining business logic constraints.
+
+---
+
+## [0.24.0] - 2026-05-13
+
+### Added
+
+- **Loan Interest Rate, Type & Lender Extraction Fix (G8–G15)**
+
+  Three extraction bugs discovered via Asialink Finance Corporation amortization schedule upload (Add-on Interest, PHP, 48-month car loan):
+
+  | Bug | Root Cause | Fix |
+  |-----|-----------|-----|
+  | Rate stored as monthly (1.3) not annual (15.6) | LLM reads `Interest Rate: 1.300%` and stores verbatim; no conversion rule | `INTEREST RATE RULES` in LLM system prompt; `resolveAnnualRate()` in edge fn multiplies rate × 12 when monthly signals detected and payment math confirms |
+  | Interest type defaulted to Standard Amortized | No extraction signal for Add-on; `inferLoanStructure` ran client-side only | `INTEREST TYPE DETECTION RULES`; `inferInterestTypeFromText()` scans for `Monthly EIR`, `Annual EIR`, `EFFECTIVE INTEREST`, `flat rate`, `add-on interest` keywords |
+  | Lender empty | Prompt looked only for labeled `Lender:` fields; company name was in letterhead | `LENDER EXTRACTION RULES` instructs LLM to scan header/letterhead text |
+
+  **New schema fields** (`apps/backend-py/src/schemas/financial.py`):
+  - `annual_eir: Optional[float]` — captures Effective Interest Rate when explicitly stated in document; kept separate from `interest_rate` (flat rate) so amortization math is not corrupted
+  - `SingleLoanExtractionSchema` / `MultiLoanExtractionSchema` — replaces `LoanExtractionSchema`; supports documents with multiple distinct loan accounts (e.g. Nelnet student loan groups)
+  - `@field_validator('interest_rate')` — soft clamp to [0, 100]; does not raise (would kill entire extraction); edge function handles conversion
+  - `@field_validator('currency')` — soft fallback to USD on unrecognised codes
+  - `@model_validator` on `UnifiedDocumentResponse` — asserts `loan_structure='single'` → `loan_data` populated and `loan_structure='multi'` → `multi_loan_data` populated
+
+  **Edge function resolvers** (`supabase/functions/parse-document/index.ts`):
+  - `resolveAnnualRate(rate, installment, principal, term, rawText)` — Newton-Raphson payment math cross-check; if `rate < 3.0` and Add-on signals present and `installment × term ≈ principal × (1 + rate*term/12)` within 2%, converts to annual automatically
+  - `inferInterestTypeFromText(rawText)` — 6-pattern ADD_ON_TEXT_SIGNALS regex set; 2+ matches → `'Add-on Interest'`
+  - `extractAnnualEIR(rawText)` — regex extracts `Annual EIR: XX.XXX %` from document text
+  - `inferCurrency(extracted, rawText)` — currency symbol/code pattern scan; fallback to USD
+  - `inferDurationMonths(duration, rawText)` — repayment plan name → standard term lookup (Standard Repayment = 120 mo, Extended = 300 mo, Graduated = 120 mo)
+  - `ALLOWED_CURRENCIES` set — whitelist gate on resolved currency
+  - Lender null → validation warning added (G14)
+  - Cross-loan currency consistency check for multi-loan documents
+
+  **Parser disagreement detection** (`apps/backend-py/src/core/document_service.py`):
+  - Two parallel AI extractions (temp 0.0 and 0.2); any disagreement on interest rate (>20% relative), interest type, currency, loan structure, or loan count → `confidence < 0.4` → `requires_verification = true`
+
+  **LoanForm UI** (`apps/web/modules/loans/components/LoanForm.tsx`):
+  - `inferenceConflict` useMemo — fires "Needs review" tag on `interest_rate` and `interest_type` fields when `inferLoanStructure` confidence ≥ 0.75 and inferred type differs from extracted type
+  - `currencyFallback` prop — "Needs review" on currency when extracted value differs from user's preferred currency
+  - `onSaved` callback prop — allows parent pages to handle post-save navigation
+
+  **Schema sync** — all Python schema changes propagated to:
+  - `packages/document-parser/schemas/loan_schema.json`
+  - `packages/document-parser/schemas/unified_document_schema.json`
+  - `packages/document-parser/src/generated_loan_schema.ts`
+  - `packages/document-parser/src/generated_unified_schema.ts`
+  - `packages/document-parser/src/types.ts` (`ExtractedLoanData extends SingleLoanExtractionSchema`)
+  - `MultiLoanExtractedData.loan_structure` field added
+
+- **Guard Rails — Amortization Engine & Extraction Pipeline (G-A through G-E)**
+
+  | ID | Layer | Guard |
+  |----|-------|-------|
+  | G-A | `packages/core/src/math/loans.ts` | `solveMonthlyEir()` returns `null` on NaN, non-convergence, or implausible rate (r ≤ 0 or r ≥ 1); `calculateAddOnInterest` falls back to `computeAddOnEIR` |
+  | G-B | `packages/core/src/math/loans.ts` | `generateAmortizationSchedule()` rejects `principal ≤ 0`, `annualInterestRate < 0`, `durationMonths ≤ 0`, or non-finite inputs — returns empty schedule instead of NaN/Infinity output |
+  | G-C | `packages/core/src/math/loans.ts` | Post-loop balance drift check: if final balance > 0.1% of principal after Add-on schedule, `console.warn` with diagnostic details |
+  | G-D | `apps/backend-py/src/schemas/financial.py` | `validate_interest_rate` changed from hard `raise ValueError` to soft clamp — out-of-range values clamped to [0, 100] rather than rejecting the entire extraction |
+  | G-E | `supabase/functions/parse-document/index.ts` | Removed stale `@ts-ignore` on `loan.annual_eir` — types now fully synced via schema export pipeline |
+
+### Fixed
+
+- **Amortization schedule for Add-on Interest loans — wrong interest/principal split**
+
+  `calculateAddOnInterest()` generated a flat-split schedule (constant interest = `principal × monthly_flat_rate` each period; constant principal = `principal / term`). This matched Add-on math in isolation but diverged from the lender-issued schedule.
+
+  Philippine lenders (Asialink, BDO, Metrobank auto loans) issue schedules under the **Effective Interest Method**: the monthly payment is fixed (derived from the flat rate), but the interest/principal split each period is computed using the EIR applied to the **reducing balance** — identical to a standard amortized loan using EIR instead of flat rate.
+
+  **New approach in `calculateAddOnInterest()`:**
+  1. Fix monthly payment from flat-rate formula or lender-stated `installment_amount` (whichever is available)
+  2. Solve monthly EIR via `solveMonthlyEir()` (Newton-Raphson on annuity PV equation) when lender payment is known — yields exact match to lender's schedule
+  3. Fall back to `computeAddOnEIR()` when no lender payment is stored
+  4. Each period: `interest = balance × monthly_EIR`, `principal = payment − interest`
+
+  Verified against AMORT SCHED.pdf (Asialink Finance):
+  | Field | Before | After | PDF |
+  |-------|--------|-------|-----|
+  | Period 1 interest | ₱6,695.00 | ₱11,247.99 | ₱11,247.99 |
+  | Period 1 principal | ₱10,729.17 | ₱6,177.01 | ₱6,177.01 |
+  | Period 1 balance | ₱504,270.83 | ₱508,822.99 | ₱508,822.99 |
+  | Total interest | ₱321,360 | ₱321,400 | ₱321,400 |
+
+  `solveMonthlyEir()` helper added — solves the standard annuity IRR `PV = PMT × (1 − (1+r)^−n) / r` via Newton-Raphson (100 iterations, convergence at `|dr| < 1e-12`).
+
+- **Monthly payment off by ₱0.83 — computed vs lender-stated**
+
+  `generateAmortizationSchedule()` was recomputing the monthly payment from the flat-rate formula (`(P + P×r×n/12) / n`), which yields ₱17,424.17 for this loan. The lender rounds to ₱17,425.00. Rounding accumulated across 48 periods: ₱39 total interest divergence.
+
+  Fix: `installmentAmount` optional param added to `generateAmortizationSchedule()`; loan detail page passes `loan.installment_amount` from DB. When provided, the lender-stated amount is used as the fixed payment for both display and EIR computation.
+
+- **Checkbox overlapping "Status" column header**
+
+  `<td>` in amortization table had `flex justify-center` class, making it a flex container. This broke sticky thead alignment — the `<th>Status</th>` cell remained table-cell-sized while the body `<td>` expanded as a flex block, visually offsetting the checkbox from its column header.
+
+  Fix: removed `flex justify-center` from `<td>`; `text-center` is sufficient for centering block-level content within a table cell.
+
+- **`supabase/functions/_shared/core/src/math/loans.ts` — synced with `packages/core/src/math/loans.ts`**
+
+  `_shared` copy was diverged (57 lines). Resynced. Both files are now identical.
+
+### Changed
+
+- **`generateAmortizationSchedule()` — input guard behavior for degenerate inputs**
+
+  Previously: negative principal returned negative schedule; zero duration returned `monthlyPayment: Infinity`; negative rate returned negative interest.
+  Now: all degenerate inputs (`principal ≤ 0`, `annualInterestRate < 0`, `durationMonths ≤ 0`, non-finite) return `{ monthlyPayment: 0, totalInterest: 0, totalPayment: 0, entries: [] }`. Zero interest rate (0%) is valid and passes through.
+
+  Tests updated to assert new correct behavior.
+
+---
+
+## [0.23.0] - 2026-05-12
+
+### Added
+- **Live Currency Converter (Dashboard Right Rail)**
+  - `CurrencyConverterWidget` — interactive client-side widget backed by `exchange_rates` DB table. Supports all ~30 ECB/Frankfurter currencies. Triangulates cross-rates via USD bridge when a direct pair is absent. Displays unit rate + last-updated timestamp. Includes inline bank-rate disclaimer explaining ECB mid-market vs bank spread (1–5%).
+  - Widget placed at the top of the Right Utility Rail (above Upcoming Payments).
+  - `Intl.DisplayNames` used for full currency name in dropdown tooltips (e.g. `PHP — Philippine Peso`). Zero-decimal currencies (JPY, KRW, ISK, HUF, CZK) formatted with no fraction digits.
+
+- **Intelligence Feed — Macro & Anomaly Cards**
+  - `MacroInsightCard` — client component that invokes `macro-financial-advisor` on mount. Renders strategy-shift headline, first regional alert, and top 4 economic indicator pills (↑↓→). Reads from 24h shared cache — most renders return instantly. Purple skeleton while loading; renders nothing on error.
+  - `AnomalyInsightCards` — client component that invokes `detect-anomalies` on mount. Renders nothing when spending is clean; each anomaly gets a Risk card (red tint) with description + recommended action. High-severity items show "High Priority" badge.
+  - `CashFlowProjectionChart` — client component invoking `get-cash-flow`. Grouped bar chart (Income/Expenses/Debt) via Recharts. Full-width card below the 2×2 analytics grid.
+
+- **`sync-exchange-rates` — All ECB Currencies**
+  - Fetch URL changed from `?from=USD&to=PHP,SGD,EUR,GBP,JPY` to `?from=USD` (no filter). Now ingests all ~30 ECB reference-rate currencies. Cross-rates (e.g. SGD→PHP) pre-computed quadratically at sync time — no triangulation needed at read time for direct pairs.
+
+### Fixed
+- **Intelligence Feed percentage display** — Two compounding bugs caused wildly inflated percentages (1092%, 151%):
+  1. `getTrendAnalysis` now requires `currentAmount >= 20` before including a trend — suppresses micro-spending spikes (e.g. $0.50→$5.50 = "1000%" is meaningless noise).
+  2. `dashboard/page.tsx` now multiplies trend `currentAmount` by `rates[currency]` before passing to `DashboardService`, correcting USD-denominated amounts being formatted with the user's currency symbol.
+  3. `DashboardService` caps display percentage at `999+` to prevent visually broken strings.
+
+- **Edge function security hardening**
+  - `get-platform-stats`: migrated from deprecated `serve()` (deno.land/std@0.168.0) to `Deno.serve()`. Added `CRON_SECRET` validation — was previously unauthenticated, exposing total user count.
+  - `monitor-financial-integrity`: added `x-webhook-secret` header check against `MONITOR_WEBHOOK_SECRET` — was previously accepting arbitrary `userId` from any unauthenticated caller.
+  - `macro-financial-advisor`: full rewrite. Migrated to `Deno.serve()`. Added user JWT auth (anon key + Authorization header). Implemented 24h `ai_insights_cache` read-before-generate; cache keyed by `(region, currency, YYYY-MM)`. Writes back on generation with `onConflict: 'region,currency'` upsert. Returns `_meta.modelUsed: 'cache'` on hit.
+
+- **Dashboard black overlay (dev mode)**
+  - `loans/page.tsx`: removed dead `buildSparkline` function (40 lines) that called `generateAmortizationSchedule` and used `LoanInterestType` without importing either. Both symbols are not exported from `@stashflow/core`'s public `mod.ts`. This caused 5 TypeScript compile errors. Next.js dev mode prefetches sidebar links (including `/dashboard/loans`) when the dashboard loads, triggering compilation of the loans page and surfacing the errors as a full-screen blocking overlay on the dashboard route. `LoanCard` already used the correct `computeLoanSparkline` import — dead code only.
+
+- **Python backend — Groq tool-call schema validation failure**
+  - `LoanExtractionSchema.provenance` changed from `Optional[dict[str, Provenance]]` to `Optional[Provenance]`. The dict form generated a JSON schema where each value was expected to be a `Provenance` object, but the system prompt instructed the model to output `{"page": 1, "snippet": "..."}` — a flat single provenance. Groq's strict tool-call validator rejected all 3 attempts per document with `tool_use_failed`, cascading to invalidate `loan_data` entirely. All loan document uploads returned 500.
+  - `document_service.py` system prompt updated to explicitly describe single-provenance semantics for loans vs per-row for transactions.
+  - `generated_unified_schema.ts` + `generated_loan_schema.ts`: `Provenance` type changed from `{ [k: string]: Provenance1 } | null` to `Provenance1 | null`.
+
+### Changed
+- **`db:clean` command** — expanded from Supabase/project-scoped cleanup to full machine Docker wipe: stops all running containers, removes all containers, removes all images, prunes all volumes and networks. Requires `y` confirmation. Use `docker:clean` for project-scoped cleanup only.
+
+---
+
+## [0.22.3] - 2026-05-12
+
+### Fixed
+- **SonarQube Remediation (Phase 1 & 2)**:
+  - **Type Safety**: Enforced `Readonly` props on 35+ React components (S6759). Removed redundant type assertions in the transaction import flow (S4325). Marked constructor-injected services as `readonly` in `LoansService` (S2933). Cleaned up unused imports in `CsvMapper` and `loans.service.test.ts` (S1128). Fixed union type shadowing for `country` in `loanStructure.ts` (S6571).
+  - **Code Modernization**: Project-wide replacement of global `parseFloat`, `parseInt`, and `isNaN` with `Number.*` static methods (S7773). Bulk removal of redundant zero-fraction number literals (e.g., `1.0` -> `1`) (S7748).
+  - **Global Environment Safety**: Replaced `window` with `globalThis.window` across all dashboard modules and auth pages to ensure SSR/Edge runtime stability (S7764).
+  - **Readability**: Converted implicit truthy length checks to explicit comparisons (e.g., `if (arr.length > 0)`) (S7772).
+
+---
+
+## [0.22.2] - 2026-05-12
+
+### Removed
+- `supabase/functions/document-processed-webhook/` — Redis async architecture replaced by synchronous Python call; webhook receiver is now unreachable.
+- `supabase/functions/extract-loan-data/` — Hardcoded mock proof-of-concept, fully superseded by `parse-document` + Python backend.
+- `packages/core/src/types/` (796 lines) — Stale duplicate of `schema/database.types.ts` with 20+ missing tables/columns. Zero importers confirmed across the monorepo.
+- `LoansServiceFactory` class from `packages/api/src/services/factory.ts` — Deprecated thin wrapper; migrated sole caller (`loans/[id]/page.tsx`) to `ApiServiceFactory`.
+- `packages/api/src/services/factory.test.ts` — Tested only `LoansServiceFactory`.
+
+### Fixed
+- **Security: upload bypass gap** — `LoanUploadZone` and the transaction import PDF branch now route through the `upload-document` edge function instead of writing directly to Supabase Storage. Gains: server-side MIME type + magic-bytes validation (prevents disguised executables), 5 MB cap enforcement, SHA-256 content hashing with duplicate detection.
+- **Transaction import: PDF duplicate handling** — If the same bank statement PDF is uploaded twice, the existing `extracted_data` is reused immediately instead of re-triggering the AI pipeline.
+
+---
+
+## [0.22.1] - 2026-05-11
+
+### Fixed
+- **Document parsing pipeline**: `cmd_db_jwt` in `setup.sh` hardcoded the dead `parse-loan-document` function name in the pg_net trigger SQL. Every `dev`/`db:reset`/`db:jwt` call overwrote the correct trigger, causing all document uploads to return 404. Fixed to `parse-document`.
+- **Transaction CSV import**: Raw CSV date strings (e.g. `01/15/2024`) were inserted directly into Postgres `DATE NOT NULL` columns, causing all imports to fail silently. Added `normalizeToISODate()` utility (`modules/import/utils.ts`) supporting ISO pass-through, slash-delimited (MM/DD and DD/MM auto-detected), DD-Mon-YYYY, and JS Date fallback. Import now validates all dates before touching the DB and surfaces the bad value in the UI.
+- **CsvMapper state initialization**: `useState` callback used `setMappings()` as a side-effect inside the initializer. Fixed to proper lazy initializer pattern returning the computed auto-mapping object.
+- **RQ worker deprecation**: Removed deprecated `Connection` context manager from `apps/backend-py/worker.py`; `Worker()` now receives `connection=redis_conn` directly (RQ 2.x API).
+- **package.json `start-all` script**: Was calling `npm run dev` (wrong package manager). Replaced with `./setup.sh start:all`.
+
+### Changed
+- **CI workflow**: Pinned `SonarSource/sonarcloud-github-action@master` → `@v3`; added LCOV coverage artifact upload/download between `validate` and `sonar` jobs.
+- **`sonar-project.properties`**: Added `sonar.javascript.lcov.reportPaths` and `sonar.coverage.exclusions`.
+- **`setup.sh` help text**: Removed spurious 4-space indent from Development, Python Backend, and Testing sections.
+- **Documentation standard**: Established 3-layer documentation requirement (Google-style docstrings + `PSEUDOCODE:` blocks + inline WHY comments) for all complex logic. Updated `CLAUDE.md` accordingly.
+
+### Docs
+- `docs/ARCHITECTURE.md`: Fixed document processing data flow — removed dead webhook/Redis references; reflects actual synchronous Python call pattern.
+- `docs/reference/ARCHITECTURE.md`: Updated monorepo structure; replaced dead `parse-loan-document` 3-tier pipeline description with actual `parse-document` + Python FastAPI flow; added `LoansServiceFactory` deprecation note.
+- `docs/API.md`: Removed `document-processed-webhook` (Redis arch replaced); fixed `parse-document` description (synchronous, not async/Redis); restored and corrected docs for `get-dashboard`, `calculate-dti`, `detect-anomalies`, `macro-financial-advisor`, `upload-document`, `monitor-financial-integrity`, `sync-market-data`.
+- `docs/reference/DEBUGGING.md`: Fixed `[parse-loan-document]` → `[parse-document]` tag; fixed `net.http_responses` → `net._http_response`.
+- `docs/OPERATIONS.md`: Fixed Phase 5 deploy list; replaced Redis queue replay section with synchronous re-trigger pattern.
+- `docs/reference/OPEN_ISSUES.md`: Fixed `parse-loan-document` reference in Issue 2.
+- `docs/reference/SYSTEM.md`: Moved to `docs/archive/` — was a Gemini agent rulebook, not StashFlow documentation.
+
+---
+
 ## [0.22.0] - 2026-05-11
 
 ### Added

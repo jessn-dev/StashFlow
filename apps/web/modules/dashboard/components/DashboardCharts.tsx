@@ -26,7 +26,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
  * @param props.currency - The currency code for formatting tooltips and axes.
  * @returns A JSX element containing a responsive bar chart.
  */
-export function CashFlowChart({ data, currency }: { data: HistoricalSummary[], currency: string }) {
+export function CashFlowChart({ data, currency }: Readonly<{ data: HistoricalSummary[], currency: string }>) {
   /*
    * PSEUDOCODE:
    * 1. Transform raw historical data into Recharts-compatible format.
@@ -81,7 +81,7 @@ export function CashFlowChart({ data, currency }: { data: HistoricalSummary[], c
  * @param props.currency - The currency code for formatting tooltips.
  * @returns A JSX element containing a pie chart.
  */
-export function SpendingPieChart({ data, currency }: { data: SpendingByCategory[], currency: string }) {
+export function SpendingPieChart({ data, currency }: Readonly<{ data: SpendingByCategory[], currency: string }>) {
   /*
    * PSEUDOCODE:
    * 1. Slice the top 6 spending categories to prevent visual clutter.
@@ -131,7 +131,7 @@ export function SpendingPieChart({ data, currency }: { data: SpendingByCategory[
  * @param props.currency - The currency code for axis and tooltip formatting.
  * @returns A JSX element containing a net worth trend chart.
  */
-export function NetWorthChart({ data, currency }: { data: { month: string, netWorth: number }[], currency: string }) {
+export function NetWorthChart({ data, currency }: Readonly<{ data: { month: string, netWorth: number }[], currency: string }>) {
   /*
    * PSEUDOCODE:
    * 1. Map monthly net worth data into chart labels and values.

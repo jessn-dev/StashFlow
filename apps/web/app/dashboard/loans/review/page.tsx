@@ -4,9 +4,9 @@ import { createClient } from '~/lib/supabase/server';
 import { DocumentStatusWatcher } from '~/modules/loans/components/DocumentStatusWatcher';
 import type { DocumentRecord } from '~/modules/loans/components/DocumentStatusWatcher';
 
-interface ReviewPageProps {
+type ReviewPageProps = Readonly<{
   searchParams: Promise<{ doc?: string }>;
-}
+}>;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -21,14 +21,24 @@ export default async function ReviewLoanPage({ searchParams }: ReviewPageProps) 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: document } = await supabase
-    .from('documents')
-    .select('id, processing_status, extracted_data, processing_error, extraction_source')
-    .eq('id', doc)
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const [{ data: document }, { data: profile }] = await Promise.all([
+    supabase
+      .from('documents')
+      .select('id, processing_status, extracted_data, processing_error, extraction_source, inferred_type')
+      .eq('id', doc)
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('profiles')
+      .select('preferred_currency')
+      .eq('id', user.id)
+      .maybeSingle(),
+  ]);
+
+  const preferredCurrency = profile?.preferred_currency;
 
   return (
+
     <div className="max-w-[960px] mx-auto py-6 px-6">
       <div className="flex items-center justify-between mb-6">
         <Link href="/dashboard/loans" className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
@@ -44,7 +54,10 @@ export default async function ReviewLoanPage({ searchParams }: ReviewPageProps) 
       </div>
 
       {document ? (
-        <DocumentStatusWatcher initial={document as unknown as DocumentRecord} />
+        <DocumentStatusWatcher 
+          initial={document as unknown as DocumentRecord} 
+          preferredCurrency={preferredCurrency ?? undefined}
+        />
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
           <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6">

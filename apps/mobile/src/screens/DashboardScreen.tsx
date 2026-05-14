@@ -24,7 +24,7 @@ export function DashboardScreen() {
   );
 }
 
-function MetricCard({ label, value }: { label: string, value: string }) {
+function MetricCard({ label, value }: Readonly<{ label: string, value: string }>) {
   return (
     <View className="w-[48%] bg-white p-4 rounded-2xl shadow-sm mb-4 border border-gray-100">
       <Text className="text-gray-500 text-sm font-medium mb-1">{label}</Text>

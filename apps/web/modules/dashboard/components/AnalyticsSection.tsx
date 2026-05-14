@@ -1,11 +1,12 @@
 import { CashFlowChart, SpendingPieChart, NetWorthChart } from './DashboardCharts';
 import { DebtPayoffChart, type DebtPayoffPoint } from './DebtPayoffChart';
+import { CashFlowProjectionChart } from './CashFlowProjectionChart';
 import type { HistoricalSummary, SpendingByCategory } from '@stashflow/api';
 
 /**
  * Properties for the AnalyticsSection component.
  */
-interface AnalyticsSectionProps {
+type AnalyticsSectionProps = Readonly<{
   /** Historical cash flow data. */
   history: HistoricalSummary[];
   /** Breakdown of spending by category. */
@@ -16,7 +17,7 @@ interface AnalyticsSectionProps {
   payoffData: DebtPayoffPoint[];
   /** The currency code for all financial values. */
   currency: string;
-}
+}>;
 
 /**
  * Renders the analytics dashboard containing various financial charts.
@@ -75,6 +76,15 @@ export function AnalyticsSection({
           <DebtPayoffChart data={payoffData} currency={currency} />
         </ChartCard>
       </div>
+
+      {/* 12-month forward projection — full width, fetched client-side */}
+      <ChartCard
+        title="12-Month Cash Flow Projection"
+        subtitle="Projected income, expenses, and debt payments"
+        hasData={true}
+      >
+        <CashFlowProjectionChart currency={currency} />
+      </ChartCard>
     </div>
   );
 }
@@ -90,7 +100,7 @@ function ChartCard({
   subtitle, 
   children, 
   hasData 
-}: { 
+}: Readonly<{ 
   /** The title of the chart card. */
   title: string; 
   /** A brief description or subtitle for the chart. */
@@ -99,7 +109,7 @@ function ChartCard({
   children: React.ReactNode;
   /** Whether there is data available to render the chart. */
   hasData: boolean;
-}) {
+}>) {
   return (
     <div
       className="bg-white rounded-3xl border border-gray-200 shadow-sm flex flex-col"
@@ -146,7 +156,7 @@ function EmptyChartState() {
 /**
  * A simpler chart placeholder used during loading or as a fallback.
  */
-function ChartPlaceholder({ title, subtitle }: { title: string; subtitle: string }) {
+function ChartPlaceholder({ title, subtitle }: Readonly<{ title: string; subtitle: string }>) {
   return (
     <div
       className="bg-white rounded-3xl border border-gray-200 shadow-sm flex flex-col"

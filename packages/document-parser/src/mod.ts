@@ -10,4 +10,5 @@ export type {
   ProcessingError,
   PipelineStage,
   StageResult,
+  UnifiedDocumentResult,
 } from './types.ts'

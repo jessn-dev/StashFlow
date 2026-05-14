@@ -63,7 +63,7 @@ async def categorize_transaction(request: CategorizationRequest) -> TransactionC
         if request.amount:
             context_description += f" with amount {request.amount}"
 
-        extraction = client.chat.completions.create(
+        extraction = await client.chat.completions.create(
             model=settings.DEFAULT_AI_MODEL,
             response_model=TransactionCategorizationSchema,
             messages=[

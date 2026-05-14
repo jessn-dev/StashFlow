@@ -14,10 +14,10 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: 'Other',
 };
 
-interface Props {
+type Props = Readonly<{
   budget: Budget;
   period: BudgetPeriod | undefined;
-}
+}>;
 
 export function BudgetCategoryRow({ budget, period }: Props) {
   const budgeted = period ? Number(period.budgeted) : Number(budget.amount);

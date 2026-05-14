@@ -6,14 +6,14 @@ import { TransactionFiltersBar } from '~/modules/transactions/components/Transac
 import { TransactionTimeline } from '~/modules/transactions/components/TransactionTimeline';
 import { TransactionPageActions } from '~/modules/transactions/components/TransactionPageActions';
 
-interface Props {
+type Props = Readonly<{
   searchParams: Promise<{
-    from?: string;
-    to?: string;
-    type?: string;
-    q?: string;
+    readonly from?: string;
+    readonly to?: string;
+    readonly type?: string;
+    readonly q?: string;
   }>;
-}
+}>;
 
 export default async function TransactionsPage({ searchParams }: Props) {
   const { from, to, type, q } = await searchParams;

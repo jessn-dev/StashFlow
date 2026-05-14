@@ -75,7 +75,7 @@ function getConfig(item: IntelligenceItem) {
  * @param props - Component properties.
  * @param props.item - The intelligence data item.
  */
-function IntelligenceCard({ item }: { item: IntelligenceItem }) {
+function IntelligenceCard({ item }: Readonly<{ item: IntelligenceItem }>) {
   const cfg = getConfig(item);
 
   return (
@@ -145,10 +145,10 @@ function IntelligenceCard({ item }: { item: IntelligenceItem }) {
 /**
  * Properties for the IntelligenceFeed component.
  */
-interface Props {
+type Props = Readonly<{
   /** Array of intelligence insights to display. */
   items: IntelligenceItem[];
-}
+}>;
 
 /**
  * Renders a feed of financial intelligence insights and alerts.

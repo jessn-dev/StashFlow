@@ -78,6 +78,7 @@ fail_under = 80
 
 [tool.mypy]
 python_version = "3.12"
+plugins = ["pydantic.mypy"]
 ignore_missing_imports = true
 strict = false
 check_untyped_defs = true

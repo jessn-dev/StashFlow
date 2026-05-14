@@ -14,7 +14,7 @@ export interface RegionalStrategy {
   dtiThreshold: number;
   /**
    * Generates a human-readable explanation of a given DTI ratio based on regional standards.
-   * @param ratio - The calculated debt-to-income ratio (0.0 to 1.0+).
+   * @param ratio - The calculated debt-to-income ratio (0 to 1+).
    * @returns A string containing the regional rationale.
    */
   getRationale(ratio: number): string;

@@ -1,10 +1,10 @@
 import React from 'react';
 
-type FeatureCardProps = {
+type FeatureCardProps = Readonly<{
   title: string;
   description: string;
   children: React.ReactNode;
-};
+}>;
 
 export function FeatureCard({
   title,

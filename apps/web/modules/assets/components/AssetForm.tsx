@@ -35,8 +35,8 @@ export function AssetForm({ onSuccess, initialData }: AssetFormProps) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError('Not authenticated'); setLoading(false); return; }
 
-    const balance = parseFloat(values.balance);
-    if (isNaN(balance)) { setError('Invalid balance'); setLoading(false); return; }
+    const balance = Number.parseFloat(values.balance);
+    if (Number.isNaN(balance)) { setError('Invalid balance'); setLoading(false); return; }
 
     const payload = {
       name: values.name,

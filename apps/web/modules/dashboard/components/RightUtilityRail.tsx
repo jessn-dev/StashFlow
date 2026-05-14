@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { formatCurrency } from '@stashflow/core';
 import type { Loan } from '@stashflow/core';
 import type { PaymentSummary } from '@stashflow/api';
+import { CurrencyConverterWidget } from './CurrencyConverterWidget';
 
 interface UpcomingPayment {
   loanId: string;
@@ -12,14 +13,14 @@ interface UpcomingPayment {
   daysUntil: number;
 }
 
-interface Props {
+type Props = Readonly<{
   loans: Loan[];
   paymentSummaries: PaymentSummary[];
   currency: string;
   dtiRatio: number;
   dtiHealthy: boolean;
   savingsRate: number;
-}
+}>;
 
 /**
  * Calculates upcoming loan payments within a 30-day window.
@@ -67,14 +68,14 @@ function computeUpcoming(loans: Loan[], summaries: PaymentSummary[]): UpcomingPa
  * 
  * @param props - Component properties.
  */
-function RailCard({ children, title, action }: { 
+function RailCard({ children, title, action }: Readonly<{ 
   /** Content to display within the card. */
   children: React.ReactNode; 
   /** The title shown in the card header. */
   title: string; 
   /** Optional action element (e.g., a "View All" link) in the header. */
   action?: React.ReactNode 
-}) {
+}>) {
   return (
     <div className="bg-white rounded-[20px] border border-gray-200 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
@@ -98,6 +99,11 @@ export function RightUtilityRail({ loans, paymentSummaries, currency, dtiRatio, 
 
   return (
     <div className="space-y-4">
+      {/* Currency Rates */}
+      <RailCard title="Currency Rates">
+        <CurrencyConverterWidget defaultCurrency={currency} />
+      </RailCard>
+
       {/* Upcoming Payments */}
       <RailCard
         title="Upcoming Payments"

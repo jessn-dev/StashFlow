@@ -3,7 +3,7 @@ import type { ExtractedLoanData } from '../types.ts'
 function num(text: string, ...patterns: RegExp[]): number | null {
   for (const re of patterns) {
     const m = text.match(re)
-    if (m?.[1]) return parseFloat(m[1].replace(/,/g, ''))
+    if (m?.[1]) return Number.parseFloat(m[1].replace(/,/g, ''))
   }
   return null
 }
@@ -61,11 +61,11 @@ function detectCurrency(t: string): string | null {
 
 function extractMonths(t: string): number | null {
   const m = t.match(/(?:loan\s*)?(?:term|duration|tenor|period)[:\s]+(\d+)\s*months?/i)
-  if (m?.[1]) return parseInt(m[1])
+  if (m?.[1]) return Number.parseInt(m[1])
   const y = t.match(/(?:loan\s*)?(?:term|duration|tenor|period)[:\s]+(\d+)\s*years?/i)
-  if (y?.[1]) return parseInt(y[1]) * 12
+  if (y?.[1]) return Number.parseInt(y[1]) * 12
   const alt = t.match(/(\d+)[- ]month\s+(?:loan|term|tenor)/i)
-  if (alt?.[1]) return parseInt(alt[1])
+  if (alt?.[1]) return Number.parseInt(alt[1])
   return null
 }
 
@@ -76,7 +76,7 @@ function extractDate(t: string): string | null {
   if (!m?.[1]) return null
   try {
     const d = new Date(m[1])
-    if (isNaN(d.getTime())) return null
+    if (Number.isNaN(d.getTime())) return null
     return d.toISOString().slice(0, 10)
   } catch {
     return null

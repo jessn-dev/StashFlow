@@ -6,7 +6,7 @@ describe('Session Anomaly Scoring', () => {
     {
       ip: '1.1.1.1',
       country: 'PH',
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+      userAgent: 'Mozilla/5 (Macintosh; Intel Mac OS X 10_15_7)',
       timestamp: '2026-05-01T10:00:00Z',
     },
   ];
@@ -15,7 +15,7 @@ describe('Session Anomaly Scoring', () => {
     const newEvent: SessionMetadata = {
       ip: '1.1.1.1',
       country: 'PH',
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+      userAgent: 'Mozilla/5 (Macintosh; Intel Mac OS X 10_15_7)',
       timestamp: '2026-05-02T14:00:00Z',
     };
 
@@ -28,7 +28,7 @@ describe('Session Anomaly Scoring', () => {
     const newEvent: SessionMetadata = {
       ip: '2.2.2.2',
       country: 'US', // PH -> US
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+      userAgent: 'Mozilla/5 (Macintosh; Intel Mac OS X 10_15_7)',
       timestamp: '2026-05-02T14:00:00Z',
     };
 
@@ -42,7 +42,7 @@ describe('Session Anomaly Scoring', () => {
     const newEvent: SessionMetadata = {
       ip: '1.1.1.1',
       country: 'PH',
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+      userAgent: 'Mozilla/5 (Macintosh; Intel Mac OS X 10_15_7)',
       timestamp: '2026-05-02T02:00:00Z', // 2 AM
     };
 
@@ -55,7 +55,7 @@ describe('Session Anomaly Scoring', () => {
     const newEvent: SessionMetadata = {
       ip: '1.1.1.1',
       country: 'PH',
-      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0)',
+      userAgent: 'Mozilla/5 (iPhone; CPU iPhone OS 15_0)',
       timestamp: '2026-05-02T14:00:00Z',
     };
 
@@ -68,13 +68,13 @@ describe('Session Anomaly Scoring', () => {
     const newEvent: SessionMetadata = {
       ip: '2.2.2.2',
       country: 'US',
-      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0)',
+      userAgent: 'Mozilla/5 (iPhone; CPU iPhone OS 15_0)',
       timestamp: '2026-05-02T02:00:00Z',
     };
 
     const result = calculateAnomalyScore(newEvent, history);
     // 0.7 (country) + 0.3 (hour) + 0.1 (UA) = 1.1 -> capped at 1.0
-    expect(result.score).toBe(1.0);
+    expect(result.score).toBe(1);
     expect(result.reasons).toContain('geographic_shift');
     expect(result.reasons).toContain('unusual_hour');
     expect(result.reasons).toContain('new_device');

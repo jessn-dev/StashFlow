@@ -18,19 +18,23 @@ export type Principal = number;
  */
 export type InterestRate = number;
 /**
- * The monthly or per-period installment amount
+ * The Effective Interest Rate (EIR) per year as a percentage, if explicitly stated in the document. Different from interest_rate for add-on loans.
  */
-export type InstallmentAmount = number;
+export type AnnualEir = number | null;
 /**
- * The total duration of the loan in months
+ * The monthly or per-period installment amount. Return null if not stated explicitly per individual loan.
  */
-export type DurationMonths = number;
+export type InstallmentAmount = number | null;
+/**
+ * Explicit loan term in months. Return null if no numeric term is stated in the document. Do NOT infer from repayment plan names or dates.
+ */
+export type DurationMonths = number | null;
 /**
  * The start date of the loan in YYYY-MM-DD format
  */
 export type StartDate = string | null;
 /**
- * The ISO 4217 currency code (e.g., PHP, USD, SGD)
+ * The ISO 4217 currency code (e.g., USD, PHP, SGD)
  */
 export type Currency = string;
 /**
@@ -50,12 +54,6 @@ export type Confidence = number;
  */
 export type Reasoning = string;
 /**
- * Map of field names to their source provenance
- */
-export type Provenance = {
-  [k: string]: Provenance1;
-} | null;
-/**
  * The 1-indexed page number where the information was found
  */
 export type Page = number | null;
@@ -67,25 +65,29 @@ export type Snippet = string | null;
 /**
  * Schema for extracting loan details from a document.
  */
-export interface LoanExtractionSchema {
+export interface SingleLoanExtractionSchema {
   name: Name;
   principal: Principal;
   interest_rate: InterestRate;
-  installment_amount: InstallmentAmount;
-  duration_months: DurationMonths;
+  annual_eir?: AnnualEir;
+  installment_amount?: InstallmentAmount;
+  duration_months?: DurationMonths;
   start_date?: StartDate;
   currency?: Currency;
   interest_type?: LoanInterestType;
   lender?: Lender;
   confidence?: Confidence;
   reasoning?: Reasoning;
-  provenance?: Provenance;
+  /**
+   * Source location for the primary extracted data (page + snippet)
+   */
+  provenance?: Provenance | null;
   [k: string]: unknown;
 }
 /**
  * Metadata linking extracted data back to its source in the document.
  */
-export interface Provenance1 {
+export interface Provenance {
   page?: Page;
   snippet?: Snippet;
   [k: string]: unknown;

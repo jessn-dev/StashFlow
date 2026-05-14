@@ -7,7 +7,7 @@ let _extractText: any
 async function getExtractText() {
   if (!_extractText) {
     // @ts-ignore — esm.sh import, no local type stubs
-    const mod = await import('https://esm.sh/unpdf@0.11.0')
+    const mod = await import('https://esm.sh/unpdf@0.11')
     _extractText = mod.extractText
   }
   return _extractText

@@ -11,12 +11,17 @@ const SENTRY_DSN = Deno.env.get('SENTRY_DSN')
 if (SENTRY_DSN) {
   Sentry.init({
     dsn: SENTRY_DSN,
-    tracesSampleRate: 1.0,
+    tracesSampleRate: 1,
   })
 }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  const webhookSecret = Deno.env.get('MONITOR_WEBHOOK_SECRET')
+  if (!webhookSecret || req.headers.get('x-webhook-secret') !== webhookSecret) {
+    return new Response('Forbidden', { status: 403 })
+  }
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,

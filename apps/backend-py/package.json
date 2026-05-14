@@ -10,6 +10,7 @@
     "start": "uv run uvicorn src.main:app --host 0.0.0.0 --port 8000",
     "lint": "uv run ruff check src",
     "test": "uv run pytest",
+    "test:coverage": "uv run pytest --cov=src --cov-report=xml --cov-report=term",
     "typecheck": "uv run mypy src"
   }
 }

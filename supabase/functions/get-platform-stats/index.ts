@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "@supabase/supabase-js"
 
 const corsHeaders = {
@@ -6,9 +5,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  const cronSecret = Deno.env.get('CRON_SECRET')
+  if (!cronSecret || req.headers.get('Authorization') !== `Bearer ${cronSecret}`) {
+    return new Response('Forbidden', { status: 403 })
   }
 
   try {

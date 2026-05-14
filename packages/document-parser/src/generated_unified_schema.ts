@@ -10,6 +10,10 @@
  */
 export type DocumentType = "LOAN" | "BANK_STATEMENT" | "UNKNOWN";
 /**
+ * 'single' if one loan account, 'multi' if multiple distinct loan accounts with different account numbers. Summaries/totals of the same account are NOT separate loans.
+ */
+export type LoanStructure = "single" | "multi";
+/**
  * The name of the loan or lender
  */
 export type Name = string;
@@ -22,19 +26,23 @@ export type Principal = number;
  */
 export type InterestRate = number;
 /**
- * The monthly or per-period installment amount
+ * The Effective Interest Rate (EIR) per year as a percentage, if explicitly stated in the document. Different from interest_rate for add-on loans.
  */
-export type InstallmentAmount = number;
+export type AnnualEir = number | null;
 /**
- * The total duration of the loan in months
+ * The monthly or per-period installment amount. Return null if not stated explicitly per individual loan.
  */
-export type DurationMonths = number;
+export type InstallmentAmount = number | null;
+/**
+ * Explicit loan term in months. Return null if no numeric term is stated in the document. Do NOT infer from repayment plan names or dates.
+ */
+export type DurationMonths = number | null;
 /**
  * The start date of the loan in YYYY-MM-DD format
  */
 export type StartDate = string | null;
 /**
- * The ISO 4217 currency code (e.g., PHP, USD, SGD)
+ * The ISO 4217 currency code (e.g., USD, PHP, SGD)
  */
 export type Currency = string;
 /**
@@ -54,12 +62,6 @@ export type Confidence = number;
  */
 export type Reasoning = string;
 /**
- * Map of field names to their source provenance
- */
-export type Provenance = {
-  [k: string]: Provenance1;
-} | null;
-/**
  * The 1-indexed page number where the information was found
  */
 export type Page = number | null;
@@ -67,6 +69,15 @@ export type Page = number | null;
  * The exact text snippet used as source context
  */
 export type Snippet = string | null;
+export type Loans = SingleLoanExtractionSchema[];
+/**
+ * Master account number tying all loans together, if present.
+ */
+export type AccountNumber = string | null;
+/**
+ * Account-level monthly payment (e.g. 'Regular Monthly Payment Amount'). Set when the document shows a combined payment for all loans with no per-loan breakdown.
+ */
+export type AccountMonthlyPayment = number | null;
 /**
  * The name of the account or institution
  */
@@ -87,6 +98,14 @@ export type Description = string;
  * The transaction amount (negative for expenses, positive for income/deposits)
  */
 export type Amount = number;
+/**
+ * Type of this transaction. Set to 'internal_transfer' when money moves between the account holder's own accounts at the same institution. Examples: 'Deposit from 360 Performance Savings', 'Withdrawal to 360 Checking'.
+ */
+export type TransactionType = "debit" | "credit" | "internal_transfer" | "fee" | "interest";
+/**
+ * Last 4 digits of the account this transaction belongs to, if the statement covers multiple accounts.
+ */
+export type AccountId = string | null;
 export type Transactions = TransactionExtractionItem[];
 /**
  * Confidence score from 0.0 to 1.0
@@ -105,6 +124,18 @@ export type Confidence2 = number;
  */
 export type Reasoning2 = string;
 /**
+ * Status of the parallel verification/cross-check process.
+ */
+export type VerificationStatus = "verified" | "skipped" | "failed";
+/**
+ * A human-readable message explaining reliability issues (e.g., rate limits).
+ */
+export type UserFriendlyMessage = string | null;
+/**
+ * Non-fatal warnings encountered during extraction.
+ */
+export type ExtractionWarnings = string[];
+/**
  * Technical metadata about the extraction process (char counts, method)
  */
 export type OcrTelemetry = {
@@ -116,43 +147,64 @@ export type OcrTelemetry = {
  */
 export interface UnifiedDocumentResponse {
   document_type: DocumentType;
+  loan_structure: LoanStructure;
   /**
-   * Populated if document_type is LOAN
+   * Populated when loan_structure is 'single'.
    */
-  loan_data?: LoanExtractionSchema | null;
+  loan_data?: SingleLoanExtractionSchema | null;
+  /**
+   * Populated when loan_structure is 'multi'.
+   */
+  multi_loan_data?: MultiLoanExtractionSchema | null;
   /**
    * Populated if document_type is BANK_STATEMENT
    */
   statement_data?: StatementExtractionSchema | null;
   confidence?: Confidence2;
   reasoning?: Reasoning2;
+  verification_status?: VerificationStatus;
+  user_friendly_message?: UserFriendlyMessage;
+  extraction_warnings?: ExtractionWarnings;
   ocr_telemetry?: OcrTelemetry;
   [k: string]: unknown;
 }
 /**
  * Schema for extracting loan details from a document.
  */
-export interface LoanExtractionSchema {
+export interface SingleLoanExtractionSchema {
   name: Name;
   principal: Principal;
   interest_rate: InterestRate;
-  installment_amount: InstallmentAmount;
-  duration_months: DurationMonths;
+  annual_eir?: AnnualEir;
+  installment_amount?: InstallmentAmount;
+  duration_months?: DurationMonths;
   start_date?: StartDate;
   currency?: Currency;
   interest_type?: LoanInterestType;
   lender?: Lender;
   confidence?: Confidence;
   reasoning?: Reasoning;
-  provenance?: Provenance;
+  /**
+   * Source location for the primary extracted data (page + snippet)
+   */
+  provenance?: Provenance | null;
   [k: string]: unknown;
 }
 /**
  * Metadata linking extracted data back to its source in the document.
  */
-export interface Provenance1 {
+export interface Provenance {
   page?: Page;
   snippet?: Snippet;
+  [k: string]: unknown;
+}
+/**
+ * Schema for documents containing multiple distinct loan accounts.
+ */
+export interface MultiLoanExtractionSchema {
+  loans: Loans;
+  account_number?: AccountNumber;
+  account_monthly_payment?: AccountMonthlyPayment;
   [k: string]: unknown;
 }
 /**
@@ -173,9 +225,11 @@ export interface TransactionExtractionItem {
   date: Date;
   description: Description;
   amount: Amount;
+  transaction_type?: TransactionType;
+  account_id?: AccountId;
   /**
    * Source provenance for this transaction
    */
-  provenance?: Provenance1 | null;
+  provenance?: Provenance | null;
   [k: string]: unknown;
 }

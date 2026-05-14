@@ -6,7 +6,7 @@ import { useState, useEffect, useTransition, useCallback } from 'react';
 /**
  * Properties for the TransactionFiltersBar component.
  */
-interface Props {
+type Props = Readonly<{
   /** The starting ISO date string (YYYY-MM-DD) for the filter range. */
   dateFrom: string;
   /** The ending ISO date string (YYYY-MM-DD) for the filter range. */
@@ -15,7 +15,7 @@ interface Props {
   type: 'all' | 'income' | 'expense';
   /** The current search query string. */
   search: string;
-}
+}>;
 
 /**
  * Calculates start and end dates based on predefined time range presets.

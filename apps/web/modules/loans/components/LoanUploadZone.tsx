@@ -7,9 +7,10 @@
  * triggering the AI extraction pipeline.
  */
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '~/lib/supabase/client';
 import { SecureImportZone } from '~/modules/import';
+import { useDocumentUpload } from '~/modules/import/hooks/useDocumentUpload';
 
 /**
  * Component that wraps SecureImportZone to handle the specific logic for loan document ingestion.
@@ -18,80 +19,28 @@ import { SecureImportZone } from '~/modules/import';
  */
 export function LoanUploadZone() {
   const router = useRouter();
+  const { state, upload } = useDocumentUpload();
 
   /**
    * Coordinates the sequence of uploading a file and initiating AI analysis.
-   * 
-   * @param {File} file - The document file to be uploaded.
-   * @param {string} [password] - Optional password for encrypted PDF files.
-   * @throws {Error} If authentication fails, upload fails, or database registration fails.
    */
   const handleUpload = async (file: File, password?: string) => {
-    /*
-     * PSEUDOCODE:
-     * 1. Authenticate the user to ensure data privacy.
-     * 2. Construct a unique storage path in the user's private bucket.
-     * 3. Upload the binary file to Supabase Storage.
-     * 4. Insert a tracking record into the 'documents' table.
-     * 5. If the document is password-protected, call the parsing function immediately with the key.
-     * 6. Redirect the user to the review page to await extraction results.
-     */
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated.');
-
-    // We use a timestamp-based unique path to prevent collisions within the user's folder.
-    const ext = file.name.split('.').pop() ?? 'pdf';
-    const storagePath = `${user.id}/${Date.now()}.${ext}`;
-
-    // 1. Upload to storage
-    const { error: uploadError } = await supabase.storage
-      .from('user_documents')
-      .upload(storagePath, file, { contentType: file.type });
-
-    if (uploadError) {
-      throw new Error("Couldn't upload your document. Try again.");
-    }
-
-    // 2. Register in documents table
-    const { data: doc, error: insertError } = await supabase
-      .from('documents')
-      .insert({
-        user_id: user.id,
-        file_name: file.name,
-        file_size: file.size,
-        content_type: file.type,
-        storage_path: storagePath,
-        source: 'web',
-      } as any)
-      .select()
-      .single();
-
-    if (insertError || !doc) {
-      // Cleanup: Remove the orphan file if database registration fails to save storage costs.
-      await supabase.storage.from('user_documents').remove([storagePath]);
-      throw new Error("Couldn't register your document.");
-    }
-
-    // 3. Trigger edge function
-    if (password) {
-      // Manual invocation is required for password-protected files because the 
-      // database trigger doesn't have access to the user-provided password string.
-      await supabase.functions.invoke('parse-document', {
-        body: { record: { id: doc.id } },
-        headers: { 'x-document-password': password }
-      });
-    }
-    
-    // We navigate immediately so the user can see the progress bar/skeleton in DocumentStatusWatcher.
-    router.push(`/dashboard/loans/review?doc=${doc.id}`);
+    await upload(file, password);
   };
+
+  // Listen for successful upload and classification to route appropriately
+  useEffect(() => {
+    if (state.status === 'ready') {
+      router.push(`/dashboard/loans/review?doc=${state.documentId}`);
+    }
+  }, [state, router]);
 
   return (
     <div className="w-full max-w-2xl mx-auto">
       <SecureImportZone 
         type="loan"
         onUpload={handleUpload}
+        isProcessing={state.status === 'uploading' || state.status === 'processing'}
       />
     </div>
   );

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
+import { convertToBase, type MathExchangeRate } from "@stashflow/core"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,16 +41,9 @@ Deno.serve(async (req) => {
     ])
 
     const baseCurrency = profile?.preferred_currency || 'USD'
-
-    const convertToBase = (amount: any, fromCurrency: string): number => {
-      const val = Number(amount) || 0
-      if (fromCurrency === baseCurrency) return val
-      const rateEntry = rates?.find((r: any) => r.base === baseCurrency && r.target === fromCurrency)
-      if (rateEntry) return val / Number(rateEntry.rate)
-      const inverse = rates?.find((r: any) => r.base === fromCurrency && r.target === baseCurrency)
-      if (inverse) return val * Number(inverse.rate)
-      return val
-    }
+    const ratesList = (rates || []) as unknown as MathExchangeRate[]
+    const toBase = (amount: any, fromCurrency: string): number =>
+      convertToBase(Number(amount) || 0, fromCurrency, baseCurrency, ratesList)
 
     // 3. Projections for 12 months
     const projections = []
@@ -63,7 +57,7 @@ Deno.serve(async (req) => {
       // Recurring Income
       let monthlyIncome = 0
       incomes?.forEach((inc: any) => {
-        const amt = convertToBase(inc.amount, inc.currency)
+        const amt = toBase(inc.amount, inc.currency)
         if (inc.frequency === 'monthly') monthlyIncome += amt
         else if (inc.frequency === 'weekly') monthlyIncome += amt * (52 / 12)
       })
@@ -71,7 +65,7 @@ Deno.serve(async (req) => {
       // Recurring Expenses
       let monthlyExpenses = 0
       expenses?.forEach((exp: any) => {
-        monthlyExpenses += convertToBase(exp.amount, exp.currency)
+        monthlyExpenses += toBase(exp.amount, exp.currency)
       })
 
       // Loan Installments due in this month
@@ -79,7 +73,7 @@ Deno.serve(async (req) => {
       loans?.forEach((loan: any) => {
         const dueThisMonth = loan.loan_payments?.filter((p: any) => p.due_date.startsWith(period))
         if (dueThisMonth && dueThisMonth.length > 0) {
-          monthlyDebt += convertToBase(loan.installment_amount, loan.currency)
+          monthlyDebt += toBase(loan.installment_amount, loan.currency)
         }
       })
 

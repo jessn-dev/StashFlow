@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "@supabase/supabase-js"
 
 /**
@@ -47,12 +46,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
-  console.log("Sync Market Data triggered")
-  
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  const cronSecret = Deno.env.get('CRON_SECRET')
+  if (!cronSecret || req.headers.get('Authorization') !== `Bearer ${cronSecret}`) {
+    return new Response('Forbidden', { status: 403 })
   }
+
+  console.log('[sync-market-data] triggered')
 
   const fredApiKey = Deno.env.get('FRED_API_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
@@ -92,7 +94,7 @@ serve(async (req) => {
               series_name: series.name,
               category: series.cat,
               currency: series.currency,
-              value: parseFloat(obs.value),
+              value: Number.parseFloat(obs.value),
               period: obs.date,
             })
             captured++

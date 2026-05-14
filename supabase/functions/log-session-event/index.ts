@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     // Note: Headers might vary between local dev and production (Vercel/Supabase)
     const ip = req.headers.get('x-real-ip') || 
                req.headers.get('cf-connecting-ip') || 
-               '127.0.0.1'
+               '127.0.1'
     
     // Country is often provided by cloudflare headers in production
     const country = req.headers.get('cf-ipcountry') || null

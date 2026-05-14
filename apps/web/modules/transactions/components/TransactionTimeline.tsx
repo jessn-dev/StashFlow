@@ -81,7 +81,7 @@ function getCategoryIcon(type: 'income' | 'expense', category?: string | null): 
 /**
  * Simple key-value row for transaction details.
  */
-function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+function DetailRow({ label, value }: Readonly<{ label: string; value: React.ReactNode }>) {
   return (
     <div className="flex items-start gap-4">
       <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest w-24 flex-shrink-0 pt-0.5">{label}</span>
@@ -99,7 +99,7 @@ function TransactionExpansion({
   baseCurrency,
   onEdit,
   onDelete,
-}: {
+}: Readonly<{
   /** The transaction being expanded. */
   t: UnifiedTransaction;
   /** Currency conversion rates. */
@@ -110,7 +110,7 @@ function TransactionExpansion({
   onEdit: () => void;
   /** Callback to trigger after deletion. */
   onDelete: () => void;
-}) {
+}>) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
@@ -346,7 +346,7 @@ function TransactionRow({
 /**
  * Component properties for the TransactionTimeline.
  */
-interface Props {
+type Props = Readonly<{
   /** Initial set of transactions loaded on the server. */
   initialTransactions: UnifiedTransaction[];
   /** Latest currency exchange rates. */
@@ -359,12 +359,12 @@ interface Props {
   userId: string;
   /** Active filter parameters for infinite scrolling. */
   filters: {
-    dateFrom?: string;
-    dateTo?: string;
-    type?: 'all' | 'income' | 'expense';
-    search?: string;
+    readonly dateFrom?: string;
+    readonly dateTo?: string;
+    readonly type?: 'all' | 'income' | 'expense';
+    readonly search?: string;
   };
-}
+}>;
 
 /**
  * Main component for rendering the transaction history timeline with infinite scroll.

@@ -7,6 +7,7 @@ export type DocumentUploadState =
   | { status: 'idle' }
   | { status: 'uploading' }
   | { status: 'processing' }
+  | { status: 'needs_password'; documentId: string }
   | { status: 'ready'; documentId: string; documentType: 'LOAN' | 'BANK_STATEMENT' | 'UNKNOWN'; alreadyProcessed: boolean }
   | { status: 'error'; message: string };
 
@@ -53,8 +54,16 @@ export function useDocumentUpload() {
       }
 
       // Poll until classified — we need document_type to know where to route
-      const documentType = await pollForType(supabase, doc.id);
-      setState({ status: 'ready', documentId: doc.id, documentType, alreadyProcessed: false });
+      try {
+        const documentType = await pollForType(supabase, doc.id);
+        setState({ status: 'ready', documentId: doc.id, documentType, alreadyProcessed: false });
+      } catch (pollErr: any) {
+        if (pollErr?.code === 'PASSWORD_REQUIRED') {
+          setState({ status: 'needs_password', documentId: pollErr.documentId });
+        } else {
+          throw pollErr;
+        }
+      }
 
     } catch (err: any) {
       setState({ status: 'error', message: err.message || 'Upload failed.' });
@@ -88,6 +97,11 @@ async function pollForType(
       return data.inferred_type === 'Loan' ? 'LOAN'
         : data.inferred_type === 'Bank Statement' ? 'BANK_STATEMENT'
         : 'UNKNOWN';
+    }
+
+    // Password-specific: signal to caller rather than throwing generic error
+    if (data.processing_status === 'error_password') {
+      throw { code: 'PASSWORD_REQUIRED', documentId };
     }
 
     if (data.processing_status?.startsWith('error')) {

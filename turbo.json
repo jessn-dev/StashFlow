@@ -23,7 +23,7 @@
     },
     "test:coverage": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**", "coverage.xml"]
     },
     "lint": {
       "dependsOn": ["^lint"]

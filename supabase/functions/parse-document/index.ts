@@ -19,7 +19,13 @@ if (SENTRY_DSN) {
   })
 }
 
-type ProcessingStatus = 'pending' | 'processing' | 'success' | 'error_rate_limit' | 'error_generic'
+type ProcessingStatus = 
+  | 'pending' 
+  | 'processing' 
+  | 'success' 
+  | 'error_rate_limit' 
+  | 'error_password'
+  | 'error_generic'
 
 // deno-lint-ignore no-explicit-any
 type SupabaseClient = any
@@ -111,14 +117,61 @@ async function processUnified(
   // Fetch record
   const { data: docRecord, error: fetchError } = await supabase
     .from('documents')
-    .select('user_id, storage_path, content_type, file_size, processing_status, processing_attempts')
+    .select('user_id, storage_path, content_type, file_size, processing_status, processing_attempts, last_processed_at')
     .eq('id', documentId)
     .single()
 
   if (fetchError || !docRecord) fail('fetch-record', fetchError ?? new Error('Document not found'))
 
+  // G17 — Per-user rate limit (10 docs/hour)
+  const ONE_HOUR_AGO = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  const { count: recentDocs, error: countError } = await supabase
+    .from('documents')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', docRecord.user_id)
+    .gte('last_processed_at', ONE_HOUR_AGO)
+    .eq('processing_status', 'success')
+
+  if (!countError && recentDocs !== null && recentDocs >= 10) {
+    log('rate-limit-exceeded', { recentDocs })
+    await storeFailed(supabase, documentId, {
+      stage: 'pre-check',
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: 'You have reached the hourly limit for document processing (10 documents). Please try again later.',
+      retryable: true,
+    })
+    return
+  }
+
   if (docRecord.processing_status === 'success') {
     log('already-completed — skip')
+    return
+  }
+
+  // G13 — Stale processing recovery
+  // If document has been in 'processing' for > 10 minutes, it's a zombie — rescue it
+  const STALE_PROCESSING_MS = 10 * 60 * 1000
+  if (docRecord.processing_status === 'processing' && docRecord.last_processed_at) {
+    const lastActive = new Date(docRecord.last_processed_at).getTime()
+    const elapsed = Date.now() - lastActive
+    if (elapsed > STALE_PROCESSING_MS) {
+      log('stale-processing-rescue', { elapsed })
+    } else {
+      log('already-processing — skip (not stale)')
+      return
+    }
+  }
+
+  // G10 — Attempt cap
+  const MAX_ATTEMPTS = 3
+  if ((docRecord.processing_attempts ?? 0) >= MAX_ATTEMPTS) {
+    log('max-attempts-exceeded', { attempts: docRecord.processing_attempts })
+    await storeFailed(supabase, documentId, {
+      stage: 'pre-check',
+      code: 'MAX_ATTEMPTS_EXCEEDED',
+      message: `Document failed ${MAX_ATTEMPTS} times and will not be retried. Please re-upload.`,
+      retryable: false,
+    })
     return
   }
 
@@ -181,11 +234,32 @@ async function processUnified(
     }
     log('done')
   } catch (err) {
-    log('processing-failed', String(err))
+    const errMsg = String(err)
+    
+    // Distinguish password errors from other failures
+    if (
+      errMsg.includes('PDF is encrypted') ||
+      errMsg.includes('Invalid password') ||
+      errMsg.includes('requires a password')
+    ) {
+      log('password-required', errMsg)
+      await supabase.from('documents').update({
+        processing_status: 'error_password' satisfies ProcessingStatus,
+        processing_error: {
+          stage: 'extract',
+          code: 'PASSWORD_REQUIRED',
+          message: 'This PDF is password protected. Please provide the password to import.',
+          retryable: true,
+        },
+      }).eq('id', documentId)
+      return   // do NOT call storeFailed — that would overwrite with error_password
+    }
+
+    log('processing-failed', errMsg)
     await storeFailed(supabase, documentId, {
       stage: 'extract',
       code: 'PYTHON_ENQUEUE_FAILED',
-      message: `Intelligence service failed to enqueue: ${String(err)}`,
+      message: `Intelligence service failed: ${errMsg}`,
       retryable: true,
     })
   }
@@ -526,26 +600,202 @@ async function handleLoanExtraction(
   }, 'Loan', result.ocr_telemetry);
 }
 
+// --- Guardrail Helper Functions ---
+
+function validateTransactionAmount(amount: number, idx: number): string | null {
+  if (!isFinite(amount)) return `Transaction ${idx}: amount is not a finite number (${amount})`
+  if (amount === 0) return `Transaction ${idx}: zero-amount transaction — likely a parsing error`
+  if (Math.abs(amount) > 1_000_000) return `Transaction ${idx}: amount $${amount} exceeds $1M — verify`
+  return null
+}
+
+function validateTransactionDate(dateStr: string, idx: number): string | null {
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return `Transaction ${idx}: invalid date "${dateStr}"`
+  
+  const now = new Date()
+  if (d > now) return `Transaction ${idx}: future date "${dateStr}" — likely a parsing error`
+  
+  const tooOld = new Date()
+  tooOld.setFullYear(tooOld.getFullYear() - 10)
+  if (d < tooOld) return `Transaction ${idx}: date "${dateStr}" is more than 10 years ago — verify`
+  
+  return null
+}
+
+const SHOULD_BE_NEGATIVE = [
+  /debit\s+card\s+purchase/i,
+  /digital\s+card\s+purchase/i,
+  /withdrawal\s+to/i,
+  /\bfee\b/i,
+  /overdraft/i,
+  /payment\s+to/i,
+]
+
+const SHOULD_BE_POSITIVE = [
+  /deposit\s+from/i,
+  /monthly\s+interest\s+paid/i,
+  /interest\s+earned/i,
+  /\bcredit\b/i,
+  /direct\s+deposit/i,
+  /refund/i,
+]
+
+function checkSignConsistency(tx: any, idx: number): { tx: any, warning: string | null } {
+  const desc = tx.description || ''
+  let warning: string | null = null
+  const updatedTx = { ...tx }
+
+  if (SHOULD_BE_NEGATIVE.some(re => re.test(desc)) && tx.amount > 0) {
+    warning = `Transaction ${idx}: Sign mismatch: "${desc}" should be negative but got +${tx.amount}`
+    updatedTx.amount = -tx.amount
+  }
+  if (SHOULD_BE_POSITIVE.some(re => re.test(desc)) && tx.amount < 0) {
+    warning = `Transaction ${idx}: Sign mismatch: "${desc}" should be positive but got ${tx.amount}`
+    updatedTx.amount = Math.abs(tx.amount)
+  }
+  return { tx: updatedTx, warning }
+}
+
+function deduplicateTransactions(txs: any[]): { unique: any[], duplicateCount: number } {
+  const seen = new Set<string>()
+  const unique: any[] = []
+  let duplicateCount = 0
+
+  for (const tx of txs) {
+    const key = `${tx.date}|${(tx.description || '').trim().toLowerCase()}|${Number(tx.amount).toFixed(2)}`
+    if (seen.has(key)) {
+      duplicateCount++
+    } else {
+      seen.add(key)
+      unique.push(tx)
+    }
+  }
+  return { unique, duplicateCount }
+}
+
+function checkBalanceReconciliation(
+  opening: number | undefined | null,
+  closing: number | undefined | null,
+  transactions: any[]
+): string | null {
+  if (opening == null || closing == null) return null
+
+  const txSum = transactions
+    .filter(t => t.transaction_type !== 'internal_transfer')
+    .reduce((sum, t) => sum + (t.amount || 0), 0)
+
+  const computed = opening + txSum
+  const drift = Math.abs(computed - closing)
+  
+  const tolerance = Math.max(0.01, Math.abs(closing) * 0.005)
+
+  if (drift > tolerance) {
+    return `Balance mismatch: opening ${opening} + transactions ${txSum.toFixed(2)} = ${computed.toFixed(2)}, but closing is ${closing}. Drift: $${drift.toFixed(2)}`
+  }
+  return null
+}
+
+const TRANSFER_RE = /deposit from|withdrawal to|transfer from|transfer to/i
+
+function detectInternalTransfers(txs: any[]): any[] {
+  // First pass: apply AI-assigned types if present
+  // Second pass: pattern match descriptions for any the AI missed
+  return txs.map(tx => {
+    if (tx.transaction_type === 'internal_transfer') return tx
+    if (TRANSFER_RE.test(tx.description ?? '')) {
+      return { ...tx, transaction_type: 'internal_transfer' }
+    }
+    return tx
+  })
+}
+
+// Then verify mirror pairs (same date, amounts sum to ~0)
+function auditTransferPairs(txs: any[]): { txs: any[], warnings: string[] } {
+  const warnings: string[] = []
+  const transfers = txs.filter(t => t.transaction_type === 'internal_transfer')
+  for (const t of transfers) {
+    const mirror = transfers.find(m =>
+      m !== t && m.date === t.date && Math.abs(m.amount + t.amount) < 0.01
+    )
+    if (!mirror) {
+      warnings.push(`Unpaired transfer: ${t.date} ${t.description} (${t.amount})`)
+    }
+  }
+  return { txs, warnings }
+}
+
 /**
  * Validates and formats extracted bank statement data before storing it.
- * 
+ *
  * @param supabase - Supabase client instance.
  * @param documentId - UUID of the document record.
  * @param result - Raw result from the AI service.
  */
 async function handleBankStatementExtraction(supabase: SupabaseClient, documentId: string, result: UnifiedDocumentResult): Promise<void> {
     const statement = result.statement_data!
-    const validationErrors: string[] = []
+    let validationErrors: string[] = []
     const isLowConfidence = (result.confidence ?? 0) < 0.6
 
-    // PSEUDOCODE: Statement Validation & Storage
-    // 1. Verify that transactions were successfully parsed.
-    // 2. Check AI confidence.
-    // 3. Store result with validation metadata.
+    // G1 — Transaction count cap
+    const MAX_TRANSACTIONS = 500
+    const WARN_TRANSACTIONS = 200
+
+    if ((statement.transactions?.length || 0) > MAX_TRANSACTIONS) {
+        await storeFailed(supabase, documentId, {
+            stage: 'validate',
+            code: 'TRANSACTION_COUNT_EXCEEDED',
+            message: `Extracted ${statement.transactions.length} transactions — exceeds safety cap of ${MAX_TRANSACTIONS}.`,
+            retryable: true,
+        })
+        return
+    }
+    if ((statement.transactions?.length || 0) > WARN_TRANSACTIONS) {
+        validationErrors.push(`High transaction count (${statement.transactions.length}) — review carefully.`)
+    }
 
     if (isLowConfidence) validationErrors.push(`Low AI confidence: ${result.confidence}`)
+    
     if (!statement.transactions || statement.transactions.length === 0) {
         validationErrors.push('No transactions found in statement')
+    } else {
+        // G4 — Deduplication
+        const { unique, duplicateCount } = deduplicateTransactions(statement.transactions)
+        statement.transactions = unique
+        if (duplicateCount > 0) validationErrors.push(`Removed ${duplicateCount} duplicate transactions`)
+
+        // G2, G3, G7, G12 — Per-transaction validation
+        statement.transactions = statement.transactions.map((tx, i) => {
+            // G2: Amount
+            const amtErr = validateTransactionAmount(tx.amount, i)
+            if (amtErr) validationErrors.push(amtErr)
+
+            // G3: Date
+            const dateErr = validateTransactionDate(tx.date, i)
+            if (dateErr) validationErrors.push(dateErr)
+
+            // G7: Description sanity
+            if (!tx.description?.trim()) validationErrors.push(`Transaction ${i}: empty description`)
+            if (tx.description?.length > 500) {
+                tx.description = tx.description.slice(0, 500)
+                validationErrors.push(`Transaction ${i}: description truncated`)
+            }
+
+            // G12: Sign consistency
+            const { tx: updatedTx, warning } = checkSignConsistency(tx, i)
+            if (warning) validationErrors.push(warning)
+            return updatedTx
+        })
+
+        // R1 / G5 — Transfer detection and audit
+        statement.transactions = detectInternalTransfers(statement.transactions)
+        const audit = auditTransferPairs(statement.transactions)
+        statement.transactions = audit.txs
+        validationErrors = validationErrors.concat(audit.warnings)
+
+        // G11 — Balance reconciliation
+        const reconErr = checkBalanceReconciliation(statement.opening_balance, statement.closing_balance, statement.transactions)
+        if (reconErr) validationErrors.push(reconErr)
     }
 
     await storeSuccess(supabase, documentId, {
@@ -558,7 +808,6 @@ async function handleBankStatementExtraction(supabase: SupabaseClient, documentI
         }
     }, 'Bank Statement', result.ocr_telemetry)
 }
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 

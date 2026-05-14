@@ -39,7 +39,7 @@ Build a calm financial command center powered by invisible intelligence and secu
 | **P3-B** | **CI/CD Security** | pgTAP RLS tests, CODEOWNERS, automated audit gates | 2026-05-08 |
 | **P3-C** | **Ledger Integrity** | Cryptographic ledger signatures + Live Frankfurter FX Feed | 2026-05-08 |
 | **P3-D** | **MVP Observability** | Sentry (GlitchTip) + Native Logs architecture implemented | 2026-05-11 |
-| **P4** | **High-Fidelity Intel** | Trend detection, provenance tooltips, and polymorphic review flows | 2026-05-11 |
+| **P4** | **High-Fidelity Intel** | Trend detection, provenance tooltips, and polymorphic review flows; Bank Statement hardening (transfers, guardrails, security) | 2026-05-14 |
 
 ---
 

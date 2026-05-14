@@ -98,6 +98,14 @@ export type Description = string;
  * The transaction amount (negative for expenses, positive for income/deposits)
  */
 export type Amount = number;
+/**
+ * Type of this transaction. Set to 'internal_transfer' when money moves between the account holder's own accounts at the same institution. Examples: 'Deposit from 360 Performance Savings', 'Withdrawal to 360 Checking'.
+ */
+export type TransactionType = "debit" | "credit" | "internal_transfer" | "fee" | "interest";
+/**
+ * Last 4 digits of the account this transaction belongs to, if the statement covers multiple accounts.
+ */
+export type AccountId = string | null;
 export type Transactions = TransactionExtractionItem[];
 /**
  * Confidence score from 0.0 to 1.0
@@ -217,6 +225,8 @@ export interface TransactionExtractionItem {
   date: Date;
   description: Description;
   amount: Amount;
+  transaction_type?: TransactionType;
+  account_id?: AccountId;
   /**
    * Source provenance for this transaction
    */

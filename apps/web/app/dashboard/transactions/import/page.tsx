@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Papa from 'papaparse';
 import { SecureImportZone } from '~/modules/import/components/SecureImportZone';
 import { CsvMapper } from '~/modules/import/components/CsvMapper';
 import { normalizeToISODate } from '~/modules/import';
 import { createClient } from '~/lib/supabase/client';
+import { useDocumentUpload } from '~/modules/import/hooks/useDocumentUpload';
 import { ArrowLeft, CheckCircle2, LayoutDashboard, History, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
@@ -16,33 +17,77 @@ type ImportStage = 'upload' | 'mapping' | 'preview' | 'success';
  * Page component for importing transactions via CSV or AI-powered PDF parsing.
  * Manages the multi-stage import workflow: Upload -> Mapping -> Preview -> Success.
  */
-export default function TransactionImportPage() {
+export default function TransactionImportPage({ searchParams }: { searchParams: Promise<{ doc?: string }> }) {
+  const { doc: initialDocId } = use(searchParams);
   const [stage, setStage] = useState<ImportStage>('upload');
   const [csvData, setCsvData] = useState<{ headers: string[]; rows: any[] } | null>(null);
   const [mappedData, setMappedData] = useState<any[]>([]);
   const [importResult, setImportResult] = useState<{ count: number } | null>(null);
-  const [isAiProcessing, setIsAiProcessing] = useState(false);
-  const [processingError, setProcessingError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   
   const router = useRouter();
   const supabase = createClient();
+  const { state: uploadState, upload: uploadDoc } = useDocumentUpload();
+
+  /**
+   * Fetches the extracted transaction data from a processed document and transitions to preview.
+   */
+  const fetchAndPreview = useCallback(async (documentId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('extracted_data, processing_status')
+        .eq('id', documentId)
+        .single();
+
+      if (error) throw error;
+
+      // Handle cases where document is still processing if accessed via direct URL
+      if (data.processing_status !== 'success') {
+        setStage('upload'); 
+        return;
+      }
+
+      if ((data?.extracted_data as any)?.transactions) {
+        const aiMapped = (data.extracted_data as any).transactions.map((t: any) => ({
+          date: t.date,
+          description: t.description,
+          amount: t.amount,
+          type: t.amount >= 0 ? 'income' : 'expense'
+        }));
+        setMappedData(aiMapped);
+        setStage('preview');
+      } else {
+        throw new Error('No transactions found in statement.');
+      }
+    } catch (err: any) {
+      console.error('[TransactionImport] Failed to fetch extracted data:', err);
+      setStage('upload');
+    }
+  }, [supabase]);
+
+  // Handle routing/preview once document is classified and processed
+  useEffect(() => {
+    if (uploadState.status === 'ready' && uploadState.documentType === 'BANK_STATEMENT') {
+      fetchAndPreview(uploadState.documentId);
+    }
+    // If it's a loan, we could optionally redirect to the loan review page
+    if (uploadState.status === 'ready' && uploadState.documentType === 'LOAN') {
+      router.push(`/dashboard/loans/review?doc=${uploadState.documentId}`);
+    }
+  }, [uploadState, fetchAndPreview, router]);
+
+  // Handle initial document ID from URL
+  useEffect(() => {
+    if (initialDocId) {
+      fetchAndPreview(initialDocId);
+    }
+  }, [initialDocId, fetchAndPreview]);
 
   /**
    * Handles the file upload and initial processing (CSV parsing or PDF AI extraction).
-   * 
-   * PSEUDOCODE: Transaction Upload & Process
-   * 1. Detect file extension (CSV or PDF).
-   * 2. For CSV: Parse using PapaParse and transition to mapping stage.
-   * 3. For PDF: 
-   *    a. Upload to private storage.
-   *    b. Insert document record with 'pending' status.
-   *    c. Invoke 'parse-document' edge function.
-   *    d. Poll database until status is 'success' or 'error'.
-   *    e. Map AI-extracted transactions to internal preview format.
    */
   const handleUpload = async (file: File, password?: string) => {
-    setProcessingError(null);
     const ext = file.name.split('.').pop()?.toLowerCase();
     
     if (ext === 'csv') {
@@ -68,106 +113,8 @@ export default function TransactionImportPage() {
     }
 
     if (ext === 'pdf') {
-      setIsAiProcessing(true);
-      try {
-        /*
-         * PSEUDOCODE: PDF Bank Statement Upload
-         * 1. Route through upload-document for server-side validation:
-         *    - MIME type + magic bytes check, 5 MB cap, SHA-256 dedup.
-         *    - Storage upload + documents row created; DB trigger fires parse-document.
-         * 2. If duplicate and already processed, reuse existing extracted_data.
-         * 3. For password-protected files, manually re-invoke parse-document with the key.
-         *    (The DB trigger on INSERT has no access to the user-supplied password.)
-         * 4. Poll until processing_status is 'success' or an error variant.
-         * 5. Map extracted transactions to internal preview format.
-         */
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const { data: uploadResult, error: uploadErr } = await supabase.functions.invoke('upload-document', {
-          body: formData,
-        });
-
-        if (uploadErr || !uploadResult?.document) throw new Error('Upload failed. Try again.');
-
-        const doc = uploadResult.document;
-
-        // Reuse extracted_data if exact same file was already successfully processed.
-        if (uploadResult.duplicated && doc.processing_status === 'success' && doc.extracted_data?.transactions) {
-          const aiMapped = doc.extracted_data.transactions.map((t: any) => ({
-            date: t.date,
-            description: t.description,
-            amount: t.amount,
-            type: t.amount >= 0 ? 'income' : 'expense'
-          }));
-          setMappedData(aiMapped);
-          setStage('preview');
-          return;
-        }
-
-        // For password-protected files the DB trigger fires without the key and will fail.
-        // Manual invocation here overrides it with the correct password.
-        if (password) {
-          const { error: funcError } = await supabase.functions.invoke('parse-document', {
-            body: { record: { id: doc.id } },
-            headers: { 'x-document-password': password }
-          });
-          if (funcError) throw funcError;
-        }
-
-        // Poll — the DB trigger already started parse-document on insert.
-        let attempts = 0;
-        const maxAttempts = 60; // 2 minutes at 2s interval
-
-        const poll = async (): Promise<any> => {
-          if (attempts >= maxAttempts) throw new Error('Processing timed out. The statement might be very large.');
-
-          const { data, error } = await supabase
-            .from('documents')
-            .select('processing_status, extracted_data, processing_error')
-            .eq('id', doc.id)
-            .single();
-
-          if (error) throw error;
-
-          if (data.processing_status === 'success') {
-            return data.extracted_data;
-          }
-
-          if (data.processing_status.startsWith('error')) {
-            const err = (data.processing_error as any);
-            throw new Error(err?.message || 'AI extraction failed.');
-          }
-
-          attempts++;
-          await new Promise(r => setTimeout(r, 2000));
-          return poll();
-        };
-
-        const extractedData = await poll();
-
-        if (extractedData?.transactions) {
-          const aiMapped = extractedData.transactions.map((t: any) => ({
-            date: t.date,
-            description: t.description,
-            amount: t.amount,
-            type: t.amount >= 0 ? 'income' : 'expense'
-          }));
-          setMappedData(aiMapped);
-          setStage('preview');
-        } else {
-          throw new Error('No transactions found in statement.');
-        }
-
-      } catch (err: any) {
-        console.error('[TransactionImport] PDF processing failed:', err);
-        setProcessingError(err.message || 'Failed to process PDF statement.');
-        setIsAiProcessing(false);
-        throw err; // Re-throw so SecureImportZone shows the error
-      } finally {
-        setIsAiProcessing(false);
-      }
-      return;
+      await uploadDoc(file, password);
+      // Logic continues in useEffect above once state is 'ready'
     }
   };
 
@@ -281,7 +228,13 @@ export default function TransactionImportPage() {
           <SecureImportZone 
             type="transaction" 
             onUpload={handleUpload}
+            isProcessing={uploadState.status === 'uploading' || uploadState.status === 'processing'}
           />
+          {uploadState.status === 'error' && (
+            <p className="mt-4 text-sm font-medium text-red-600 bg-red-50 rounded-xl px-4 py-3 text-center">
+              {uploadState.message}
+            </p>
+          )}
         </div>
       )}
 
@@ -300,7 +253,7 @@ export default function TransactionImportPage() {
              <div>
                <div className="flex items-center gap-2 mb-1">
                  <h3 className="text-xl font-black text-gray-900 tracking-tight">Review Import</h3>
-                 {isAiProcessing && (
+                 {uploadState.status === 'ready' && uploadState.documentType === 'BANK_STATEMENT' && (
                     <span className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md text-[10px] font-black uppercase tracking-widest border border-blue-100">
                       <Sparkles size={10} /> AI Enhanced
                     </span>

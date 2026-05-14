@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js"
 import * as Sentry from "npm:@sentry/deno"
-import { inspectFile, validateMagicBytes } from "../_shared/document-parser/src/mod.ts"
+import { inspectFile, validateMagicBytes, extractPdfText } from "../_shared/document-parser/src/mod.ts"
 import type { ProcessingError, MultiLoanExtractedData, UnifiedDocumentResult } from "../_shared/document-parser/src/mod.ts"
 
 const corsHeaders = {
@@ -165,11 +165,15 @@ async function processUnified(
 
   // [1] Call Python Backend
   try {
+    // Extract text for duration cascade and other soft-validation rules
+    const textResult = await extractPdfText(buffer)
+    const rawTextCache = textResult.ok ? textResult.value : ''
+
     const unifiedResult = await callPythonBackend(buffer, contentType, password)
     log('python-processing-success', { type: unifiedResult.document_type, confidence: unifiedResult.confidence })
 
-    if (unifiedResult.document_type === 'LOAN' && unifiedResult.loan_data) {
-        await handleLoanExtraction(supabase, documentId, unifiedResult)
+    if (unifiedResult.document_type === 'LOAN' && (unifiedResult.loan_data || unifiedResult.multi_loan_data)) {
+        await handleLoanExtraction(supabase, documentId, unifiedResult, rawTextCache)
     } else if (unifiedResult.document_type === 'BANK_STATEMENT' && unifiedResult.statement_data) {
         await handleBankStatementExtraction(supabase, documentId, unifiedResult)
     } else {
@@ -222,58 +226,304 @@ async function callPythonBackend(buffer: ArrayBuffer, contentType: string, passw
   return await res.json()
 }
 
+const REPAYMENT_PLAN_TERMS: Record<string, number> = {
+  'standard repayment': 120,    // federal: 10yr
+  'extended repayment': 300,    // federal: 25yr
+  'graduated repayment': 120,   // federal: 10yr
+};
+
+const ALLOWED_CURRENCIES = new Set(['USD', 'PHP', 'SGD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'HKD', 'MYR']);
+
+const CURRENCY_PATTERNS: Array<[RegExp, string]> = [
+  [/\$[\d,]/,  'USD'],   // $ followed by digit — check before ₱ to avoid false S$ match
+  [/USD/i,     'USD'],
+  [/₱[\d,]/,  'PHP'],
+  [/PHP/i,     'PHP'],
+  [/S\$[\d,]/, 'SGD'],
+  [/SGD/i,     'SGD'],
+  [/€[\d,]/,   'EUR'],
+  [/EUR/i,     'EUR'],
+  [/£[\d,]/,   'GBP'],
+  [/GBP/i,     'GBP'],
+];
+
+function inferCurrency(
+  extracted: string | null | undefined,
+  rawText: string,
+  fallback: string = 'USD'
+): string {
+  // Trust extracted value if valid
+  if (extracted && ALLOWED_CURRENCIES.has(extracted.toUpperCase())) {
+    return extracted.toUpperCase();
+  }
+  // Scan raw text for currency signals
+  for (const [pattern, code] of CURRENCY_PATTERNS) {
+    if (pattern.test(rawText)) return code;
+  }
+  return fallback;
+}
+
+/**
+ * Attempts to infer the loan duration in months based on repayment plan names
+ * mentioned in the document text if the explicit numeric term is missing.
+ * 
+ * @param duration - The duration already extracted (if any).
+ * @param rawText - The raw text of the document.
+ * @returns The inferred or original duration in months.
+ */
+function inferDurationMonths(
+  duration: number | null | undefined,
+  rawText: string
+): number | null {
+  if (duration && duration > 0) return duration;
+  const lower = rawText.toLowerCase();
+  for (const [plan, months] of Object.entries(REPAYMENT_PLAN_TERMS)) {
+    if (lower.includes(plan)) return months;
+  }
+  return null;
+}
+
+/**
+ * Extracts Annual EIR from raw document text if explicitly present.
+ * Returns null if not found.
+ */
+function extractAnnualEIR(rawText: string): number | null {
+  const match = rawText.match(/Annual\s+EIR[:\s]+([0-9]+\.?[0-9]*)\s*%/i);
+  if (match?.[1]) {
+    const val = parseFloat(match[1]);
+    return isNaN(val) ? null : val;
+  }
+  return null;
+}
+
+const ADD_ON_TEXT_SIGNALS = [
+  /Monthly\s+EIR/i,
+  /Annual\s+EIR/i,
+  /EFFECTIVE\s+INTEREST/i,
+  /flat\s+rate/i,
+  /add[\s-]on\s+interest/i,
+  /Monthly\s+Amort(?:ization)?:/i,
+];
+
+/**
+ * Detects Add-on Interest loan type from document text signals.
+ */
+function inferInterestTypeFromText(rawText: string): 'Add-on Interest' | null {
+  const signalCount = ADD_ON_TEXT_SIGNALS.filter(re => re.test(rawText)).length;
+  return signalCount >= 2 ? 'Add-on Interest' : null;
+}
+
+/**
+ * Resolves the correct annual rate from an extracted rate that may be monthly.
+ * Uses payment math cross-check: tries rate as-is vs rate × 12 against installment_amount.
+ *
+ * Priority:
+ *  1. If rate already looks annual (>= 3%), trust it
+ *  2. If rawText has Annual EIR → use as verification only (not stored as interest_rate)
+ *  3. If rate < 3.0 AND add-on text signals present → treat as monthly, multiply by 12
+ *  4. If rate < 3.0 AND installment_amount present → math cross-check
+ *  5. Otherwise → return rate unchanged
+ */
+function resolveAnnualRate(
+  extractedRate: number,
+  installmentAmount: number | null,
+  principal: number,
+  durationMonths: number,
+  rawText: string
+): { annualRate: number; wasConverted: boolean; suggestedType: 'Add-on Interest' | null } {
+  // If rate already looks annual (>= 3%), trust it
+  if (extractedRate >= 3.0) {
+    return { annualRate: extractedRate, wasConverted: false, suggestedType: null };
+  }
+
+  const hasAddOnSignals = ADD_ON_TEXT_SIGNALS.filter(re => re.test(rawText)).length >= 1;
+  const annualizedRate = extractedRate * 12;
+
+  // Check if rate × 12 as add-on matches the installment_amount
+  if (installmentAmount && installmentAmount > 0 && principal > 0 && durationMonths > 0) {
+    const addOnPayment = (principal * (1 + (annualizedRate / 100) * (durationMonths / 12))) / durationMonths;
+    const diff = Math.abs(addOnPayment - installmentAmount) / installmentAmount;
+
+    if (diff < 0.02) {
+      // Rate × 12 as add-on matches actual payment within 2% — high confidence conversion
+      return {
+        annualRate: annualizedRate,
+        wasConverted: true,
+        suggestedType: 'Add-on Interest',
+      };
+    }
+  }
+
+  // No installment_amount to cross-check, but text signals present — convert with lower confidence
+  if (hasAddOnSignals) {
+    return {
+      annualRate: annualizedRate,
+      wasConverted: true,
+      suggestedType: 'Add-on Interest',
+    };
+  }
+
+  // Rate < 3% but no signals — flag as suspicious but don't convert
+  return { annualRate: extractedRate, wasConverted: false, suggestedType: null };
+}
+
 /**
  * Validates and formats extracted loan data before storing it.
+ * Supports both single-loan and multi-loan document structures.
  * 
  * @param supabase - Supabase client instance.
  * @param documentId - UUID of the document record.
  * @param result - Raw result from the AI service.
+ * @param rawText - Raw text of the document for secondary inference.
  */
-async function handleLoanExtraction(supabase: SupabaseClient, documentId: string, result: UnifiedDocumentResult): Promise<void> {
-    const loan = result.loan_data!
-    const validationErrors: string[] = []
-    const confidenceThreshold = 0.6
-    const isLowConfidence = (result.confidence ?? 0) < confidenceThreshold
+async function handleLoanExtraction(
+  supabase: SupabaseClient, 
+  documentId: string, 
+  result: UnifiedDocumentResult,
+  rawText: string
+): Promise<void> {
+  const structure = result.loan_structure;
 
-    // PSEUDOCODE: Loan Validation & Storage
-    // 1. Perform financial sanity checks (principal > 0, etc.).
-    // 2. Check AI confidence against threshold.
-    // 3. Map raw AI output to internal MultiLoanExtractedData schema.
-    // 4. Store successful extraction with validation metadata.
+  // Guard 1: declared structure must match populated field
+  if (structure === 'single' && !result.loan_data) {
+    await storeFailed(supabase, documentId, { 
+      stage: 'validate',
+      code: 'SCHEMA_MISMATCH', 
+      message: 'single declared but loan_data missing', 
+      retryable: true 
+    });
+    return;
+  }
+  if (structure === 'multi' && !result.multi_loan_data) {
+    await storeFailed(supabase, documentId, { 
+      stage: 'validate',
+      code: 'SCHEMA_MISMATCH', 
+      message: 'multi declared but multi_loan_data missing', 
+      retryable: true 
+    });
+    return;
+  }
 
-    if (isLowConfidence) validationErrors.push(`Low AI confidence: ${result.confidence}`)
-    if (loan.principal <= 0) validationErrors.push('Principal must be greater than 0')
-    if (loan.interest_rate < 0 || loan.interest_rate > 100) validationErrors.push('Interest rate must be between 0 and 100')
-    if (loan.duration_months <= 0) validationErrors.push('Duration must be greater than 0 months')
-    if (!loan.name) validationErrors.push('Loan name/lender is missing')
+  // Normalize to array regardless of structure
+  const rawLoans = structure === 'multi'
+    ? result.multi_loan_data!.loans
+    : [result.loan_data!];
 
-    const formattedData: MultiLoanExtractedData = {
-      loans: [
-        {
-          name: loan.name,
-          principal: loan.principal,
-          currency: loan.currency || 'USD',
-          interest_rate: loan.interest_rate,
-          duration_months: loan.duration_months,
-          installment_amount: loan.installment_amount,
-          lender: loan.lender,
-          start_date: loan.start_date || null,
-          interest_type: loan.interest_type || 'Standard Amortized',
-          interest_basis: null,
-          inferred_type: loan.interest_type || 'Loan',
-        }
-      ]
+  // Guard 2: empty array
+  if (rawLoans.length === 0) {
+    await storeFailed(supabase, documentId, { 
+      stage: 'validate',
+      code: 'NO_LOANS_FOUND', 
+      message: 'No loans found in document', 
+      retryable: true 
+    });
+    return;
+  }
+
+  // Guard 3: multi declared but only 1 loan — demote to single, log warning
+  const effectiveStructure = (structure === 'multi' && rawLoans.length === 1) ? 'single' : structure;
+
+  // Before resolvedLoans mapping — extract account-level fallback
+  const accountMonthly = structure === 'multi'
+    ? (result.multi_loan_data?.account_monthly_payment ?? null)
+    : null;
+
+  // Apply duration cascade + installment fallback + currency inference per loan
+  const resolvedLoans = rawLoans.map((loan, i) => {
+    const prefix = rawLoans.length > 1 ? `Loan ${i + 1}: ` : '';
+
+    // Currency
+    const resolvedCurrency = inferCurrency(loan.currency, rawText);
+
+    // Interest rate + type resolution
+    const { annualRate, wasConverted, suggestedType } = resolveAnnualRate(
+      loan.interest_rate,
+      loan.installment_amount ?? accountMonthly,
+      loan.principal,
+      loan.duration_months ?? 0,
+      rawText
+    );
+
+    const resolvedInterestType = suggestedType
+      ?? inferInterestTypeFromText(rawText)
+      ?? loan.interest_type
+      ?? 'Standard Amortized';
+
+    // Annual EIR extraction
+    const annualEir = extractAnnualEIR(rawText) ?? loan.annual_eir ?? null;
+
+    if (wasConverted) {
+      console.log(`[parse-document] [${documentId}] ${prefix}interest_rate converted: ${loan.interest_rate}% (monthly) → ${annualRate}% (annual)`);
     }
+
+    return {
+      ...loan,
+      duration_months: inferDurationMonths(loan.duration_months, rawText),
+      installment_amount: loan.installment_amount ?? accountMonthly,
+      currency: resolvedCurrency,
+      interest_rate: annualRate,
+      interest_type: resolvedInterestType,
+      annual_eir: annualEir,
+    };
+  });
+
+  // Validate per loan
+  const validationErrors: string[] = [];
+  resolvedLoans.forEach((loan, i) => {
+    const prefix = rawLoans.length > 1 ? `Loan ${i + 1}: ` : '';
+    if (loan.principal <= 0) validationErrors.push(`${prefix}Principal must be > 0`);
+    if (loan.interest_rate < 0 || loan.interest_rate > 100) validationErrors.push(`${prefix}Interest rate out of range`);
+    if (!loan.duration_months) validationErrors.push(`${prefix}Duration not found — enter manually`);
+    if (!loan.name) validationErrors.push(`${prefix}Loan name missing`);
     
-    await storeSuccess(supabase, documentId, {
-        ...formattedData,
-        validation: {
-            confidence: result.confidence,
-            errors: validationErrors,
-            requires_verification: isLowConfidence || validationErrors.length > 0,
-            processed_at: new Date().toISOString()
-        }
-    }, 'Loan', result.ocr_telemetry)
+    // Lender warning
+    if (!loan.lender) validationErrors.push(`${prefix}Lender not found — enter manually`);
+
+    if (!ALLOWED_CURRENCIES.has(loan.currency)) {
+      validationErrors.push(`${prefix}Unrecognised currency "${loan.currency}" — verify manually`);
+    }
+
+    // Suspicious rate even after resolution (< 3% annual is almost never correct)
+    if (loan.interest_rate > 0 && loan.interest_rate < 3.0) {
+      validationErrors.push(`${prefix}Interest rate ${loan.interest_rate}% may be a monthly rate — verify`);
+    }
+  });
+
+  // Cross-loan currency consistency (multi-loan only)
+  if (rawLoans.length > 1) {
+    const currencies = new Set(resolvedLoans.map(l => l.currency));
+    if (currencies.size > 1) {
+      validationErrors.push(`Mixed currencies across loans: ${[...currencies].join(', ')} — verify each loan`);
+    }
+  }
+
+  const formattedData: MultiLoanExtractedData = {
+    loans: resolvedLoans.map(loan => ({
+      name: loan.name,
+      principal: loan.principal,
+      currency: loan.currency || 'USD',
+      interest_rate: loan.interest_rate,
+      duration_months: loan.duration_months ?? 0,
+      installment_amount: loan.installment_amount,
+      lender: loan.lender,
+      start_date: loan.start_date || null,
+      interest_type: loan.interest_type || 'Standard Amortized',
+      interest_basis: null,
+      inferred_type: loan.interest_type || 'Loan',
+      annual_eir: loan.annual_eir ?? null,
+    })),
+    loan_structure: effectiveStructure,  // pass through for UI branching
+  };
+
+  await storeSuccess(supabase, documentId, {
+    ...formattedData,
+    validation: {
+      confidence: result.confidence,
+      errors: validationErrors,
+      requires_verification: (result.confidence ?? 0) < 0.6 || validationErrors.length > 0,
+      processed_at: new Date().toISOString(),
+    },
+  }, 'Loan', result.ocr_telemetry);
 }
 
 /**

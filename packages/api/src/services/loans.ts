@@ -12,6 +12,22 @@ import {
 import { ILoanQuery, IExchangeRateQuery, IProfileQuery, ITransactionQuery, PaymentSummary } from '../queries/interfaces';
 
 /**
+ * Represents a single upcoming payment record for the dashboard.
+ */
+export interface UpcomingPayment {
+  /** Unique identifier for the associated loan. */
+  loanId: string;
+  /** Human-readable name of the loan. */
+  loanName: string;
+  /** ISO date string of when the payment is due. */
+  dueDate: string;
+  /** The periodic installment amount. */
+  amount: number;
+  /** Currency code for the payment. */
+  currency: string;
+}
+
+/**
  * Represents the comprehensive data required for the main loans dashboard page.
  */
 export interface LoansPageData {
@@ -33,6 +49,30 @@ export interface LoansPageData {
   dtiHealthy: boolean;
   /** User's preferred currency code (e.g., 'USD'). */
   currency: string;
+  /** Date of the absolute next payment due across all loans. */
+  nextPaymentDate: string | null;
+  /** Amount of the absolute next payment due across all loans. */
+  nextPaymentAmount: number | null;
+  /** List of the next few upcoming payments across all active loans. */
+  upcomingPayments: UpcomingPayment[];
+  /** Smart financial insights and recommendations. */
+  insights: Insight[];
+}
+
+/**
+ * Represents an actionable financial insight for the user.
+ */
+export interface Insight {
+  /** Type of insight for iconography and styling. */
+  type: 'warning' | 'info' | 'success' | 'tip';
+  /** Human-readable headline. */
+  title: string;
+  /** Detailed description or recommendation. */
+  message: string;
+  /** Optional CTA label. */
+  actionLabel?: string;
+  /** Optional CTA destination. */
+  actionHref?: string;
 }
 
 /**
@@ -102,10 +142,33 @@ export class LoansService {
       paymentSummaries.map(s => [s.loanId, s])
     );
 
+    let nextPaymentDate: string | null = null;
+    let nextPaymentAmount: number | null = null;
+    const upcomingPayments: UpcomingPayment[] = [];
+
     const loanMetrics: Record<string, LoanMetrics> = {};
     for (const loan of loans) {
       const summary = summaryByLoanId.get(loan.id);
       const paidCount = summary?.paidCount ?? 0;
+      const nextDueDate = summary?.nextDueDate ?? null;
+
+      // Track the overall next payment across all loans
+      if (nextDueDate && (!nextPaymentDate || nextDueDate < nextPaymentDate)) {
+        nextPaymentDate = nextDueDate;
+        // Convert to base currency for the aggregate summary metric
+        const rate = rates[loan.currency] ?? 1;
+        nextPaymentAmount = convertToBase(loan.installment_amount ?? 0, rate);
+      }
+
+      if (nextDueDate && loan.status === 'active') {
+        upcomingPayments.push({
+          loanId: loan.id,
+          loanName: loan.name,
+          dueDate: nextDueDate,
+          amount: loan.installment_amount ?? 0,
+          currency: loan.currency,
+        });
+      }
       
       // Calculate progress relative to the original loan term.
       const paidPercent = loan.duration_months > 0
@@ -143,6 +206,42 @@ export class LoansService {
       };
     }
 
+    // Sort upcoming payments by date ascending
+    upcomingPayments.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+
+    const insights: Insight[] = [];
+
+    // 1. High Interest Warning
+    const highInterestLoans = loans.filter(l => l.status === 'active' && l.interest_rate > 15);
+    if (highInterestLoans.length > 0) {
+      insights.push({
+        type: 'warning',
+        title: 'High Interest Alert',
+        message: `You have ${highInterestLoans.length} loan${highInterestLoans.length > 1 ? 's' : ''} with over 15% interest. Prioritizing extra payments here could save you significant interest.`,
+      });
+    }
+
+    // 2. Upcoming Payment Reminder
+    const next7Days = new Date();
+    next7Days.setDate(next7Days.getDate() + 7);
+    const dueSoon = upcomingPayments.filter(p => new Date(p.dueDate) <= next7Days);
+    if (dueSoon.length > 0) {
+      insights.push({
+        type: 'info',
+        title: 'Upcoming Payments',
+        message: `You have ${dueSoon.length} payment${dueSoon.length > 1 ? 's' : ''} due in the next 7 days. Ensure your accounts are funded.`,
+      });
+    }
+
+    // 3. Debt Health Tip
+    if (dtiResult.isHealthy && activeLoanCount > 0) {
+      insights.push({
+        type: 'success',
+        title: 'Healthy Debt Load',
+        message: 'Your debt-to-income ratio is within recommended limits. You are in a good position to accelerate your payoff.',
+      });
+    }
+
     return {
       loans,
       loanMetrics,
@@ -153,6 +252,10 @@ export class LoansService {
       dtiRatio: dtiResult.ratio,
       dtiHealthy: dtiResult.isHealthy,
       currency,
+      nextPaymentDate,
+      nextPaymentAmount,
+      upcomingPayments: upcomingPayments.slice(0, 3),
+      insights,
     };
   }
 

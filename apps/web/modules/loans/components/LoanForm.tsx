@@ -72,9 +72,19 @@ function FieldTag({ type }: Readonly<{ type: TagType }>) {
  * 
  * @param {string} key - The form field key.
  * @param {string[]} extractedFields - List of fields successfully extracted by AI.
+ * @param {Object} options - Optional parameters for conflict detection.
  * @returns {TagType | null} The calculated tag type.
  */
-function getTag(key: string, extractedFields: string[]): TagType | null {
+function getTag(key: string, extractedFields: string[], options?: {
+  currencyFallback?: string | undefined;
+  currentCurrency?: string | undefined;
+  interestRateConflict?: boolean | undefined;
+  verificationSkipped?: boolean | undefined;
+}): TagType | null {
+  if (key === 'interest_rate' && (options?.interestRateConflict || options?.verificationSkipped)) return 'needs-review';
+  if (key === 'interest_type' && (options?.interestRateConflict || options?.verificationSkipped)) return 'needs-review';
+  if (key === 'currency' && options?.currencyFallback && options?.currentCurrency
+      && options.currentCurrency !== options.currencyFallback) return 'needs-review';
   if (extractedFields.includes(key)) return 'auto-filled';
   if (REQUIRED_KEYS.has(key)) return 'missing';
   return null;
@@ -92,6 +102,14 @@ type LoanFormProps = Readonly<{
   extractedFields?: string[] | undefined;
   /** Mapping of fields to their source locations (page/snippet) in the document. */
   provenance?: Record<string, { page?: number; snippet?: string }> | undefined;
+  /** Callback triggered when the loan is successfully saved. */
+  onSaved?: (() => void) | undefined;
+  /** Fallback currency (user's preferred currency). */
+  currencyFallback?: string | undefined;
+  /** Whether the automated verification/cross-check was skipped. */
+  verificationSkipped?: boolean | undefined;
+  /** A user-friendly message explaining reliability issues. */
+  userFriendlyMessage?: string | undefined;
 }>;
 
 /**
@@ -102,15 +120,28 @@ function FieldRow({
   label,
   extractedFields,
   provenance,
+  currencyFallback,
+  currentCurrency,
+  interestRateConflict,
+  verificationSkipped,
   children,
 }: Readonly<{
   fieldKey: string;
   label: string;
   extractedFields: string[];
   provenance?: Record<string, { page?: number; snippet?: string }> | undefined;
+  currencyFallback?: string | undefined;
+  currentCurrency?: string | undefined;
+  interestRateConflict?: boolean | undefined;
+  verificationSkipped?: boolean | undefined;
   children: React.ReactNode;
 }>) {
-  const tag = getTag(fieldKey, extractedFields);
+  const tag = getTag(fieldKey, extractedFields, {
+    currencyFallback,
+    currentCurrency,
+    interestRateConflict,
+    verificationSkipped
+  });
   const prov = provenance?.[fieldKey];
 
   return (
@@ -164,12 +195,22 @@ function formatPayoffDate(startDate: string, months: number): string {
  * @param {LoanFormProps} props - Component props.
  * @returns {JSX.Element} The rendered form.
  */
-export function LoanForm({ initial = {}, docId, extractedFields = [], provenance, title = 'Loan Details' }: LoanFormProps) {
+export function LoanForm({ 
+  initial = {}, 
+  docId, 
+  extractedFields = [], 
+  provenance, 
+  title = 'Loan Details', 
+  onSaved,
+  currencyFallback,
+  verificationSkipped,
+  userFriendlyMessage
+}: LoanFormProps) {
   const router = useRouter();
   const [values, setValues] = useState<LoanFormValues>({
     name: initial.name ?? '',
     principal: initial.principal ?? '',
-    currency: initial.currency ?? 'USD',
+    currency: initial.currency ?? currencyFallback ?? 'USD',
     interest_rate: initial.interest_rate ?? '',
     duration_months: initial.duration_months ?? '',
     interest_type: initial.interest_type ?? 'Standard Amortized',
@@ -220,6 +261,14 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], provenance
       country,
     });
   }, [values.principal, values.installment_amount, values.interest_rate, values.duration_months, values.currency]);
+
+  const inferenceConflict = useMemo(() => {
+    if (!inference || !initial.interest_type) return false;
+    return (
+      inference.confidence >= 0.75 &&
+      inference.interest_type !== (initial.interest_type ?? 'Standard Amortized')
+    );
+  }, [inference, initial.interest_type]);
 
   useEffect(() => {
     // If the user has manually changed the interest type, we stop auto-guessing.
@@ -309,8 +358,10 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], provenance
     setIsSaved(true);
     setSubmitting(false);
     
-    if (!docId) {
-      router.push(`/dashboard/loans/${loan?.id}`);
+    if (onSaved) {
+      onSaved();
+    } else {
+      router.push('/dashboard/loans');
       router.refresh();
     }
   };
@@ -398,6 +449,18 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], provenance
         </div>
       )}
 
+      {/* Reliability Banner */}
+      {userFriendlyMessage && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+          <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.876c1.27 0 2.09-1.383 1.458-2.433L13.458 5.432c-.632-1.05-2.184-1.05-2.816 0L3.702 16.567C3.07 17.617 3.89 19 5.162 19z" />
+          </svg>
+          <p className="text-sm text-amber-800 leading-relaxed font-medium">
+            {userFriendlyMessage}
+          </p>
+        </div>
+      )}
+
       {/* Section 1: Core Loan Details */}
       <p className="text-base font-semibold text-gray-900 mb-4">{title}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -424,13 +487,27 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], provenance
           />
         </FieldRow>
 
-        <FieldRow fieldKey="currency" label="Currency" extractedFields={extractedFields} provenance={provenance}>
+        <FieldRow 
+          fieldKey="currency" 
+          label="Currency" 
+          extractedFields={extractedFields} 
+          provenance={provenance}
+          currencyFallback={currencyFallback}
+          currentCurrency={values.currency}
+        >
           <select className={inputClass} {...field('currency')}>
             {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </FieldRow>
 
-        <FieldRow fieldKey="interest_rate" label="Annual Interest Rate (%)" extractedFields={extractedFields} provenance={provenance}>
+        <FieldRow 
+          fieldKey="interest_rate" 
+          label="Annual Interest Rate (%)" 
+          extractedFields={extractedFields} 
+          provenance={provenance}
+          interestRateConflict={inferenceConflict}
+          verificationSkipped={verificationSkipped}
+        >
           <input
             required
             type="number"
@@ -443,7 +520,7 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], provenance
           />
         </FieldRow>
 
-        <FieldRow fieldKey="duration_months" label="Duration" extractedFields={extractedFields} provenance={provenance}>
+        <FieldRow fieldKey="duration_months" label="Duration" extractedFields={extractedFields} provenance={provenance} verificationSkipped={verificationSkipped}>
           <input
             required
             type="number"
@@ -487,7 +564,7 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], provenance
           />
         </FieldRow>
 
-        <FieldRow fieldKey="installment_amount" label="Monthly Payment" extractedFields={extractedFields} provenance={provenance}>
+        <FieldRow fieldKey="installment_amount" label="Monthly Payment" extractedFields={extractedFields} provenance={provenance} verificationSkipped={verificationSkipped}>
           <input
             type="number"
             min="0"
@@ -576,7 +653,14 @@ export function LoanForm({ initial = {}, docId, extractedFields = [], provenance
 
         {advancedOpen && (
           <div className="rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ background: '#F9FAFB' }}>
-            <FieldRow fieldKey="interest_type" label="Loan Type" extractedFields={extractedFields} provenance={provenance}>
+            <FieldRow 
+              fieldKey="interest_type" 
+              label="Loan Type" 
+              extractedFields={extractedFields} 
+              provenance={provenance}
+              interestRateConflict={inferenceConflict}
+              verificationSkipped={verificationSkipped}
+            >
               <select
                 className={inputClass}
                 value={values.interest_type}

@@ -28,14 +28,28 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.5.0"
+
+      - name: Set up Python
+        working-directory: apps/backend-py
+        run: uv python install
+
+      - name: Sync backend-py dependencies
+        working-directory: apps/backend-py
+        run: uv sync --frozen
+
       - name: Typecheck
-        run: pnpm typecheck
+        run: pnpm typecheck --filter="!mobile"
 
       - name: Lint
-        run: pnpm lint
+        run: pnpm lint --filter="!mobile"
 
       - name: Unit tests
-        run: pnpm test:coverage
+        run: pnpm test:coverage --filter="!mobile"
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4

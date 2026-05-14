@@ -9,7 +9,93 @@
       "title": "DocumentType",
       "type": "string"
     },
-    "LoanExtractionSchema": {
+    "LoanInterestType": {
+      "enum": [
+        "Standard Amortized",
+        "Interest-Only",
+        "Add-on Interest",
+        "Fixed Principal"
+      ],
+      "title": "LoanInterestType",
+      "type": "string"
+    },
+    "MultiLoanExtractionSchema": {
+      "description": "Schema for documents containing multiple distinct loan accounts.",
+      "properties": {
+        "loans": {
+          "items": {
+            "$ref": "#/$defs/SingleLoanExtractionSchema"
+          },
+          "title": "Loans",
+          "type": "array"
+        },
+        "account_number": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Master account number tying all loans together, if present.",
+          "title": "Account Number"
+        },
+        "account_monthly_payment": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Account-level monthly payment (e.g. 'Regular Monthly Payment Amount'). Set when the document shows a combined payment for all loans with no per-loan breakdown.",
+          "title": "Account Monthly Payment"
+        }
+      },
+      "required": [
+        "loans"
+      ],
+      "title": "MultiLoanExtractionSchema",
+      "type": "object"
+    },
+    "Provenance": {
+      "description": "Metadata linking extracted data back to its source in the document.",
+      "properties": {
+        "page": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The 1-indexed page number where the information was found",
+          "title": "Page"
+        },
+        "snippet": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The exact text snippet used as source context",
+          "title": "Snippet"
+        }
+      },
+      "title": "Provenance",
+      "type": "object"
+    },
+    "SingleLoanExtractionSchema": {
       "description": "Schema for extracting loan details from a document.",
       "properties": {
         "name": {
@@ -27,15 +113,44 @@
           "title": "Interest Rate",
           "type": "number"
         },
+        "annual_eir": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The Effective Interest Rate (EIR) per year as a percentage, if explicitly stated in the document. Different from interest_rate for add-on loans.",
+          "title": "Annual Eir"
+        },
         "installment_amount": {
-          "description": "The monthly or per-period installment amount",
-          "title": "Installment Amount",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The monthly or per-period installment amount. Return null if not stated explicitly per individual loan.",
+          "title": "Installment Amount"
         },
         "duration_months": {
-          "description": "The total duration of the loan in months",
-          "title": "Duration Months",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Explicit loan term in months. Return null if no numeric term is stated in the document. Do NOT infer from repayment plan names or dates.",
+          "title": "Duration Months"
         },
         "start_date": {
           "anyOf": [
@@ -52,8 +167,8 @@
           "title": "Start Date"
         },
         "currency": {
-          "default": "PHP",
-          "description": "The ISO 4217 currency code (e.g., PHP, USD, SGD)",
+          "default": "USD",
+          "description": "The ISO 4217 currency code (e.g., USD, PHP, SGD)",
           "title": "Currency",
           "type": "string"
         },
@@ -105,54 +220,9 @@
       "required": [
         "name",
         "principal",
-        "interest_rate",
-        "installment_amount",
-        "duration_months"
+        "interest_rate"
       ],
-      "title": "LoanExtractionSchema",
-      "type": "object"
-    },
-    "LoanInterestType": {
-      "enum": [
-        "Standard Amortized",
-        "Interest-Only",
-        "Add-on Interest",
-        "Fixed Principal"
-      ],
-      "title": "LoanInterestType",
-      "type": "string"
-    },
-    "Provenance": {
-      "description": "Metadata linking extracted data back to its source in the document.",
-      "properties": {
-        "page": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The 1-indexed page number where the information was found",
-          "title": "Page"
-        },
-        "snippet": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The exact text snippet used as source context",
-          "title": "Snippet"
-        }
-      },
-      "title": "Provenance",
+      "title": "SingleLoanExtractionSchema",
       "type": "object"
     },
     "StatementExtractionSchema": {
@@ -244,17 +314,38 @@
       "$ref": "#/$defs/DocumentType",
       "description": "The classified type of the document"
     },
+    "loan_structure": {
+      "description": "'single' if one loan account, 'multi' if multiple distinct loan accounts with different account numbers. Summaries/totals of the same account are NOT separate loans.",
+      "enum": [
+        "single",
+        "multi"
+      ],
+      "title": "Loan Structure",
+      "type": "string"
+    },
     "loan_data": {
       "anyOf": [
         {
-          "$ref": "#/$defs/LoanExtractionSchema"
+          "$ref": "#/$defs/SingleLoanExtractionSchema"
         },
         {
           "type": "null"
         }
       ],
       "default": null,
-      "description": "Populated if document_type is LOAN"
+      "description": "Populated when loan_structure is 'single'."
+    },
+    "multi_loan_data": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MultiLoanExtractionSchema"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Populated when loan_structure is 'multi'."
     },
     "statement_data": {
       "anyOf": [
@@ -282,6 +373,38 @@
       "title": "Reasoning",
       "type": "string"
     },
+    "verification_status": {
+      "default": "verified",
+      "description": "Status of the parallel verification/cross-check process.",
+      "enum": [
+        "verified",
+        "skipped",
+        "failed"
+      ],
+      "title": "Verification Status",
+      "type": "string"
+    },
+    "user_friendly_message": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "A human-readable message explaining reliability issues (e.g., rate limits).",
+      "title": "User Friendly Message"
+    },
+    "extraction_warnings": {
+      "description": "Non-fatal warnings encountered during extraction.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Extraction Warnings",
+      "type": "array"
+    },
     "ocr_telemetry": {
       "anyOf": [
         {
@@ -298,7 +421,8 @@
     }
   },
   "required": [
-    "document_type"
+    "document_type",
+    "loan_structure"
   ],
   "title": "UnifiedDocumentResponse",
   "type": "object"

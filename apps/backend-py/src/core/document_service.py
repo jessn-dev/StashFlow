@@ -7,7 +7,7 @@ and parser disagreement detection.
 """
 import asyncio
 import fitz  # PyMuPDF
-from src.schemas.financial import UnifiedDocumentResponse
+from src.schemas.financial import UnifiedDocumentResponse, DocumentType
 from src.core.config import settings
 from src.utils.ocr import extract_text_with_ocr
 from src.core.logger import get_logger
@@ -88,7 +88,7 @@ async def get_text_from_pdf(content: bytes, password: str | None = None) -> tupl
             logger.error("all_extraction_methods_failed", standard_error=str(e), ocr_error=str(ocr_e))
             raise Exception(f"Both standard and OCR extraction failed. Standard: {str(e)}, OCR: {str(ocr_e)}")
 
-async def _extract_with_llm(text: str, method: str, temperature: float = 0.0) -> UnifiedDocumentResponse:
+async def _extract_with_llm(text: str, method: str, temperature: float = 0.0, model: str | None = None) -> UnifiedDocumentResponse:
     """
     Calls the AI model to perform structured extraction on document text.
 
@@ -96,31 +96,23 @@ async def _extract_with_llm(text: str, method: str, temperature: float = 0.0) ->
         text (str): The raw text extracted from the document.
         method (str): The method used for text extraction (used for AI context).
         temperature (float): Sampling temperature for the AI model. Defaults to 0.0.
+        model (str | None): Explicit model string to use. Defaults to settings.DEFAULT_AI_MODEL.
 
     Returns:
         UnifiedDocumentResponse: The structured AI response containing 
             classification and extracted financial data.
     """
+    target_model = model or settings.DEFAULT_AI_MODEL
     return client.chat.completions.create(
-        model=settings.DEFAULT_AI_MODEL,
+        model=target_model,
         response_model=UnifiedDocumentResponse,
         temperature=temperature,
         messages=[
             {
                 "role": "system",
-                "content": """You are an elite financial document classifier and analyst. 
-                1. First, classify the provided document as a LOAN contract or a BANK_STATEMENT.
-                2. If it is a LOAN, extract the loan details into the loan_data field.
-                3. If it is a BANK_STATEMENT, extract the transaction list into the statement_data field.
-                4. Provide a classification confidence score and reasoning.
-                
-                PROVENANCE RULES:
-                - For loans: set 'provenance' to the page and snippet of the primary source section (e.g., the account summary or loan schedule table).
-                - For each transaction: set its 'provenance' to the page and line where that transaction appears.
-                - 'page': 1-indexed page number.
-                - 'snippet': the exact text line used as evidence.
-                
-                Be extremely precise with amounts and dates. Use negative numbers for expenses in statements."""
+                "content": """You are an elite financial document classifier and data extractor.
+    ...
+        Be precise with amounts and dates. Use negative numbers for expenses in statements."""
             },
             {
                 "role": "user",
@@ -131,10 +123,10 @@ async def _extract_with_llm(text: str, method: str, temperature: float = 0.0) ->
 
 async def process_document_content(content: bytes, filename: str, password: str | None = None) -> UnifiedDocumentResponse:
     """
-    Orchestrates the full document processing lifecycle.
+    Orchestrates the full document processing lifecycle with high reliability.
 
-    This function extracts text, runs parallel AI extractions to detect 
-    hallucinations or disagreements, and compiles the final validated result.
+    This function extracts text, runs resilient sequential AI extractions to detect 
+    hallucinations or disagreements, and handles provider failover (Groq -> Gemini).
 
     Args:
         content (bytes): Binary content of the PDF document.
@@ -145,20 +137,16 @@ async def process_document_content(content: bytes, filename: str, password: str 
         UnifiedDocumentResponse: The final structured extraction result.
 
     Raises:
-        Exception: If no text can be extracted or if core processing fails.
+        Exception: If no text can be extracted or if ALL extraction methods fail.
     """
-    # PSEUDOCODE: Unified Processing & Verification Logic
-    # 1. Extract raw text and telemetry from the PDF.
-    # 2. Guard against empty files: If no text is found after OCR, abort.
-    # 3. Reliability Check (Parser Disagreement):
-    #    a. Execute two AI extraction calls in parallel.
-    #    b. Call 1: Temperature 0.0 (Deterministic/Strict).
-    #    c. Call 2: Temperature 0.2 (Slightly creative/Verification).
-    # 4. Compare Results: If classification or critical financial fields (like 
-    #    loan principal) differ between calls, flag a "disagreement".
-    # 5. Risk Mitigation: If a disagreement is detected, force the confidence 
-    #    score below 0.4 to trigger human review in the downstream workflow.
-    # 6. Return the result from the deterministic call with attached telemetry.
+    # PSEUDOCODE: Resilient Unified Processing
+    # 1. Extract raw text from the PDF.
+    # 2. Sequential Extraction Pattern (TPM Management):
+    #    a. Call 1 (Deterministic): Try Groq (70B). If fails, fallback to Gemini.
+    #    b. Call 2 (Verification): If Call 1 succeeded, try Groq (70B) again with temp 0.2.
+    #       - If Call 2 fails, degrade gracefully: return Call 1 with 'verification_skipped'.
+    # 3. Disagreement Detection: Compare Call 1 and Call 2 if both succeeded.
+    # 4. Error Transformation: Map technical errors (RateLimit) to user-friendly messages.
 
     text, _, method, telemetry = await get_text_from_pdf(content, password=password)
 
@@ -166,41 +154,139 @@ async def process_document_content(content: bytes, filename: str, password: str 
         logger.warning("no_text_extracted", method=method)
         raise Exception("No text could be extracted from the PDF, even with OCR.")
 
-    # Use AI to classify and extract. To satisfy "parser disagreement detection", we make two parallel calls.
-    logger.info("unified_ai_extraction_start", model=settings.DEFAULT_AI_MODEL, text_length=len(text))
+    # Reliability Tier 1: Primary Extraction
+    extraction_1 = None
+    fallback_used = False
     
-    extraction_1, extraction_2 = await asyncio.gather(
-        _extract_with_llm(text, method, temperature=0.0),
-        _extract_with_llm(text, method, temperature=0.2)
-    )
+    try:
+        logger.info("unified_ai_primary_start", model=settings.DEFAULT_AI_MODEL)
+        extraction_1 = await _extract_with_llm(text, method, temperature=0.0)
+    except Exception as e:
+        logger.warning("primary_extraction_failed_retrying_fallback", error=str(e))
+        try:
+            # Fallback 1: Gemini 2.0 Flash
+            fallback_model = "gemini/gemini-2.0-flash"
+            logger.info("unified_ai_fallback_start", model=fallback_model)
+            extraction_1 = await _extract_with_llm(text, method, temperature=0.0, model=fallback_model)
+            fallback_used = True
+        except Exception as fe:
+            logger.warning("first_fallback_failed_trying_flash_lite", error=str(fe))
+            try:
+                # Fallback 2: Gemini 2.0 Flash Lite (often has separate/higher limits)
+                lite_model = "gemini/gemini-2.0-flash-lite"
+                logger.info("unified_ai_lite_fallback_start", model=lite_model)
+                extraction_1 = await _extract_with_llm(text, method, temperature=0.0, model=lite_model)
+                fallback_used = True
+                fallback_model = lite_model
+            except Exception as final_e:
+                logger.error("all_ai_providers_exhausted", error=str(final_e))
+                # BUSINESS RULE: Never return a 500 for provider exhaustion.
+                # Return a structured "failed" response that the UI handles gracefully.
+                return UnifiedDocumentResponse(
+                    document_type=DocumentType.UNKNOWN,
+                    loan_structure="single",
+                    confidence=0.0,
+                    reasoning="All AI providers are currently exhausted.",
+                    verification_status="failed",
+                    user_friendly_message="Our AI analysis engine is currently under extreme load. Please try again in a few minutes or enter your details manually.",
+                    extraction_warnings=["Quota exceeded for all available AI models."]
+                )
+
+    # Reliability Tier 2: Verification (Sequential to avoid TPM bursts)
+    extraction_2 = None
+    verification_skipped = False
     
-    # Parser disagreement detection
+    # Introduce small jittered breather (500ms) between calls to prevent RPM bursts
+    await asyncio.sleep(0.5)
+    
+    try:
+        logger.info("unified_ai_verification_start", model=settings.DEFAULT_AI_MODEL)
+        # Use same provider logic for verification if primary was fallback
+        verify_model = fallback_model if fallback_used else settings.DEFAULT_AI_MODEL
+        extraction_2 = await _extract_with_llm(text, method, temperature=0.2, model=verify_model)
+    except Exception as e:
+        logger.warning("verification_call_skipped_graceful_degradation", error=str(e))
+        verification_skipped = True
+
+    # Parser disagreement detection (only if both succeeded)
     disagreement = False
-    if extraction_1.document_type != extraction_2.document_type:
-        disagreement = True
-        logger.warning("parser_disagreement_type", type_1=extraction_1.document_type, type_2=extraction_2.document_type)
-    
-    if extraction_1.document_type == "LOAN" and extraction_1.loan_data and extraction_2.loan_data:
-        if extraction_1.loan_data.principal != extraction_2.loan_data.principal:
+    if extraction_1 and extraction_2:
+        if extraction_1.document_type != extraction_2.document_type:
             disagreement = True
-            logger.warning("parser_disagreement_principal", p1=extraction_1.loan_data.principal, p2=extraction_2.loan_data.principal)
+            logger.warning("parser_disagreement_type", t1=extraction_1.document_type, t2=extraction_2.document_type)
+        
+        if extraction_1.document_type == "LOAN" and extraction_1.loan_data and extraction_2.loan_data:
+            if extraction_1.loan_data.principal != extraction_2.loan_data.principal:
+                disagreement = True
+                logger.warning("parser_disagreement_principal", p1=extraction_1.loan_data.principal, p2=extraction_2.loan_data.principal)
+        
+        # Structure agreement
+        if extraction_1.loan_structure != extraction_2.loan_structure:
+            disagreement = True
+            logger.warning("parser_disagreement_structure", s1=extraction_1.loan_structure, s2=extraction_2.loan_structure)
+
+        # Currency agreement
+        if extraction_1.document_type == "LOAN":
+            def get_currencies(ext):
+                loans = ([ext.loan_data] if ext.loan_structure == 'single' and ext.loan_data
+                         else (ext.multi_loan_data.loans if ext.multi_loan_data else []))
+                return {loan.currency for loan in loans if loan}
             
-    # Base extraction on the lowest temperature (most deterministic)
+            c1, c2 = get_currencies(extraction_1), get_currencies(extraction_2)
+            if c1 != c2:
+                disagreement = True
+                logger.warning("parser_disagreement_currency", c1=list(c1), c2=list(c2))
+
+        # Rate and Type agreement
+        if extraction_1.document_type == "LOAN":
+            def get_rates(ext):
+                loans = ([ext.loan_data] if ext.loan_structure == 'single' and ext.loan_data
+                         else (ext.multi_loan_data.loans if ext.multi_loan_data else []))
+                return [loan.interest_rate for loan in loans]
+
+            def get_types(ext):
+                loans = ([ext.loan_data] if ext.loan_structure == 'single' and ext.loan_data
+                         else (ext.multi_loan_data.loans if ext.multi_loan_data else []))
+                return [loan.interest_type for loan in loans]
+
+            r1, r2 = get_rates(extraction_1), get_rates(extraction_2)
+            for v1, v2 in zip(r1, r2):
+                if v2 > 0 and abs(v1 - v2) / v2 > 0.20:
+                    disagreement = True
+                    break
+            
+            t1, t2 = get_types(extraction_1), get_types(extraction_2)
+            if t1 != t2:
+                disagreement = True
+
+    # Compiling the final response
     extraction = extraction_1
+    extraction.verification_status = 'verified'
     
+    if verification_skipped:
+        extraction.verification_status = 'skipped'
+        extraction.user_friendly_message = "Automated verification was skipped due to high provider load. Please review the results carefully."
+        extraction.extraction_warnings.append("Parallel cross-check unavailable.")
+        # Penalize confidence slightly but not as much as a disagreement
+        extraction.confidence = min(extraction.confidence, 0.7)
+
     if disagreement:
-        # BUSINESS RULE: Heavily penalize confidence to force human-in-the-loop verification
-        # This is a safety measure when the AI isn't consistent with itself.
+        extraction.verification_status = 'failed'
+        extraction.user_friendly_message = "Our verification engine detected inconsistencies in the extracted data. Manual review is required."
         extraction.confidence = min(extraction.confidence, 0.4)
     
-    if extraction.confidence < 0.5:
-        logger.warning("unified_ai_low_confidence", type=extraction.document_type, confidence=extraction.confidence)
-        
-    logger.info("unified_ai_success", type=extraction.document_type, confidence=extraction.confidence, disagreement=disagreement)
+    if fallback_used:
+        extraction.extraction_warnings.append("Processed using secondary AI provider (Gemini).")
+
+    logger.info("unified_ai_success", 
+        type=extraction.document_type, 
+        status=extraction.verification_status, 
+        fallback=fallback_used
+    )
     
-    # Attach telemetry for operational tracking
     extraction.ocr_telemetry = telemetry
     extraction.ocr_telemetry["method"] = method
+    extraction.ocr_telemetry["verification_status"] = extraction.verification_status
     extraction.ocr_telemetry["parser_disagreement_detected"] = disagreement
     
     return extraction

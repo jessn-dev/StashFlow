@@ -86,13 +86,22 @@ User preferences and global settings. One-to-one with auth.users.
 | `id` | `UUID` | PK |
 | `user_id` | `UUID` | |
 | `name` | `TEXT` | |
-| `principal` | `NUMERIC(18,6)` | Original principal |
-| `interest_rate` | `NUMERIC(8,4)` | Annual rate (e.g., 12.0000) |
-| `installment_amount` | `NUMERIC(18,6)` | Monthly payment |
+| `principal` | `NUMERIC(18,6)` | Original principal amount |
+| `interest_rate` | `NUMERIC(8,4)` | **Always annual flat rate** (e.g. 15.6000 for 15.6% p.a.). For Add-on loans, this is the flat rate, not the EIR. Never store a monthly rate here. |
+| `installment_amount` | `NUMERIC(18,6)` | Lender-stated monthly payment. Used as fixed payment in amortization schedule generation — preferred over the computed value to avoid rounding divergence. |
 | `duration_months` | `INTEGER` | |
 | `start_date` | `DATE` | |
-| `interest_type` | `TEXT` | enum: Standard Amortized, Add-on, etc. |
-| `status` | `TEXT` | enum: active, paid, default |
+| `end_date` | `DATE` | Computed at save time: `start_date + duration_months` |
+| `interest_type` | `TEXT` | `Standard Amortized` \| `Add-on Interest` \| `Interest-Only` \| `Fixed Principal` |
+| `interest_basis` | `TEXT` | Day-count convention (e.g. `30/360`). Optional. |
+| `lender` | `TEXT` | Lending institution name. Extracted from document header/letterhead, not just labeled fields. |
+| `currency` | `TEXT` | ISO 4217 (e.g. `PHP`, `USD`). Validated against `ALLOWED_CURRENCIES` whitelist. |
+| `source_document_id` | `UUID` | FK → `user_documents.id`. Set when loan was created from a parsed document. |
+| `status` | `TEXT` | `active` \| `completed` \| `defaulted` |
+
+**Amortization schedule — generated at read time, not stored.** `generateAmortizationSchedule()` in `@stashflow/core` computes the full payment schedule on demand from the columns above. For `Add-on Interest` loans, the schedule uses the **Effective Interest Method** (EIR-based reducing balance), not the flat split — matching the lender-issued schedule format. See ADR-016.
+
+**`annual_eir` — extraction metadata only, not a DB column.** When a document explicitly states an EIR (e.g. `Annual EIR: 26.209%`), it is captured in `documents.extracted_data` JSONB as `annual_eir`. It is not stored in the `loans` table. The amortization engine derives the monthly EIR from `installment_amount` + `principal` + `duration_months` via Newton-Raphson (see `solveMonthlyEir` in `packages/core/src/math/loans.ts`).
 
 ### `loan_payments`
 | Column | Type | Notes |

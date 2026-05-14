@@ -6,6 +6,133 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 
 ---
 
+## [0.24.1] - 2026-05-14
+
+### Fixed
+
+- **Loans Page Syntax & JSX Integrity** (`apps/web/app/dashboard/loans/page.tsx`)
+  - Resolved parsing error caused by misplaced code fragment and unclosed JSX conditional block.
+  - Added missing `insights` variable to data destructuring to prevent reference errors.
+  - Restored proper component structure for the upcoming payments section.
+
+### Changed
+
+- **Documentation Alignment**
+  - Updated `apps/web/app/dashboard/loans/page.tsx` to adhere to `GEMINI.md` standards:
+    - Added TSDoc high-level descriptions for all components.
+    - Included Algorithmic Pseudocode for main page logic.
+    - Added strategic inline comments explaining business logic constraints.
+
+---
+
+## [0.24.0] - 2026-05-13
+
+### Added
+
+- **Loan Interest Rate, Type & Lender Extraction Fix (G8–G15)**
+
+  Three extraction bugs discovered via Asialink Finance Corporation amortization schedule upload (Add-on Interest, PHP, 48-month car loan):
+
+  | Bug | Root Cause | Fix |
+  |-----|-----------|-----|
+  | Rate stored as monthly (1.3) not annual (15.6) | LLM reads `Interest Rate: 1.300%` and stores verbatim; no conversion rule | `INTEREST RATE RULES` in LLM system prompt; `resolveAnnualRate()` in edge fn multiplies rate × 12 when monthly signals detected and payment math confirms |
+  | Interest type defaulted to Standard Amortized | No extraction signal for Add-on; `inferLoanStructure` ran client-side only | `INTEREST TYPE DETECTION RULES`; `inferInterestTypeFromText()` scans for `Monthly EIR`, `Annual EIR`, `EFFECTIVE INTEREST`, `flat rate`, `add-on interest` keywords |
+  | Lender empty | Prompt looked only for labeled `Lender:` fields; company name was in letterhead | `LENDER EXTRACTION RULES` instructs LLM to scan header/letterhead text |
+
+  **New schema fields** (`apps/backend-py/src/schemas/financial.py`):
+  - `annual_eir: Optional[float]` — captures Effective Interest Rate when explicitly stated in document; kept separate from `interest_rate` (flat rate) so amortization math is not corrupted
+  - `SingleLoanExtractionSchema` / `MultiLoanExtractionSchema` — replaces `LoanExtractionSchema`; supports documents with multiple distinct loan accounts (e.g. Nelnet student loan groups)
+  - `@field_validator('interest_rate')` — soft clamp to [0, 100]; does not raise (would kill entire extraction); edge function handles conversion
+  - `@field_validator('currency')` — soft fallback to USD on unrecognised codes
+  - `@model_validator` on `UnifiedDocumentResponse` — asserts `loan_structure='single'` → `loan_data` populated and `loan_structure='multi'` → `multi_loan_data` populated
+
+  **Edge function resolvers** (`supabase/functions/parse-document/index.ts`):
+  - `resolveAnnualRate(rate, installment, principal, term, rawText)` — Newton-Raphson payment math cross-check; if `rate < 3.0` and Add-on signals present and `installment × term ≈ principal × (1 + rate*term/12)` within 2%, converts to annual automatically
+  - `inferInterestTypeFromText(rawText)` — 6-pattern ADD_ON_TEXT_SIGNALS regex set; 2+ matches → `'Add-on Interest'`
+  - `extractAnnualEIR(rawText)` — regex extracts `Annual EIR: XX.XXX %` from document text
+  - `inferCurrency(extracted, rawText)` — currency symbol/code pattern scan; fallback to USD
+  - `inferDurationMonths(duration, rawText)` — repayment plan name → standard term lookup (Standard Repayment = 120 mo, Extended = 300 mo, Graduated = 120 mo)
+  - `ALLOWED_CURRENCIES` set — whitelist gate on resolved currency
+  - Lender null → validation warning added (G14)
+  - Cross-loan currency consistency check for multi-loan documents
+
+  **Parser disagreement detection** (`apps/backend-py/src/core/document_service.py`):
+  - Two parallel AI extractions (temp 0.0 and 0.2); any disagreement on interest rate (>20% relative), interest type, currency, loan structure, or loan count → `confidence < 0.4` → `requires_verification = true`
+
+  **LoanForm UI** (`apps/web/modules/loans/components/LoanForm.tsx`):
+  - `inferenceConflict` useMemo — fires "Needs review" tag on `interest_rate` and `interest_type` fields when `inferLoanStructure` confidence ≥ 0.75 and inferred type differs from extracted type
+  - `currencyFallback` prop — "Needs review" on currency when extracted value differs from user's preferred currency
+  - `onSaved` callback prop — allows parent pages to handle post-save navigation
+
+  **Schema sync** — all Python schema changes propagated to:
+  - `packages/document-parser/schemas/loan_schema.json`
+  - `packages/document-parser/schemas/unified_document_schema.json`
+  - `packages/document-parser/src/generated_loan_schema.ts`
+  - `packages/document-parser/src/generated_unified_schema.ts`
+  - `packages/document-parser/src/types.ts` (`ExtractedLoanData extends SingleLoanExtractionSchema`)
+  - `MultiLoanExtractedData.loan_structure` field added
+
+- **Guard Rails — Amortization Engine & Extraction Pipeline (G-A through G-E)**
+
+  | ID | Layer | Guard |
+  |----|-------|-------|
+  | G-A | `packages/core/src/math/loans.ts` | `solveMonthlyEir()` returns `null` on NaN, non-convergence, or implausible rate (r ≤ 0 or r ≥ 1); `calculateAddOnInterest` falls back to `computeAddOnEIR` |
+  | G-B | `packages/core/src/math/loans.ts` | `generateAmortizationSchedule()` rejects `principal ≤ 0`, `annualInterestRate < 0`, `durationMonths ≤ 0`, or non-finite inputs — returns empty schedule instead of NaN/Infinity output |
+  | G-C | `packages/core/src/math/loans.ts` | Post-loop balance drift check: if final balance > 0.1% of principal after Add-on schedule, `console.warn` with diagnostic details |
+  | G-D | `apps/backend-py/src/schemas/financial.py` | `validate_interest_rate` changed from hard `raise ValueError` to soft clamp — out-of-range values clamped to [0, 100] rather than rejecting the entire extraction |
+  | G-E | `supabase/functions/parse-document/index.ts` | Removed stale `@ts-ignore` on `loan.annual_eir` — types now fully synced via schema export pipeline |
+
+### Fixed
+
+- **Amortization schedule for Add-on Interest loans — wrong interest/principal split**
+
+  `calculateAddOnInterest()` generated a flat-split schedule (constant interest = `principal × monthly_flat_rate` each period; constant principal = `principal / term`). This matched Add-on math in isolation but diverged from the lender-issued schedule.
+
+  Philippine lenders (Asialink, BDO, Metrobank auto loans) issue schedules under the **Effective Interest Method**: the monthly payment is fixed (derived from the flat rate), but the interest/principal split each period is computed using the EIR applied to the **reducing balance** — identical to a standard amortized loan using EIR instead of flat rate.
+
+  **New approach in `calculateAddOnInterest()`:**
+  1. Fix monthly payment from flat-rate formula or lender-stated `installment_amount` (whichever is available)
+  2. Solve monthly EIR via `solveMonthlyEir()` (Newton-Raphson on annuity PV equation) when lender payment is known — yields exact match to lender's schedule
+  3. Fall back to `computeAddOnEIR()` when no lender payment is stored
+  4. Each period: `interest = balance × monthly_EIR`, `principal = payment − interest`
+
+  Verified against AMORT SCHED.pdf (Asialink Finance):
+  | Field | Before | After | PDF |
+  |-------|--------|-------|-----|
+  | Period 1 interest | ₱6,695.00 | ₱11,247.99 | ₱11,247.99 |
+  | Period 1 principal | ₱10,729.17 | ₱6,177.01 | ₱6,177.01 |
+  | Period 1 balance | ₱504,270.83 | ₱508,822.99 | ₱508,822.99 |
+  | Total interest | ₱321,360 | ₱321,400 | ₱321,400 |
+
+  `solveMonthlyEir()` helper added — solves the standard annuity IRR `PV = PMT × (1 − (1+r)^−n) / r` via Newton-Raphson (100 iterations, convergence at `|dr| < 1e-12`).
+
+- **Monthly payment off by ₱0.83 — computed vs lender-stated**
+
+  `generateAmortizationSchedule()` was recomputing the monthly payment from the flat-rate formula (`(P + P×r×n/12) / n`), which yields ₱17,424.17 for this loan. The lender rounds to ₱17,425.00. Rounding accumulated across 48 periods: ₱39 total interest divergence.
+
+  Fix: `installmentAmount` optional param added to `generateAmortizationSchedule()`; loan detail page passes `loan.installment_amount` from DB. When provided, the lender-stated amount is used as the fixed payment for both display and EIR computation.
+
+- **Checkbox overlapping "Status" column header**
+
+  `<td>` in amortization table had `flex justify-center` class, making it a flex container. This broke sticky thead alignment — the `<th>Status</th>` cell remained table-cell-sized while the body `<td>` expanded as a flex block, visually offsetting the checkbox from its column header.
+
+  Fix: removed `flex justify-center` from `<td>`; `text-center` is sufficient for centering block-level content within a table cell.
+
+- **`supabase/functions/_shared/core/src/math/loans.ts` — synced with `packages/core/src/math/loans.ts`**
+
+  `_shared` copy was diverged (57 lines). Resynced. Both files are now identical.
+
+### Changed
+
+- **`generateAmortizationSchedule()` — input guard behavior for degenerate inputs**
+
+  Previously: negative principal returned negative schedule; zero duration returned `monthlyPayment: Infinity`; negative rate returned negative interest.
+  Now: all degenerate inputs (`principal ≤ 0`, `annualInterestRate < 0`, `durationMonths ≤ 0`, non-finite) return `{ monthlyPayment: 0, totalInterest: 0, totalPayment: 0, entries: [] }`. Zero interest rate (0%) is valid and passes through.
+
+  Tests updated to assert new correct behavior.
+
+---
+
 ## [0.23.0] - 2026-05-12
 
 ### Added

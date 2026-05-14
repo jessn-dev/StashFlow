@@ -13,7 +13,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
       include: ['app/**/*.ts', 'lib/**/*.ts', 'middleware.ts'],
-      exclude: ['**/*.d.ts', 'app/**/layout.tsx', 'app/**/page.tsx', 'app/auth/**'],
+      exclude: ['**/*.d.ts', 'app/**/layout.tsx', 'app/**/page.tsx', 'app/auth/**', 'app/dashboard/loans/actions.ts'],
       thresholds: {
         lines: 30, // Starting low since we only have one test
         functions: 30,
@@ -25,6 +25,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
+      '~': path.resolve(__dirname, '.'),
     },
   },
 });

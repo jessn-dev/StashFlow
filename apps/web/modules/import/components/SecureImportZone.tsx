@@ -4,7 +4,7 @@ import { useState, useCallback, useRef } from 'react';
 import { FileText, Upload, Lock, ShieldCheck, AlertCircle, X, ChevronRight, Loader2 } from 'lucide-react';
 import { isPdfEncrypted, validatePdfPassword } from '~/lib/utils/pdf';
 
-export type ImportType = 'loan' | 'transaction';
+export type ImportType = 'loan' | 'transaction' | 'document';
 
 type SecureImportZoneProps = Readonly<{
   type: ImportType;
@@ -13,6 +13,7 @@ type SecureImportZoneProps = Readonly<{
   subtitle?: string;
   onUpload: (file: File, password?: string) => Promise<void>;
   onCancel?: () => void;
+  isProcessing?: boolean;
 }>;
 
 type ImportStatus = 'idle' | 'uploading' | 'encrypted' | 'verifying' | 'processing' | 'error';
@@ -23,7 +24,8 @@ export function SecureImportZone({
   title,
   subtitle,
   onUpload,
-  onCancel
+  onCancel,
+  isProcessing
 }: SecureImportZoneProps) {
   const [status, setStatus] = useState<ImportStatus>('idle');
   const [file, setFile] = useState<File | null>(null);
@@ -176,7 +178,7 @@ export function SecureImportZone({
     );
   }
 
-  if (status === 'uploading' || status === 'verifying' || status === 'processing') {
+  if (status === 'uploading' || status === 'verifying' || status === 'processing' || isProcessing) {
     return (
       <div className="w-full bg-white rounded-[32px] border border-gray-200 shadow-sm p-12 flex flex-col items-center justify-center text-center animate-in fade-in duration-500">
         <div className="relative mb-6">
@@ -188,10 +190,10 @@ export function SecureImportZone({
           </div>
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-1">
-          {status === 'verifying' ? 'Verifying document...' : status === 'uploading' ? 'Uploading statement...' : 'Analyzing data...'}
+          {status === 'verifying' ? 'Verifying document...' : (status === 'uploading' || isProcessing) ? 'Uploading document...' : 'Analyzing data...'}
         </h3>
         <p className="text-sm text-gray-500 max-w-[240px] leading-relaxed font-medium">
-          {file?.name}
+          {file?.name || 'Processing...'}
         </p>
         <div className="mt-8 w-48 h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <div className="h-full bg-gray-900 rounded-full animate-progress" />
@@ -230,10 +232,10 @@ export function SecureImportZone({
           </div>
           
           <h3 className="text-xl font-bold text-gray-900 mb-2">
-            {title || `Import ${type === 'loan' ? 'Loan' : 'Transactions'}`}
+            {title || `Import ${type === 'loan' ? 'Loan' : type === 'transaction' ? 'Transactions' : 'Document'}`}
           </h3>
           <p className="text-[15px] text-gray-400 font-medium max-w-[320px] leading-relaxed mb-8">
-            {subtitle || 'Drag and drop your statement here or click to browse your files'}
+            {subtitle || `Drag and drop your ${type === 'document' ? 'document' : 'statement'} here or click to browse your files`}
           </p>
 
           <div className="flex flex-col items-center gap-4">

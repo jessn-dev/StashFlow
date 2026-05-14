@@ -40,9 +40,9 @@ describe('loan math', () => {
       interestType: 'Add-on Interest',
     });
 
-    // Total interest = 10000 * 0.12 * 1 = 1200
-    // Monthly payment = (10000 + 1200) / 12 = 933.33
-    expect(result.totalInterest).toBe(1200);
+    // Monthly payment from flat formula = (10000 + 10000×0.12×1) / 12 ≈ 933.33
+    // totalInterest is derived from EIR-based reducing balance — close to 1200 but not exact due to float
+    expect(result.totalInterest).toBeCloseTo(1200, 1);
     expect(result.monthlyPayment).toBeCloseTo(933.33, 1);
   });
 
@@ -89,7 +89,8 @@ describe('loan math', () => {
       interestType: 'Standard Amortized',
     });
 
-    expect(result.monthlyPayment).toBe(Infinity); // Division by zero in standard formula
+    // Guard returns empty schedule — 0 duration is not a valid loan term
+    expect(result.monthlyPayment).toBe(0);
     expect(result.entries).toHaveLength(0);
   });
 
@@ -100,8 +101,9 @@ describe('loan math', () => {
       interestType: 'Standard Amortized',
     });
 
-    expect(result.monthlyPayment).toBeLessThan(0);
-    expect(result.totalPayment).toBeLessThan(0);
+    // Guard returns empty schedule — negative principal is invalid input
+    expect(result.monthlyPayment).toBe(0);
+    expect(result.totalPayment).toBe(0);
   });
 
   describe('Precision and Edge Cases', () => {
@@ -155,8 +157,9 @@ describe('loan math', () => {
         interestType: 'Standard Amortized',
       });
 
-      expect(result.totalInterest).toBeLessThan(0);
-      expect(result.monthlyPayment).toBeLessThan(10000 / 12);
+      // Guard returns empty schedule — negative rates are invalid input
+      expect(result.totalInterest).toBe(0);
+      expect(result.monthlyPayment).toBe(0);
     });
   });
 });

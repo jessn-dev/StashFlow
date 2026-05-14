@@ -6,6 +6,49 @@ For architecture context behind decisions, see `docs/DECISIONS.md`.
 
 ---
 
+## [0.25.0] - 2026-05-14
+
+### Added
+
+- **Bank Statement Parser Hardening (R1–R4, G1–G20)**
+
+  Significant upgrade to the Bank Statement ingestion pipeline to resolve "Financially Dangerous" data gaps and implement robust security guardrails.
+
+  | Enhancement | Components | Impact |
+  |-------------|------------|--------|
+  | **Internal Transfer Detection** | AI Prompt + Edge Fn Fallback | Eliminates double-counting of mirror transfers (e.g. Savings → Checking). Inflated income/expense figures are resolved. |
+  | **Multi-Account Support** | Python Schema + AI Rules | Captures masked account IDs (e.g. `···7391`) and preserves transaction provenance across complex statements. |
+  | **Password-Protected PDF Support** | Byte-scan + Error Logic | Users can now unlock encrypted statements. Added client-side detection and `error_password` recovery flow. |
+  | **Strict Guardrails** | Edge Fn Validation | Implemented 13+ safety checks: amount magnitude ($1M cap), date validity, duplicate detection, and transaction count limits. |
+  | **AI Safety (G9)** | Prompt Injection Sanitization | Proactively strips malicious instructions from raw PDF text before LLM extraction. |
+  | **Balance Reconciliation** | Schema + Post-Process | Automatically verifies `opening_balance + Σtx = closing_balance`. Drift flags mandatory review. |
+
+  **Backend Changes** (`apps/backend-py`):
+  - Updated `TransactionExtractionItem` schema with `transaction_type` and `account_id`.
+  - Added `sanitize_document_text` to strip prompt injection patterns.
+  - Implemented `MAX_INPUT_CHARS` (40,000) truncation to prevent LLM context overflow.
+  - Hardened system prompt with unambiguous bank statement extraction rules.
+
+  **Edge Function Changes** (`supabase/functions/parse-document`):
+  - Added `detectInternalTransfers` and `auditTransferPairs` deterministic logic.
+  - Implemented comprehensive guardrails (G1-G13): Amount/Date validation, sign consistency, deduplication, and balance reconciliation.
+  - Added per-user rate limiting (10 docs/hour) and attempt caps (max 3).
+  - Implemented stale document rescue (10-min threshold).
+  - Added `error_password` status handling and migration.
+
+  **Frontend Changes** (`apps/web`):
+  - **Import Page:** Added filtering for `internal_transfer` types, dynamic `Account` column, and amber `ValidationBanner` for reliability warnings.
+  - **PDF Utils:** Added lightweight byte-scan for `/Encrypt` flag detection.
+  - **Hooks:** Updated `useDocumentUpload` to handle the `needs_password` state and poll for specific password errors.
+
+### Fixed
+
+- **Inflated Income/Expense imports** caused by missing internal transfer filtering.
+- **Silent failure on encrypted PDFs** which previously resulted in generic "AI extraction failed" messages.
+- **Loss of account context** in multi-account bank statements.
+
+---
+
 ## [0.24.1] - 2026-05-14
 
 ### Fixed

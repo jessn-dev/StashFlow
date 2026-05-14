@@ -24,6 +24,9 @@ export default function TransactionImportPage({ searchParams }: { searchParams: 
   const [mappedData, setMappedData] = useState<any[]>([]);
   const [importResult, setImportResult] = useState<{ count: number } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [skippedTransfers, setSkippedTransfers] = useState<number>(0);
+  const [wasAiImport, setWasAiImport] = useState<boolean>(false);
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
   
   const router = useRouter();
   const supabase = createClient();
@@ -49,13 +52,24 @@ export default function TransactionImportPage({ searchParams }: { searchParams: 
       }
 
       if ((data?.extracted_data as any)?.transactions) {
-        const aiMapped = (data.extracted_data as any).transactions.map((t: any) => ({
+        const extracted = data.extracted_data as any;
+        const allTransactions = extracted.transactions ?? [];
+        const transfers = allTransactions.filter((t: any) => t.transaction_type === 'internal_transfer');
+        const importable = allTransactions.filter((t: any) => t.transaction_type !== 'internal_transfer');
+
+        const aiMapped = importable.map((t: any) => ({
           date: t.date,
           description: t.description,
           amount: t.amount,
+          account_id: t.account_id ?? null,
+          transaction_type: t.transaction_type,
           type: t.amount >= 0 ? 'income' : 'expense'
         }));
+        
         setMappedData(aiMapped);
+        setSkippedTransfers(transfers.length);
+        setValidationWarnings(extracted.validation?.requires_verification ? (extracted.validation?.errors ?? []) : []);
+        setWasAiImport(true);
         setStage('preview');
       } else {
         throw new Error('No transactions found in statement.');
@@ -138,6 +152,15 @@ export default function TransactionImportPage({ searchParams }: { searchParams: 
    */
   const executeImport = async () => {
     setImportError(null);
+
+    // G8 — Pre-import guard on mapped data
+    const invalid = mappedData.filter(d => 
+      !isFinite(Number(d.amount)) || Number(d.amount) === 0 || !d.description?.trim()
+    );
+    if (invalid.length > 0) {
+      setImportError(`${invalid.length} transactions have invalid data (zero amount or missing description) — please review before importing.`);
+      return;
+    }
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -253,13 +276,20 @@ export default function TransactionImportPage({ searchParams }: { searchParams: 
              <div>
                <div className="flex items-center gap-2 mb-1">
                  <h3 className="text-xl font-black text-gray-900 tracking-tight">Review Import</h3>
-                 {uploadState.status === 'ready' && uploadState.documentType === 'BANK_STATEMENT' && (
+                 {wasAiImport && (
                     <span className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md text-[10px] font-black uppercase tracking-widest border border-blue-100">
                       <Sparkles size={10} /> AI Enhanced
                     </span>
                  )}
                </div>
-               <p className="text-sm text-gray-400 font-medium mt-1">We detected {mappedData.length} transactions.</p>
+               <p className="text-sm text-gray-400 font-medium mt-1">
+                 We detected {mappedData.length} transaction{mappedData.length !== 1 ? 's' : ''}.
+                 {skippedTransfers > 0 && (
+                   <span className="text-gray-400">
+                     {' '}{skippedTransfers} internal transfer{skippedTransfers !== 1 ? 's' : ''} excluded.
+                   </span>
+                 )}
+               </p>
              </div>
              <div className="flex items-center gap-3">
                <button 
@@ -281,11 +311,22 @@ export default function TransactionImportPage({ searchParams }: { searchParams: 
                </p>
              )}
           </div>
+          {validationWarnings.length > 0 && (
+            <div className="mx-8 mt-4 mb-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+              <p className="text-xs font-black text-amber-700 uppercase tracking-widest mb-1">Review Carefully</p>
+              <ul className="text-xs text-amber-600 space-y-0.5">
+                {validationWarnings.map((w, i) => <li key={`${i}-${w.slice(0, 10)}`}>• {w}</li>)}
+              </ul>
+            </div>
+          )}
           <div className="max-h-[500px] overflow-y-auto">
             <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 bg-gray-50/90 backdrop-blur-md z-10">
                 <tr>
                   <th className="px-8 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Date</th>
+                  {mappedData.some(r => r.account_id) && (
+                    <th className="px-8 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Account</th>
+                  )}
                   <th className="px-8 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Description</th>
                   <th className="px-8 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest text-right">Amount</th>
                 </tr>
@@ -294,6 +335,11 @@ export default function TransactionImportPage({ searchParams }: { searchParams: 
                 {mappedData.map((row, i) => (
                   <tr key={i} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-8 py-4 text-[13px] font-medium text-gray-500">{row.date}</td>
+                    {mappedData.some(r => r.account_id) && (
+                      <td className="px-8 py-4 text-[13px] font-medium text-gray-400">
+                        {row.account_id ? `···${row.account_id}` : '—'}
+                      </td>
+                    )}
                     <td className="px-8 py-4 text-[13px] font-bold text-gray-900">{row.description}</td>
                     <td className={`px-8 py-4 text-[13px] font-black text-right ${row.type === 'expense' ? 'text-red-500' : 'text-emerald-500'}`}>
                       {row.type === 'expense' ? '-' : '+'}{Math.abs(row.amount).toFixed(2)}

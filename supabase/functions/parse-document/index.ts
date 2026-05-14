@@ -19,7 +19,13 @@ if (SENTRY_DSN) {
   })
 }
 
-type ProcessingStatus = 'pending' | 'processing' | 'success' | 'error_rate_limit' | 'error_generic'
+type ProcessingStatus = 
+  | 'pending' 
+  | 'processing' 
+  | 'success' 
+  | 'error_rate_limit' 
+  | 'error_password'
+  | 'error_generic'
 
 // deno-lint-ignore no-explicit-any
 type SupabaseClient = any
@@ -94,44 +100,259 @@ async function storeFailed(
   )
 }
 
+// ── Pre-condition helpers ────────────────────────────────────────────────────
+
+type DocLog = (step: string, detail?: unknown) => void
+
+/**
+ * Checks whether the user has exceeded the per-hour document processing rate limit (G17).
+ * Calls storeFailed and returns true when the limit is hit — caller should return early.
+ *
+ * @param supabase - Supabase client.
+ * @param userId - The user whose quota is being checked.
+ * @param documentId - For storeFailed if the limit is hit.
+ * @param log - Logger bound to the current document.
+ * @returns true if rate-limited.
+ */
+async function checkRateLimit(
+  supabase: SupabaseClient,
+  userId: string,
+  documentId: string,
+  log: DocLog,
+): Promise<boolean> {
+  const ONE_HOUR_AGO = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  const { count: recentDocs, error: countError } = await supabase
+    .from('documents')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .gte('last_processed_at', ONE_HOUR_AGO)
+    .eq('processing_status', 'success')
+
+  if (!countError && recentDocs !== null && recentDocs >= 10) {
+    log('rate-limit-exceeded', { recentDocs })
+    await storeFailed(supabase, documentId, {
+      stage: 'pre-check',
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: 'You have reached the hourly limit for document processing (10 documents). Please try again later.',
+      retryable: true,
+    })
+    return true
+  }
+  return false
+}
+
+/**
+ * Determines whether processing should proceed or be skipped based on current status (G13).
+ * Returns 'skip' when the document is already done or is actively processing and not stale.
+ * Stale documents (processing > 10 min) are rescued — they return 'proceed'.
+ *
+ * @param docRecord - The current document DB record.
+ * @param log - Logger bound to the current document.
+ * @returns 'skip' or 'proceed'.
+ */
+function resolveProcessingGuard(
+  docRecord: { processing_status: string; last_processed_at?: string | null },
+  log: DocLog,
+): 'skip' | 'proceed' {
+  if (docRecord.processing_status === 'success') {
+    log('already-completed — skip')
+    return 'skip'
+  }
+
+  const STALE_PROCESSING_MS = 10 * 60 * 1000
+  if (docRecord.processing_status === 'processing' && docRecord.last_processed_at) {
+    const elapsed = Date.now() - new Date(docRecord.last_processed_at).getTime()
+    if (elapsed <= STALE_PROCESSING_MS) {
+      log('already-processing — skip (not stale)')
+      return 'skip'
+    }
+    log('stale-processing-rescue', { elapsed })
+  }
+
+  return 'proceed'
+}
+
+/**
+ * Checks whether the document has exhausted its retry budget (G10).
+ * Calls storeFailed and returns true when the cap is reached — caller should return early.
+ *
+ * @param supabase - Supabase client.
+ * @param docRecord - The current document DB record.
+ * @param documentId - For storeFailed if the cap is hit.
+ * @param log - Logger bound to the current document.
+ * @returns true if the attempt cap is reached.
+ */
+async function checkAttemptCap(
+  supabase: SupabaseClient,
+  docRecord: { processing_attempts?: number | null },
+  documentId: string,
+  log: DocLog,
+): Promise<boolean> {
+  const MAX_ATTEMPTS = 3
+  if ((docRecord.processing_attempts ?? 0) >= MAX_ATTEMPTS) {
+    log('max-attempts-exceeded', { attempts: docRecord.processing_attempts })
+    await storeFailed(supabase, documentId, {
+      stage: 'pre-check',
+      code: 'MAX_ATTEMPTS_EXCEEDED',
+      message: `Document failed ${MAX_ATTEMPTS} times and will not be retried. Please re-upload.`,
+      retryable: false,
+    })
+    return true
+  }
+  return false
+}
+
+/**
+ * Downloads the file from storage and validates its magic bytes.
+ * Returns null (after calling storeFailed) when magic-byte validation fails.
+ * Throws directly for infrastructure download failures — those are not user errors.
+ *
+ * @param supabase - Supabase client.
+ * @param docRecord - The current document DB record.
+ * @param documentId - For storeFailed if validation fails.
+ * @param log - Logger bound to the current document.
+ * @returns The file ArrayBuffer, or null if validation failed.
+ */
+async function downloadAndValidate(
+  supabase: SupabaseClient,
+  docRecord: { storage_path: string; content_type: string | null },
+  documentId: string,
+  log: DocLog,
+): Promise<ArrayBuffer | null> {
+  log('storage-download', { path: docRecord.storage_path })
+  const { data: fileData, error: downloadError } = await supabase.storage
+    .from('user_documents')
+    .download(docRecord.storage_path)
+
+  if (downloadError || !fileData) {
+    throw new Error(`Storage download failed: ${downloadError?.message ?? 'no data'}`)
+  }
+
+  const buffer = await fileData.arrayBuffer()
+  const contentType = (docRecord.content_type as string | null) ?? 'application/pdf'
+  if (!validateMagicBytes(buffer, contentType)) {
+    log('magic-bytes-failed', { contentType })
+    await storeFailed(supabase, documentId, {
+      stage: 'inspect',
+      code: 'INVALID_MAGIC_BYTES',
+      message: 'The file content does not match its type. Please upload a valid PDF.',
+      retryable: false,
+    })
+    return null
+  }
+  return buffer
+}
+
+/**
+ * Routes the AI extraction result to the correct domain handler.
+ * Throws for unsupported types so the caller's catch block handles them uniformly.
+ *
+ * @param supabase - Supabase client.
+ * @param documentId - UUID of the document being processed.
+ * @param unifiedResult - The AI extraction result.
+ * @param rawTextCache - Raw extracted text, used for secondary inference on loans.
+ */
+async function dispatchExtraction(
+  supabase: SupabaseClient,
+  documentId: string,
+  unifiedResult: UnifiedDocumentResult,
+  rawTextCache: string,
+): Promise<void> {
+  if (unifiedResult.document_type === 'LOAN' && (unifiedResult.loan_data || unifiedResult.multi_loan_data)) {
+    await handleLoanExtraction(supabase, documentId, unifiedResult, rawTextCache)
+  } else if (unifiedResult.document_type === 'BANK_STATEMENT' && unifiedResult.statement_data) {
+    await handleBankStatementExtraction(supabase, documentId, unifiedResult)
+  } else {
+    throw new Error(`Unsupported or unknown document type: ${unifiedResult.document_type}`)
+  }
+}
+
+/**
+ * Handles errors from the main processing try block.
+ * Password errors are stored as 'error_password' so the UI can prompt for the key.
+ * All other failures go through storeFailed as 'error_generic'.
+ *
+ * @param supabase - Supabase client.
+ * @param documentId - UUID of the document being processed.
+ * @param err - The caught error.
+ * @param log - Logger bound to the current document.
+ */
+async function handleProcessingError(
+  supabase: SupabaseClient,
+  documentId: string,
+  err: unknown,
+  log: DocLog,
+): Promise<void> {
+  const errMsg = String(err)
+  if (
+    errMsg.includes('PDF is encrypted') ||
+    errMsg.includes('Invalid password') ||
+    errMsg.includes('requires a password')
+  ) {
+    log('password-required', errMsg)
+    await supabase.from('documents').update({
+      processing_status: 'error_password' satisfies ProcessingStatus,
+      processing_error: {
+        stage: 'extract',
+        code: 'PASSWORD_REQUIRED',
+        message: 'This PDF is password protected. Please provide the password to import.',
+        retryable: true,
+      },
+    }).eq('id', documentId)
+    return
+  }
+  log('processing-failed', errMsg)
+  await storeFailed(supabase, documentId, {
+    stage: 'extract',
+    code: 'PYTHON_ENQUEUE_FAILED',
+    message: `Intelligence service failed: ${errMsg}`,
+    retryable: true,
+  })
+}
+
+// ── Orchestrator ─────────────────────────────────────────────────────────────
+
 async function processUnified(
-  supabase: SupabaseClient, 
+  supabase: SupabaseClient,
   documentId: string,
   password?: string | null
 ): Promise<void> {
-  const log = (step: string, detail?: unknown) =>
+  // PSEUDOCODE: Unified Document Processing Pipeline
+  // 1. Fetch document record; bail on missing/error.
+  // 2. Run pre-condition guards: rate limit → status guard → attempt cap.
+  // 3. Mark as 'processing', validate MIME type, download, validate magic bytes.
+  // 4. Call Python backend, dispatch to domain handler (loan or bank statement).
+  // 5. On error, route to password or generic failure handler.
+
+  const log: DocLog = (step, detail?) =>
     console.log(`[parse-document] [${documentId}] ${step}`, detail ?? '')
-  const fail = (step: string, err: unknown) => {
+  const fail = (step: string, err: unknown): never => {
     console.error(`[parse-document] [${documentId}] FAILED at: ${step}`, err)
     throw err
   }
 
   log('start', { documentId })
 
-  // Fetch record
   const { data: docRecord, error: fetchError } = await supabase
     .from('documents')
-    .select('user_id, storage_path, content_type, file_size, processing_status, processing_attempts')
+    .select('user_id, storage_path, content_type, file_size, processing_status, processing_attempts, last_processed_at')
     .eq('id', documentId)
     .single()
 
   if (fetchError || !docRecord) fail('fetch-record', fetchError ?? new Error('Document not found'))
 
-  if (docRecord.processing_status === 'success') {
-    log('already-completed — skip')
-    return
-  }
+  if (await checkRateLimit(supabase, docRecord.user_id, documentId, log)) return
+  if (resolveProcessingGuard(docRecord, log) === 'skip') return
+  if (await checkAttemptCap(supabase, docRecord, documentId, log)) return
 
   await auditLog(supabase, docRecord.user_id, 'document.parse', 'started', { document_id: documentId })
 
-  // Track attempt
   await supabase.from('documents').update({
     processing_status: 'processing' satisfies ProcessingStatus,
     processing_attempts: (docRecord.processing_attempts ?? 0) + 1,
     last_processed_at: new Date().toISOString(),
   }).eq('id', documentId)
 
-  // Validation
   const contentType = (docRecord.content_type as string | null) ?? 'application/pdf'
   const inspectResult = inspectFile(contentType)
   if (!inspectResult.ok) {
@@ -140,54 +361,18 @@ async function processUnified(
     return
   }
 
-  log('storage-download', { path: docRecord.storage_path })
-  const { data: fileData, error: downloadError } = await supabase.storage
-    .from('user_documents')
-    .download(docRecord.storage_path)
+  const buffer = await downloadAndValidate(supabase, docRecord, documentId, log)
+  if (!buffer) return
 
-  if (downloadError || !fileData) {
-    fail('storage-download', new Error(`Storage download failed: ${downloadError?.message ?? 'no data'}`))
-  }
-
-  // [0] Magic Bytes Validation
-  const buffer = await fileData.arrayBuffer()
-  const isMagicValid = validateMagicBytes(buffer, contentType)
-  if (!isMagicValid) {
-    log('magic-bytes-failed', { contentType })
-    await storeFailed(supabase, documentId, {
-      stage: 'inspect',
-      code: 'INVALID_MAGIC_BYTES',
-      message: 'The file content does not match its type. Please upload a valid PDF.',
-      retryable: false,
-    })
-    return
-  }
-
-  // [1] Call Python Backend
   try {
-    // Extract text for duration cascade and other soft-validation rules
     const textResult = await extractPdfText(buffer)
     const rawTextCache = textResult.ok ? textResult.value : ''
-
     const unifiedResult = await callPythonBackend(buffer, contentType, password)
     log('python-processing-success', { type: unifiedResult.document_type, confidence: unifiedResult.confidence })
-
-    if (unifiedResult.document_type === 'LOAN' && (unifiedResult.loan_data || unifiedResult.multi_loan_data)) {
-        await handleLoanExtraction(supabase, documentId, unifiedResult, rawTextCache)
-    } else if (unifiedResult.document_type === 'BANK_STATEMENT' && unifiedResult.statement_data) {
-        await handleBankStatementExtraction(supabase, documentId, unifiedResult)
-    } else {
-        throw new Error(`Unsupported or unknown document type: ${unifiedResult.document_type}`)
-    }
+    await dispatchExtraction(supabase, documentId, unifiedResult, rawTextCache)
     log('done')
   } catch (err) {
-    log('processing-failed', String(err))
-    await storeFailed(supabase, documentId, {
-      stage: 'extract',
-      code: 'PYTHON_ENQUEUE_FAILED',
-      message: `Intelligence service failed to enqueue: ${String(err)}`,
-      retryable: true,
-    })
+    await handleProcessingError(supabase, documentId, err, log)
   }
 }
 
@@ -526,26 +711,202 @@ async function handleLoanExtraction(
   }, 'Loan', result.ocr_telemetry);
 }
 
+// --- Guardrail Helper Functions ---
+
+function validateTransactionAmount(amount: number, idx: number): string | null {
+  if (!Number.isFinite(amount)) return `Transaction ${idx}: amount is not a finite number (${amount})`
+  if (amount === 0) return `Transaction ${idx}: zero-amount transaction — likely a parsing error`
+  if (Math.abs(amount) > 1_000_000) return `Transaction ${idx}: amount $${amount} exceeds $1M — verify`
+  return null
+}
+
+function validateTransactionDate(dateStr: string, idx: number): string | null {
+  const d = new Date(dateStr)
+  if (Number.isNaN(d.getTime())) return `Transaction ${idx}: invalid date "${dateStr}"`
+  
+  const now = new Date()
+  if (d > now) return `Transaction ${idx}: future date "${dateStr}" — likely a parsing error`
+  
+  const tooOld = new Date()
+  tooOld.setFullYear(tooOld.getFullYear() - 10)
+  if (d < tooOld) return `Transaction ${idx}: date "${dateStr}" is more than 10 years ago — verify`
+  
+  return null
+}
+
+const SHOULD_BE_NEGATIVE = [
+  /debit\s+card\s+purchase/i,
+  /digital\s+card\s+purchase/i,
+  /withdrawal\s+to/i,
+  /\bfee\b/i,
+  /overdraft/i,
+  /payment\s+to/i,
+]
+
+const SHOULD_BE_POSITIVE = [
+  /deposit\s+from/i,
+  /monthly\s+interest\s+paid/i,
+  /interest\s+earned/i,
+  /\bcredit\b/i,
+  /direct\s+deposit/i,
+  /refund/i,
+]
+
+function checkSignConsistency(tx: any, idx: number): { tx: any, warning: string | null } {
+  const desc = tx.description || ''
+  let warning: string | null = null
+  const updatedTx = { ...tx }
+
+  if (SHOULD_BE_NEGATIVE.some(re => re.test(desc)) && tx.amount > 0) {
+    warning = `Transaction ${idx}: Sign mismatch: "${desc}" should be negative but got +${tx.amount}`
+    updatedTx.amount = -tx.amount
+  }
+  if (SHOULD_BE_POSITIVE.some(re => re.test(desc)) && tx.amount < 0) {
+    warning = `Transaction ${idx}: Sign mismatch: "${desc}" should be positive but got ${tx.amount}`
+    updatedTx.amount = Math.abs(tx.amount)
+  }
+  return { tx: updatedTx, warning }
+}
+
+function deduplicateTransactions(txs: any[]): { unique: any[], duplicateCount: number } {
+  const seen = new Set<string>()
+  const unique: any[] = []
+  let duplicateCount = 0
+
+  for (const tx of txs) {
+    const key = `${tx.date}|${(tx.description || '').trim().toLowerCase()}|${Number(tx.amount).toFixed(2)}`
+    if (seen.has(key)) {
+      duplicateCount++
+    } else {
+      seen.add(key)
+      unique.push(tx)
+    }
+  }
+  return { unique, duplicateCount }
+}
+
+function checkBalanceReconciliation(
+  opening: number | undefined | null,
+  closing: number | undefined | null,
+  transactions: any[]
+): string | null {
+  if (opening == null || closing == null) return null
+
+  const txSum = transactions
+    .filter(t => t.transaction_type !== 'internal_transfer')
+    .reduce((sum, t) => sum + (t.amount || 0), 0)
+
+  const computed = opening + txSum
+  const drift = Math.abs(computed - closing)
+  
+  const tolerance = Math.max(0.01, Math.abs(closing) * 0.005)
+
+  if (drift > tolerance) {
+    return `Balance mismatch: opening ${opening} + transactions ${txSum.toFixed(2)} = ${computed.toFixed(2)}, but closing is ${closing}. Drift: $${drift.toFixed(2)}`
+  }
+  return null
+}
+
+const TRANSFER_RE = /deposit from|withdrawal to|transfer from|transfer to/i
+
+function detectInternalTransfers(txs: any[]): any[] {
+  // First pass: apply AI-assigned types if present
+  // Second pass: pattern match descriptions for any the AI missed
+  return txs.map(tx => {
+    if (tx.transaction_type === 'internal_transfer') return tx
+    if (TRANSFER_RE.test(tx.description ?? '')) {
+      return { ...tx, transaction_type: 'internal_transfer' }
+    }
+    return tx
+  })
+}
+
+// Then verify mirror pairs (same date, amounts sum to ~0)
+function auditTransferPairs(txs: any[]): { txs: any[], warnings: string[] } {
+  const warnings: string[] = []
+  const transfers = txs.filter(t => t.transaction_type === 'internal_transfer')
+  for (const t of transfers) {
+    const mirror = transfers.find(m =>
+      m !== t && m.date === t.date && Math.abs(m.amount + t.amount) < 0.01
+    )
+    if (!mirror) {
+      warnings.push(`Unpaired transfer: ${t.date} ${t.description} (${t.amount})`)
+    }
+  }
+  return { txs, warnings }
+}
+
 /**
  * Validates and formats extracted bank statement data before storing it.
- * 
+ *
  * @param supabase - Supabase client instance.
  * @param documentId - UUID of the document record.
  * @param result - Raw result from the AI service.
  */
 async function handleBankStatementExtraction(supabase: SupabaseClient, documentId: string, result: UnifiedDocumentResult): Promise<void> {
     const statement = result.statement_data!
-    const validationErrors: string[] = []
+    let validationErrors: string[] = []
     const isLowConfidence = (result.confidence ?? 0) < 0.6
 
-    // PSEUDOCODE: Statement Validation & Storage
-    // 1. Verify that transactions were successfully parsed.
-    // 2. Check AI confidence.
-    // 3. Store result with validation metadata.
+    // G1 — Transaction count cap
+    const MAX_TRANSACTIONS = 500
+    const WARN_TRANSACTIONS = 200
+
+    if ((statement.transactions?.length || 0) > MAX_TRANSACTIONS) {
+        await storeFailed(supabase, documentId, {
+            stage: 'validate',
+            code: 'TRANSACTION_COUNT_EXCEEDED',
+            message: `Extracted ${statement.transactions.length} transactions — exceeds safety cap of ${MAX_TRANSACTIONS}.`,
+            retryable: true,
+        })
+        return
+    }
+    if ((statement.transactions?.length || 0) > WARN_TRANSACTIONS) {
+        validationErrors.push(`High transaction count (${statement.transactions.length}) — review carefully.`)
+    }
 
     if (isLowConfidence) validationErrors.push(`Low AI confidence: ${result.confidence}`)
+    
     if (!statement.transactions || statement.transactions.length === 0) {
         validationErrors.push('No transactions found in statement')
+    } else {
+        // G4 — Deduplication
+        const { unique, duplicateCount } = deduplicateTransactions(statement.transactions)
+        statement.transactions = unique
+        if (duplicateCount > 0) validationErrors.push(`Removed ${duplicateCount} duplicate transactions`)
+
+        // G2, G3, G7, G12 — Per-transaction validation
+        statement.transactions = statement.transactions.map((tx, i) => {
+            // G2: Amount
+            const amtErr = validateTransactionAmount(tx.amount, i)
+            if (amtErr) validationErrors.push(amtErr)
+
+            // G3: Date
+            const dateErr = validateTransactionDate(tx.date, i)
+            if (dateErr) validationErrors.push(dateErr)
+
+            // G7: Description sanity
+            if (!tx.description?.trim()) validationErrors.push(`Transaction ${i}: empty description`)
+            if (tx.description?.length > 500) {
+                tx.description = tx.description.slice(0, 500)
+                validationErrors.push(`Transaction ${i}: description truncated`)
+            }
+
+            // G12: Sign consistency
+            const { tx: updatedTx, warning } = checkSignConsistency(tx, i)
+            if (warning) validationErrors.push(warning)
+            return updatedTx
+        })
+
+        // R1 / G5 — Transfer detection and audit
+        statement.transactions = detectInternalTransfers(statement.transactions)
+        const audit = auditTransferPairs(statement.transactions)
+        statement.transactions = audit.txs
+        validationErrors = validationErrors.concat(audit.warnings)
+
+        // G11 — Balance reconciliation
+        const reconErr = checkBalanceReconciliation(statement.opening_balance, statement.closing_balance, statement.transactions)
+        if (reconErr) validationErrors.push(reconErr)
     }
 
     await storeSuccess(supabase, documentId, {
@@ -558,7 +919,6 @@ async function handleBankStatementExtraction(supabase: SupabaseClient, documentI
         }
     }, 'Bank Statement', result.ocr_telemetry)
 }
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 

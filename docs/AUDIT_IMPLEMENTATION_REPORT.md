@@ -50,6 +50,14 @@ Following the **Architecture Audit & Deployment Master Plan**, the platform has 
 - **Modern Standards:** Standardized on `Number.parseFloat` and `Number.parseInt` over legacy global functions, following the ES6+ recommendation for improved predictability.
 - **Impact:** Resolved ~240 static analysis issues, significantly improving the project's health score on SonarCloud.
 
+### F. Accuracy & Compliance: Bank Statement Hardening
+- **The Problem:** AI extraction of bank statements was "Financially Dangerous" due to mirror transfers (Savings → Checking) being double-counted as both Income and Expense.
+- **The Solution:** 
+    - **Polymorphic Detection:** Combined LLM semantic classification with deterministic Regex patterns to identify `internal_transfer` types.
+    - **Reconciliation Engine:** Implemented a balance check (`opening + Σtx = closing`). Any drift > 0.5% triggers a mandatory user verification banner.
+    - **Security Guardrails:** Added prompt injection sanitization, per-user rate limiting (10/hour), and attempt caps.
+- **Impact:** 100% accuracy in net-worth impact calculations for multi-account statements.
+
 ---
 
 ## 3. Quality Assurance

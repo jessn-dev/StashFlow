@@ -59,6 +59,7 @@ jobs:
             packages/core/coverage/lcov.info
             packages/api/coverage/lcov.info
             apps/web/coverage/lcov.info
+            apps/backend-py/coverage.xml
           retention-days: 1
 
   # 2. Analysis: SonarQube Cloud

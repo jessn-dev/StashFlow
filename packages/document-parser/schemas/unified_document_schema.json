@@ -286,6 +286,24 @@
           "title": "Amount",
           "type": "number"
         },
+        "transaction_type": {
+          "$ref": "#/$defs/TransactionType",
+          "default": "debit",
+          "description": "Type of this transaction. Set to 'internal_transfer' when money moves between the account holder's own accounts at the same institution. Examples: 'Deposit from 360 Performance Savings', 'Withdrawal to 360 Checking'."
+        },
+        "account_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Last 4 digits of the account this transaction belongs to, if the statement covers multiple accounts.",
+          "title": "Account Id"
+        },
         "provenance": {
           "anyOf": [
             {
@@ -306,6 +324,17 @@
       ],
       "title": "TransactionExtractionItem",
       "type": "object"
+    },
+    "TransactionType": {
+      "enum": [
+        "debit",
+        "credit",
+        "internal_transfer",
+        "fee",
+        "interest"
+      ],
+      "title": "TransactionType",
+      "type": "string"
     }
   },
   "description": "Polymorphic response for unified document processing.",

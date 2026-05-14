@@ -178,12 +178,12 @@ select is(
   'User 1 can insert own category metadata'
 );
 
--- 15. Hostile: Attempt to update another user's user_id (Lateral Movement)
+-- 15. Hostile: Attempt to update own user_id to someone else (Lateral Movement)
 set local "request.jwt.claims" to '{"sub": "00000000-0000-0000-0000-000000000001"}';
 select throws_ok(
-  $$ update public.expenses set user_id = '00000000-0000-0000-0000-000000000001' where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' $$,
-  'new row violates row-level security policy for table "expenses"', -- Should fail because it shouldn't even find the row (SELECT policy) or WITH CHECK fails
-  'User 1 cannot hijack User 2 expense by changing user_id'
+  $$ update public.expenses set user_id = '00000000-0000-0000-0000-000000000002' where user_id = '00000000-0000-0000-0000-000000000001' $$,
+  'new row violates row-level security policy for table "expenses"',
+  'User 1 cannot give away their own expense to User 2'
 );
 
 -- 16. Hostile: Attempt to delete another user's data

@@ -103,6 +103,13 @@ class MultiLoanExtractionSchema(BaseModel):
         description="Account-level monthly payment (e.g. 'Regular Monthly Payment Amount'). Set when the document shows a combined payment for all loans with no per-loan breakdown."
     )
 
+class TransactionType(str, Enum):
+    DEBIT = "debit"
+    CREDIT = "credit"
+    INTERNAL_TRANSFER = "internal_transfer"
+    FEE = "fee"
+    INTEREST = "interest"
+
 class TransactionExtractionItem(BaseModel):
     """
     A single transaction extracted from a bank statement.
@@ -110,6 +117,18 @@ class TransactionExtractionItem(BaseModel):
     date: str = Field(description="The transaction date in YYYY-MM-DD format")
     description: str = Field(description="The transaction description or merchant name")
     amount: float = Field(description="The transaction amount (negative for expenses, positive for income/deposits)")
+    transaction_type: TransactionType = Field(
+        default=TransactionType.DEBIT,
+        description=(
+            "Type of this transaction. Set to 'internal_transfer' when money moves "
+            "between the account holder's own accounts at the same institution. "
+            "Examples: 'Deposit from 360 Performance Savings', 'Withdrawal to 360 Checking'."
+        )
+    )
+    account_id: Optional[str] = Field(
+        None,
+        description="Last 4 digits of the account this transaction belongs to, if the statement covers multiple accounts."
+    )
     provenance: Optional[Provenance] = Field(None, description="Source provenance for this transaction")
 
 class StatementExtractionSchema(BaseModel):
